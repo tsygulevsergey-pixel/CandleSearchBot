@@ -1,11 +1,11 @@
 export class BinanceRateLimiter {
   private weightUsed: number = 0;
-  private weightLimit: number = 1200;
+  private weightLimit: number = 2400; // Binance Futures: 2400 weight/minute
   private lastResetTime: number = Date.now();
   private requestQueue: Array<() => void> = [];
   private isProcessing: boolean = false;
 
-  constructor(weightLimit: number = 1200) {
+  constructor(weightLimit: number = 2400) {
     this.weightLimit = weightLimit;
   }
 
