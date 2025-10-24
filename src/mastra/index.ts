@@ -14,6 +14,9 @@ import { cryptoPatternAgent } from "./agents/cryptoPatternAgent";
 import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 import { scheduler } from "../services/scheduler";
 import { statisticsTool } from "./tools/statisticsTool";
+import { statusTool } from "./tools/statusTool";
+import { helpTool } from "./tools/helpTool";
+import { telegramBot } from "../utils/telegramBot";
 
 class ProductionPinoLogger extends MastraLogger {
   protected logger: pino.Logger;
@@ -64,7 +67,7 @@ export const mastra = new Mastra({
     allTools: new MCPServer({
       name: "allTools",
       version: "1.0.0",
-      tools: { statisticsTool },
+      tools: { statisticsTool, statusTool, helpTool },
     }),
   },
   bundler: {
@@ -164,4 +167,15 @@ if (Object.keys(mastra.getAgents()).length > 1) {
 }
 
 scheduler.start();
+
+// Initialize Telegram bot menu and send startup message
+(async () => {
+  try {
+    await telegramBot.setCommands();
+    await telegramBot.sendStartupMessage();
+  } catch (error) {
+    console.error('❌ [Mastra] Failed to initialize Telegram bot:', error);
+  }
+})();
+
 console.log('✅ [Mastra] Crypto pattern scanner initialized successfully');
