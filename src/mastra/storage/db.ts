@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { eq, and } from 'drizzle-orm';
+import { eq, and, or } from 'drizzle-orm';
 import { Pool } from 'pg';
 import { signals, type Signal, type NewSignal } from './schema';
 
@@ -16,7 +16,13 @@ export class SignalDB {
   }
 
   async getOpenSignals(): Promise<Signal[]> {
-    return await db.select().from(signals).where(eq(signals.status, 'OPEN'));
+    // Загружаем сигналы со статусом 'OPEN' И 'TP1_HIT' (чтобы отслеживать TP2)
+    return await db.select().from(signals).where(
+      or(
+        eq(signals.status, 'OPEN'),
+        eq(signals.status, 'TP1_HIT')
+      )
+    );
   }
 
   async hasOpenSignal(symbol: string): Promise<boolean> {
