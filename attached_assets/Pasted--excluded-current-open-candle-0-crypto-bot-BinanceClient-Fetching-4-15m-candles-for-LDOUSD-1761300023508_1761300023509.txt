@@ -1,0 +1,215 @@
+(excluded current open candle)
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 15m candles for LDOUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 188/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 188/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 188/2400
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for SOMIUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 189/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 189/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 189/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | ✅ [Pattern] Pin Bar BUY detected
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for TROYUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 190/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 190/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 190/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 15m candles for STRAXUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 191/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 191/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 191/2400
+0|crypto-bot  | 💰 [RiskCalculator] Levels for pinbar_buy LONG: {
+0|crypto-bot  |   entry: '0.00018700',
+0|crypto-bot  |   sl: '0.00018635',
+0|crypto-bot  |   tp1: '0.00018765',
+0|crypto-bot  |   tp2: '0.00018831',
+0|crypto-bot  |   R: '0.00000065'
+0|crypto-bot  | }
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 192/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | ✅ [Pattern] Pin Bar BUY detected
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for STRAXUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 193/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 193/2400)
+0|crypto-bot  | ✅ [Scanner] Telegram message sent successfully
+0|crypto-bot  | ✅ [Scanner] Signal created and sent: TROYUSDT pinbar_buy
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 1h candles for APTUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 194/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 194/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 193/2400
+0|crypto-bot  | 💰 [RiskCalculator] Levels for pinbar_buy LONG: {
+0|crypto-bot  |   entry: '1.41740000',
+0|crypto-bot  |   sl: '1.41243910',
+0|crypto-bot  |   tp1: '1.42236090',
+0|crypto-bot  |   tp2: '1.42732180',
+0|crypto-bot  |   R: '0.00496090'
+0|crypto-bot  | }
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 194/2400
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for DOGEUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 195/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 195/2400)
+0|crypto-bot  | ✅ [Scanner] Telegram message sent successfully
+0|crypto-bot  | ✅ [Scanner] Signal created and sent: STRAXUSDT pinbar_buy
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 15m candles for DYDXUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 196/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 196/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 195/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 1h candles for AVNTUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 196/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 196/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 196/2400
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for WLDUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 197/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 197/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 197/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 15m candles for LYNUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 198/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 198/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 198/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 1h candles for PAXGUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 199/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 199/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 199/2400
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for EDUUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 200/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 200/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 200/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | ✅ [Pattern] ППР SELL detected
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for LYNUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 201/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 201/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 201/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 1h candles for WLFIUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 202/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 202/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 202/2400
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for DYDXUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 203/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 203/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 203/2400
+0|crypto-bot  | 💰 [RiskCalculator] Levels for ppr_sell SHORT: {
+0|crypto-bot  |   entry: '0.14842000',
+0|crypto-bot  |   sl: '0.15261228',
+0|crypto-bot  |   tp1: '0.14422772',
+0|crypto-bot  |   tp2: '0.14003544',
+0|crypto-bot  |   R: '0.00419228'
+0|crypto-bot  | }
+0|crypto-bot  | ✅ [Scanner] Telegram message sent successfully
+0|crypto-bot  | ✅ [Scanner] Signal created and sent: LYNUSDT ppr_sell
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 15m candles for MLNUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 204/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 204/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 204/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | ✅ [Pattern] ППР SELL detected
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for WLFIUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 205/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 205/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 205/2400
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for RENUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 206/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 206/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 206/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | ✅ [Pattern] Pin Bar BUY detected
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for MLNUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 207/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 207/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 207/2400
+0|crypto-bot  | 💰 [RiskCalculator] Levels for ppr_sell SHORT: {
+0|crypto-bot  |   entry: '0.14100000',
+0|crypto-bot  |   sl: '0.14400225',
+0|crypto-bot  |   tp1: '0.13799775',
+0|crypto-bot  |   tp2: '0.13499550',
+0|crypto-bot  |   R: '0.00300225'
+0|crypto-bot  | }
+0|crypto-bot  | ✅ [Scanner] Telegram message sent successfully
+0|crypto-bot  | ✅ [Scanner] Signal created and sent: WLFIUSDT ppr_sell
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 1h candles for ENSOUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 208/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 208/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 208/2400
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for BNBUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 209/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 209/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 209/2400
+0|crypto-bot  | 💰 [RiskCalculator] Levels for pinbar_buy LONG: {
+0|crypto-bot  |   entry: '8.23100000',
+0|crypto-bot  |   sl: '8.12645750',
+0|crypto-bot  |   tp1: '8.33554250',
+0|crypto-bot  |   tp2: '8.44008500',
+0|crypto-bot  |   R: '0.10454250'
+0|crypto-bot  | }
+0|crypto-bot  | ✅ [Scanner] Telegram message sent successfully
+0|crypto-bot  | ✅ [Scanner] Signal created and sent: MLNUSDT pinbar_buy
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 15m candles for PROVEUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 210/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 210/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 210/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | ✅ [Pattern] Pin Bar BUY detected
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for ENSOUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 211/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 211/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 211/2400
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for AGIXUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 212/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 212/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 212/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | ✅ [Pattern] Pin Bar SELL detected
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for PROVEUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 213/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 213/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 213/2400
+0|crypto-bot  | 💰 [RiskCalculator] Levels for pinbar_buy LONG: {
+0|crypto-bot  |   entry: '1.59300000',
+0|crypto-bot  |   sl: '1.56749450',
+0|crypto-bot  |   tp1: '1.61850550',
+0|crypto-bot  |   tp2: '1.64401100',
+0|crypto-bot  |   R: '0.02550550'
+0|crypto-bot  | }
+0|crypto-bot  | ✅ [Scanner] Telegram message sent successfully
+0|crypto-bot  | ✅ [Scanner] Signal created and sent: ENSOUSDT pinbar_buy
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 1h candles for ADAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 214/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 214/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 214/2400
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for EDENUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 215/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 215/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 215/2400
+0|crypto-bot  | 💰 [RiskCalculator] Levels for pinbar_sell SHORT: {
+0|crypto-bot  |   entry: '0.99010000',
+0|crypto-bot  |   sl: '1.00380105',
+0|crypto-bot  |   tp1: '0.97639895',
+0|crypto-bot  |   tp2: '0.96269790',
+0|crypto-bot  |   R: '0.01370105'
+0|crypto-bot  | }
+0|crypto-bot  | ✅ [Scanner] Telegram message sent successfully
+0|crypto-bot  | ✅ [Scanner] Signal created and sent: PROVEUSDT pinbar_sell
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 15m candles for YBUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 216/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 216/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 216/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 📈 [BinanceClient] Fetching 4 1h candles for WLDUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 217/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 217/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 217/2400
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for NEIROETHUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 218/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 218/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 218/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 3 CLOSED candles (excluded current open candle)
+0|crypto-bot  | ✅ [Pattern] Pin Bar SELL detected
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for YBUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 219/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 219/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 219/2400
+0|crypto-bot  | ✅ [Bin
