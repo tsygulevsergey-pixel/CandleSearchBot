@@ -244,13 +244,18 @@ export class TelegramBot {
 • Win rate (TP1+): ${winRate1}%
 • Win rate (TP2): ${winRate2}%
 
+💰 <b>PnL (в R):</b>
+• PnL+: ${stats.pnlPositive.toFixed(1)}R
+• PnL-: ${stats.pnlNegative.toFixed(1)}R
+• Net PnL: ${stats.pnlNet >= 0 ? '+' : ''}${stats.pnlNet.toFixed(1)}R
+
 `;
 
     // Statistics by pattern
     if (Object.keys(stats.byPattern).length > 0) {
       message += `📊 <b>По паттернам:</b>\n`;
       for (const [pattern, pStatsRaw] of Object.entries(stats.byPattern)) {
-        const pStats = pStatsRaw as { total: number; tp1: number; tp2: number; sl: number; open: number };
+        const pStats = pStatsRaw as { total: number; tp1: number; tp2: number; sl: number; open: number; pnlPositive: number; pnlNegative: number; pnlNet: number };
         const pClosedSignals = pStats.tp1 + pStats.tp2 + pStats.sl;
         const pWinRate = pClosedSignals > 0
           ? (((pStats.tp1 + pStats.tp2) / pClosedSignals) * 100).toFixed(1)
@@ -258,6 +263,7 @@ export class TelegramBot {
         message += `\n<b>${pattern}:</b>\n`;
         message += `  • Всего: ${pStats.total} | Закрыто: ${pClosedSignals} | TP1: ${pStats.tp1} | TP2: ${pStats.tp2} | SL: ${pStats.sl}\n`;
         message += `  • Win rate: ${pWinRate}%\n`;
+        message += `  • PnL: ${pStats.pnlNet >= 0 ? '+' : ''}${pStats.pnlNet.toFixed(1)}R (${pStats.pnlPositive.toFixed(1)}R / ${pStats.pnlNegative.toFixed(1)}R)\n`;
       }
       message += '\n';
     }
@@ -266,7 +272,7 @@ export class TelegramBot {
     if (Object.keys(stats.byTimeframe).length > 0) {
       message += `⏱ <b>По таймфреймам:</b>\n`;
       for (const [tf, tfStatsRaw] of Object.entries(stats.byTimeframe)) {
-        const tfStats = tfStatsRaw as { total: number; tp1: number; tp2: number; sl: number; open: number };
+        const tfStats = tfStatsRaw as { total: number; tp1: number; tp2: number; sl: number; open: number; pnlPositive: number; pnlNegative: number; pnlNet: number };
         const tfClosedSignals = tfStats.tp1 + tfStats.tp2 + tfStats.sl;
         const tfWinRate = tfClosedSignals > 0
           ? (((tfStats.tp1 + tfStats.tp2) / tfClosedSignals) * 100).toFixed(1)
@@ -274,6 +280,7 @@ export class TelegramBot {
         message += `\n<b>${tf}:</b>\n`;
         message += `  • Всего: ${tfStats.total} | Закрыто: ${tfClosedSignals} | TP1: ${tfStats.tp1} | TP2: ${tfStats.tp2} | SL: ${tfStats.sl}\n`;
         message += `  • Win rate: ${tfWinRate}%\n`;
+        message += `  • PnL: ${tfStats.pnlNet >= 0 ? '+' : ''}${tfStats.pnlNet.toFixed(1)}R (${tfStats.pnlPositive.toFixed(1)}R / ${tfStats.pnlNegative.toFixed(1)}R)\n`;
       }
       message += '\n';
     }
@@ -295,11 +302,13 @@ export class TelegramBot {
   • Всего: ${stats.byDirection.LONG.total} | Закрыто: ${longClosedSignals}
   • TP1: ${stats.byDirection.LONG.tp1} | TP2: ${stats.byDirection.LONG.tp2} | SL: ${stats.byDirection.LONG.sl}
   • Win rate: ${longWinRate}%
+  • PnL: ${stats.byDirection.LONG.pnlNet >= 0 ? '+' : ''}${stats.byDirection.LONG.pnlNet.toFixed(1)}R (${stats.byDirection.LONG.pnlPositive.toFixed(1)}R / ${stats.byDirection.LONG.pnlNegative.toFixed(1)}R)
 
 <b>SHORT:</b>
   • Всего: ${stats.byDirection.SHORT.total} | Закрыто: ${shortClosedSignals}
   • TP1: ${stats.byDirection.SHORT.tp1} | TP2: ${stats.byDirection.SHORT.tp2} | SL: ${stats.byDirection.SHORT.sl}
   • Win rate: ${shortWinRate}%
+  • PnL: ${stats.byDirection.SHORT.pnlNet >= 0 ? '+' : ''}${stats.byDirection.SHORT.pnlNet.toFixed(1)}R (${stats.byDirection.SHORT.pnlPositive.toFixed(1)}R / ${stats.byDirection.SHORT.pnlNegative.toFixed(1)}R)
 `;
 
     await this.sendMessage(message.trim(), chatId);
