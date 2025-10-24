@@ -9,8 +9,11 @@ import { z } from "zod";
 
 import { sharedPostgresStorage } from "./storage";
 import { inngest, inngestServe } from "./inngest";
-import { exampleWorkflow } from "./workflows/exampleWorkflow";
-import { exampleAgent } from "./agents/exampleAgent";
+import { cryptoPatternWorkflow } from "./workflows/cryptoPatternWorkflow";
+import { cryptoPatternAgent } from "./agents/cryptoPatternAgent";
+import { registerTelegramTrigger } from "../triggers/telegramTriggers";
+import { scheduler } from "../services/scheduler";
+import { statisticsTool } from "./tools/statisticsTool";
 
 class ProductionPinoLogger extends MastraLogger {
   protected logger: pino.Logger;
@@ -55,15 +58,13 @@ class ProductionPinoLogger extends MastraLogger {
 
 export const mastra = new Mastra({
   storage: sharedPostgresStorage,
-  // Register your workflows here
-  workflows: {},
-  // Register your agents here
-  agents: {},
+  workflows: { cryptoPatternWorkflow },
+  agents: { cryptoPatternAgent },
   mcpServers: {
     allTools: new MCPServer({
       name: "allTools",
       version: "1.0.0",
-      tools: {},
+      tools: { statisticsTool },
     }),
   },
   bundler: {
@@ -112,20 +113,26 @@ export const mastra = new Mastra({
       },
     ],
     apiRoutes: [
-      // This API route is used to register the Mastra workflow (inngest function) on the inngest server
       {
         path: "/api/inngest",
         method: "ALL",
         createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
-        // The inngestServe function integrates Mastra workflows with Inngest by:
-        // 1. Creating Inngest functions for each workflow with unique IDs (workflow.${workflowId})
-        // 2. Setting up event handlers that:
-        //    - Generate unique run IDs for each workflow execution
-        //    - Create an InngestExecutionEngine to manage step execution
-        //    - Handle workflow state persistence and real-time updates
-        // 3. Establishing a publish-subscribe system for real-time monitoring
-        //    through the workflow:${workflowId}:${runId} channel
       },
+      ...registerTelegramTrigger({
+        triggerType: "telegram/message",
+        handler: async (mastra: Mastra, triggerInfo: any) => {
+          const logger = mastra.getLogger();
+          logger?.info("📨 [Telegram Trigger] Received message", { triggerInfo });
+
+          const run = await mastra.getWorkflow("crypto-pattern-workflow").createRunAsync();
+          await run.start({
+            inputData: {
+              message: JSON.stringify(triggerInfo.payload),
+              threadId: `telegram/${triggerInfo.payload.message?.message_id || Date.now()}`,
+            }
+          });
+        },
+      }),
     ],
   },
   logger:
@@ -155,3 +162,6 @@ if (Object.keys(mastra.getAgents()).length > 1) {
     "More than 1 agents found. Currently, more than 1 agents are not supported in the UI, since doing so will cause app state to be inconsistent.",
   );
 }
+
+scheduler.start();
+console.log('✅ [Mastra] Crypto pattern scanner initialized successfully');
