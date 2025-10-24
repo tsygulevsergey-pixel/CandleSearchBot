@@ -1,0 +1,26 @@
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# pm2 list
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 0  │ crypto-bot         │ fork     │ 0    │ online    │ 0%       │ 55.7mb   │
+│ 2  │ inngest-server     │ fork     │ 0    │ online    │ 0%       │ 61.1mb   │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# pm2 logs inngest-server
+[TAILING] Tailing last 15 lines for [inngest-server] process (change the value with --lines option)
+/root/.pm2/logs/inngest-server-out.log last 15 lines:
+/root/.pm2/logs/inngest-server-error.log last 15 lines:
+2|inngest- | /root/CandleSearchBot/scripts/inngest.sh: line 16: exec: inngest-cli: not found
+2|inngest- | /root/CandleSearchBot/scripts/inngest.sh: line 16: exec: inngest-cli: not found
+2|inngest- | {"time":"2025-10-24T09:06:38.540310427Z","level":"INFO","msg":"starting executor grpc server","svc":"executor","addr":":50053"}
+2|inngest- | {"time":"2025-10-24T09:06:38.556237414Z","level":"INFO","msg":"service starting","caller":"devserver","service":"devserver"}
+2|inngest- | {"time":"2025-10-24T09:06:38.557446546Z","level":"INFO","msg":"service starting","caller":"connect-gateway","service":"connect-gateway"}
+2|inngest- | {"time":"2025-10-24T09:06:38.557742285Z","level":"INFO","msg":"starting connect gateway grpc server","caller":"connect-gateway","addr":":50052"}
+2|inngest- | {"time":"2025-10-24T09:06:38.558975717Z","level":"INFO","msg":"starting event stream","backend":"redis"}
+2|inngest- | {"time":"2025-10-24T09:06:38.559051823Z","level":"INFO","msg":"service starting","caller":"runner","service":"runner"}
+2|inngest- | {"time":"2025-10-24T09:06:38.559350971Z","level":"INFO","msg":"subscribing to events","topic":"events"}
+2|inngest- | {"time":"2025-10-24T09:06:38.559580904Z","level":"INFO","msg":"service starting","caller":"executor","service":"executor"}
+2|inngest- | {"time":"2025-10-24T09:06:38.559610466Z","level":"INFO","msg":"subscribing to function queue"}
+2|inngest- | {"time":"2025-10-24T09:06:38.560175506Z","level":"INFO","msg":"service starting","caller":"api","service":"api"}
+2|inngest- | {"time":"2025-10-24T09:06:38.560221011Z","level":"INFO","msg":"starting server","caller":"api","addr":"127.0.0.1:3000"}
+2|inngest- | {"time":"2025-10-24T09:06:38.560357198Z","level":"INFO","msg":"autodiscovering locally hosted SDKs"}
+2|inngest- | {"time":"2025-10-24T09:06:38.560668211Z","level":"INFO","msg":"apps synced, disabling auto-discovery"}
