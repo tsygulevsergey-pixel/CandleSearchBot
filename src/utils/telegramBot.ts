@@ -223,11 +223,12 @@ export class TelegramBot {
       return;
     }
 
-    const winRate1 = stats.total > 0 
-      ? ((stats.tp1Hit + stats.tp2Hit) / stats.total * 100).toFixed(1)
+    const closedSignals = stats.tp1Hit + stats.tp2Hit + stats.slHit;
+    const winRate1 = closedSignals > 0 
+      ? ((stats.tp1Hit + stats.tp2Hit) / closedSignals * 100).toFixed(1)
       : '0.0';
-    const winRate2 = stats.total > 0
-      ? (stats.tp2Hit / stats.total * 100).toFixed(1)
+    const winRate2 = closedSignals > 0
+      ? (stats.tp2Hit / closedSignals * 100).toFixed(1)
       : '0.0';
 
     let message = `
@@ -236,6 +237,7 @@ export class TelegramBot {
 📈 <b>Общая статистика:</b>
 • Всего сигналов: ${stats.total}
 • Открыто: ${stats.open}
+• Закрыто: ${closedSignals}
 • TP1 достигнут: ${stats.tp1Hit}
 • TP2 достигнут: ${stats.tp2Hit}
 • SL сработал: ${stats.slHit}
@@ -249,11 +251,12 @@ export class TelegramBot {
       message += `📊 <b>По паттернам:</b>\n`;
       for (const [pattern, pStatsRaw] of Object.entries(stats.byPattern)) {
         const pStats = pStatsRaw as { total: number; tp1: number; tp2: number; sl: number; open: number };
-        const pWinRate = pStats.total > 0
-          ? (((pStats.tp1 + pStats.tp2) / pStats.total) * 100).toFixed(1)
+        const pClosedSignals = pStats.tp1 + pStats.tp2 + pStats.sl;
+        const pWinRate = pClosedSignals > 0
+          ? (((pStats.tp1 + pStats.tp2) / pClosedSignals) * 100).toFixed(1)
           : '0.0';
         message += `\n<b>${pattern}:</b>\n`;
-        message += `  • Всего: ${pStats.total} | TP1: ${pStats.tp1} | TP2: ${pStats.tp2} | SL: ${pStats.sl}\n`;
+        message += `  • Всего: ${pStats.total} | Закрыто: ${pClosedSignals} | TP1: ${pStats.tp1} | TP2: ${pStats.tp2} | SL: ${pStats.sl}\n`;
         message += `  • Win rate: ${pWinRate}%\n`;
       }
       message += '\n';
@@ -264,34 +267,37 @@ export class TelegramBot {
       message += `⏱ <b>По таймфреймам:</b>\n`;
       for (const [tf, tfStatsRaw] of Object.entries(stats.byTimeframe)) {
         const tfStats = tfStatsRaw as { total: number; tp1: number; tp2: number; sl: number; open: number };
-        const tfWinRate = tfStats.total > 0
-          ? (((tfStats.tp1 + tfStats.tp2) / tfStats.total) * 100).toFixed(1)
+        const tfClosedSignals = tfStats.tp1 + tfStats.tp2 + tfStats.sl;
+        const tfWinRate = tfClosedSignals > 0
+          ? (((tfStats.tp1 + tfStats.tp2) / tfClosedSignals) * 100).toFixed(1)
           : '0.0';
         message += `\n<b>${tf}:</b>\n`;
-        message += `  • Всего: ${tfStats.total} | TP1: ${tfStats.tp1} | TP2: ${tfStats.tp2} | SL: ${tfStats.sl}\n`;
+        message += `  • Всего: ${tfStats.total} | Закрыто: ${tfClosedSignals} | TP1: ${tfStats.tp1} | TP2: ${tfStats.tp2} | SL: ${tfStats.sl}\n`;
         message += `  • Win rate: ${tfWinRate}%\n`;
       }
       message += '\n';
     }
 
     // Statistics by direction
-    const longWinRate = stats.byDirection.LONG.total > 0
-      ? (((stats.byDirection.LONG.tp1 + stats.byDirection.LONG.tp2) / stats.byDirection.LONG.total) * 100).toFixed(1)
+    const longClosedSignals = stats.byDirection.LONG.tp1 + stats.byDirection.LONG.tp2 + stats.byDirection.LONG.sl;
+    const shortClosedSignals = stats.byDirection.SHORT.tp1 + stats.byDirection.SHORT.tp2 + stats.byDirection.SHORT.sl;
+    const longWinRate = longClosedSignals > 0
+      ? (((stats.byDirection.LONG.tp1 + stats.byDirection.LONG.tp2) / longClosedSignals) * 100).toFixed(1)
       : '0.0';
-    const shortWinRate = stats.byDirection.SHORT.total > 0
-      ? (((stats.byDirection.SHORT.tp1 + stats.byDirection.SHORT.tp2) / stats.byDirection.SHORT.total) * 100).toFixed(1)
+    const shortWinRate = shortClosedSignals > 0
+      ? (((stats.byDirection.SHORT.tp1 + stats.byDirection.SHORT.tp2) / shortClosedSignals) * 100).toFixed(1)
       : '0.0';
 
     message += `
 🎯 <b>По направлениям:</b>
 
 <b>LONG:</b>
-  • Всего: ${stats.byDirection.LONG.total}
+  • Всего: ${stats.byDirection.LONG.total} | Закрыто: ${longClosedSignals}
   • TP1: ${stats.byDirection.LONG.tp1} | TP2: ${stats.byDirection.LONG.tp2} | SL: ${stats.byDirection.LONG.sl}
   • Win rate: ${longWinRate}%
 
 <b>SHORT:</b>
-  • Всего: ${stats.byDirection.SHORT.total}
+  • Всего: ${stats.byDirection.SHORT.total} | Закрыто: ${shortClosedSignals}
   • TP1: ${stats.byDirection.SHORT.tp1} | TP2: ${stats.byDirection.SHORT.tp2} | SL: ${stats.byDirection.SHORT.sl}
   • Win rate: ${shortWinRate}%
 `;
