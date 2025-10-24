@@ -67,7 +67,7 @@ const sendReply = createStep({
     }
 
     try {
-      await axios.post(`https://api.telegram.com/bot${botToken}/sendMessage`, {
+      await axios.post(`https://api.telegram.org/bot${botToken}/sendMessage`, {
         chat_id: inputData.chatId,
         text: inputData.response,
         parse_mode: 'HTML',

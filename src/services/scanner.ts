@@ -20,7 +20,7 @@ export class Scanner {
     }
 
     try {
-      await axios.post(`https://api.telegram.com/bot${this.telegramBotToken}/sendMessage`, {
+      await axios.post(`https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`, {
         chat_id: this.telegramChatId,
         text: message,
         parse_mode: 'HTML',
