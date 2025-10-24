@@ -13,6 +13,14 @@ export interface CandleMetrics {
   close: number;
 }
 
+export interface TrendAnalysis {
+  ema50: number;
+  ema200: number;
+  isUptrend: boolean;
+  isDowntrend: boolean;
+  currentPrice: number;
+}
+
 export function analyzeCand(candle: Candle): CandleMetrics {
   const open = parseFloat(candle.open);
   const high = parseFloat(candle.high);
@@ -38,6 +46,112 @@ export function analyzeCand(candle: Candle): CandleMetrics {
     low,
     close,
   };
+}
+
+/**
+ * Расчет EMA (Exponential Moving Average)
+ */
+export function calculateEMA(candles: Candle[], period: number): number {
+  if (candles.length < period) {
+    console.warn(`⚠️ [EMA] Недостаточно свечей для EMA${period}: ${candles.length} < ${period}`);
+    return 0;
+  }
+
+  const closes = candles.map((c) => parseFloat(c.close));
+  const multiplier = 2 / (period + 1);
+
+  // Первая SMA как начальная точка
+  let ema = closes.slice(0, period).reduce((sum, val) => sum + val, 0) / period;
+
+  // Расчет EMA для остальных свечей
+  for (let i = period; i < closes.length; i++) {
+    ema = (closes[i] - ema) * multiplier + ema;
+  }
+
+  return ema;
+}
+
+/**
+ * Анализ тренда на основе EMA 50 и EMA 200
+ */
+export function analyzeTrend(candles: Candle[]): TrendAnalysis {
+  const ema50 = calculateEMA(candles, 50);
+  const ema200 = calculateEMA(candles, 200);
+  const currentPrice = parseFloat(candles[candles.length - 1].close);
+
+  const isUptrend = currentPrice > ema50 && ema50 > ema200;
+  const isDowntrend = currentPrice < ema50 && ema50 < ema200;
+
+  console.log(`📊 [Trend] Price: ${currentPrice.toFixed(2)}, EMA50: ${ema50.toFixed(2)}, EMA200: ${ema200.toFixed(2)} | Uptrend: ${isUptrend}, Downtrend: ${isDowntrend}`);
+
+  return {
+    ema50,
+    ema200,
+    isUptrend,
+    isDowntrend,
+    currentPrice,
+  };
+}
+
+/**
+ * Проверка, был ли резкий рост/падение перед паттерном
+ * (детектирует profit-taking паттерны, которые часто fail)
+ */
+export function hasSharpMoveBefore(candles: Candle[], direction: 'LONG' | 'SHORT'): boolean {
+  if (candles.length < 5) return false;
+
+  // Анализируем последние 3-5 свечей ПЕРЕД текущей
+  const recentCandles = candles.slice(-5, -1);
+  let consecutiveLargeCandles = 0;
+
+  for (const candle of recentCandles) {
+    const metrics = analyzeCand(candle);
+    const bodyPercent = metrics.body / metrics.range;
+    const isLargeBody = bodyPercent > 0.6;
+
+    if (direction === 'LONG') {
+      // Ищем подряд идущие зеленые свечи с большими телами
+      if (metrics.isGreen && isLargeBody) {
+        consecutiveLargeCandles++;
+      } else {
+        consecutiveLargeCandles = 0;
+      }
+    } else {
+      // Ищем подряд идущие красные свечи с большими телами
+      if (metrics.isRed && isLargeBody) {
+        consecutiveLargeCandles++;
+      } else {
+        consecutiveLargeCandles = 0;
+      }
+    }
+  }
+
+  const hasSharpMove = consecutiveLargeCandles >= 3;
+  
+  if (hasSharpMove) {
+    console.log(`⚠️ [Sharp Move] Обнаружено ${consecutiveLargeCandles} подряд больших свечей перед ${direction} паттерном - возможно profit-taking!`);
+  }
+
+  return hasSharpMove;
+}
+
+/**
+ * Проверка объема (должен быть выше среднего)
+ */
+export function isVolumeAboveAverage(candles: Candle[]): boolean {
+  if (candles.length < 21) return true; // Если мало данных, не фильтруем
+
+  const volumes = candles.map((c) => parseFloat(c.volume));
+  // Последние 20 свечей ДО текущей: берем с индекса -21 до -1 (не включая -1)
+  const last20Volumes = volumes.slice(volumes.length - 21, volumes.length - 1);
+  const avgVolume = last20Volumes.reduce((sum, vol) => sum + vol, 0) / last20Volumes.length;
+  const currentVolume = volumes[volumes.length - 1];
+
+  const isAboveAverage = currentVolume > avgVolume;
+
+  console.log(`📊 [Volume] Current: ${currentVolume.toFixed(0)}, Avg(${last20Volumes.length}): ${avgVolume.toFixed(0)} | Above avg: ${isAboveAverage}`);
+
+  return isAboveAverage;
 }
 
 export interface PatternResult {
@@ -201,20 +315,100 @@ export class PatternDetector {
   }
 
   detectAllPatterns(candles: Candle[]): PatternResult[] {
+    console.log(`\n🔍 [Pattern Detection] Starting pattern detection with ${candles.length} candles`);
+    
     const results: PatternResult[] = [];
 
+    // Фильтр 1: Анализ тренда (EMA 50/200)
+    const trend = analyzeTrend(candles);
+    
+    // Фильтр 2: Проверка объема
+    const hasGoodVolume = isVolumeAboveAverage(candles);
+    if (!hasGoodVolume) {
+      console.log(`❌ [Filter] REJECTED - Volume below average, skipping all patterns`);
+      return results;
+    }
+
+    // Детектируем паттерны
     const pinBar = this.detectPinBar(candles);
-    if (pinBar.detected) results.push(pinBar);
+    if (pinBar.detected && pinBar.direction) {
+      // Фильтр 3: Проверка направления тренда
+      const trendAligned = 
+        (pinBar.direction === 'LONG' && trend.isUptrend) ||
+        (pinBar.direction === 'SHORT' && trend.isDowntrend);
+
+      if (!trendAligned) {
+        console.log(`❌ [Filter] Pin Bar ${pinBar.direction} REJECTED - against trend (Uptrend: ${trend.isUptrend}, Downtrend: ${trend.isDowntrend})`);
+      } else {
+        // Фильтр 4: Проверка резких движений
+        const hasSharpMove = hasSharpMoveBefore(candles, pinBar.direction);
+        if (hasSharpMove) {
+          console.log(`❌ [Filter] Pin Bar ${pinBar.direction} REJECTED - sharp move detected (profit-taking pattern)`);
+        } else {
+          console.log(`✅ [Filter] Pin Bar ${pinBar.direction} PASSED all filters!`);
+          results.push(pinBar);
+        }
+      }
+    }
 
     const fakey = this.detectFakey(candles);
-    if (fakey.detected) results.push(fakey);
+    if (fakey.detected && fakey.direction) {
+      const trendAligned = 
+        (fakey.direction === 'LONG' && trend.isUptrend) ||
+        (fakey.direction === 'SHORT' && trend.isDowntrend);
+
+      if (!trendAligned) {
+        console.log(`❌ [Filter] Fakey ${fakey.direction} REJECTED - against trend`);
+      } else {
+        const hasSharpMove = hasSharpMoveBefore(candles, fakey.direction);
+        if (hasSharpMove) {
+          console.log(`❌ [Filter] Fakey ${fakey.direction} REJECTED - sharp move detected`);
+        } else {
+          console.log(`✅ [Filter] Fakey ${fakey.direction} PASSED all filters!`);
+          results.push(fakey);
+        }
+      }
+    }
 
     const ppr = this.detectPPR(candles);
-    if (ppr.detected) results.push(ppr);
+    if (ppr.detected && ppr.direction) {
+      const trendAligned = 
+        (ppr.direction === 'LONG' && trend.isUptrend) ||
+        (ppr.direction === 'SHORT' && trend.isDowntrend);
+
+      if (!trendAligned) {
+        console.log(`❌ [Filter] PPR ${ppr.direction} REJECTED - against trend`);
+      } else {
+        const hasSharpMove = hasSharpMoveBefore(candles, ppr.direction);
+        if (hasSharpMove) {
+          console.log(`❌ [Filter] PPR ${ppr.direction} REJECTED - sharp move detected`);
+        } else {
+          console.log(`✅ [Filter] PPR ${ppr.direction} PASSED all filters!`);
+          results.push(ppr);
+        }
+      }
+    }
 
     const engulfing = this.detectEngulfing(candles);
-    if (engulfing.detected) results.push(engulfing);
+    if (engulfing.detected && engulfing.direction) {
+      const trendAligned = 
+        (engulfing.direction === 'LONG' && trend.isUptrend) ||
+        (engulfing.direction === 'SHORT' && trend.isDowntrend);
 
+      if (!trendAligned) {
+        console.log(`❌ [Filter] Engulfing ${engulfing.direction} REJECTED - against trend`);
+      } else {
+        const hasSharpMove = hasSharpMoveBefore(candles, engulfing.direction);
+        if (hasSharpMove) {
+          console.log(`❌ [Filter] Engulfing ${engulfing.direction} REJECTED - sharp move detected`);
+        } else {
+          console.log(`✅ [Filter] Engulfing ${engulfing.direction} PASSED all filters!`);
+          results.push(engulfing);
+        }
+      }
+    }
+
+    console.log(`📊 [Pattern Detection] Total patterns passed filters: ${results.length}`);
     return results;
   }
 }

@@ -42,10 +42,10 @@ export class Scanner {
 
       for (const symbol of pairs) {
         try {
-          const candles = await binanceClient.getKlines(symbol, timeframe, 3);
+          const candles = await binanceClient.getKlines(symbol, timeframe, 200);
           
-          if (candles.length < 3) {
-            console.log(`⚠️ [Scanner] Insufficient candles for ${symbol}, skipping`);
+          if (candles.length < 200) {
+            console.log(`⚠️ [Scanner] Insufficient candles for ${symbol} (need 200, got ${candles.length}), skipping`);
             continue;
           }
 
