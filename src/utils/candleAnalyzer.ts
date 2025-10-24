@@ -53,13 +53,14 @@ export class PatternDetector {
 
     const C0 = analyzeCand(candles[candles.length - 1]);
 
+    // ЛОНГ: Зеленая свеча, длинный нижний фитиль
     if (C0.lowerWick >= 2 * C0.body && C0.lowerWick >= 2 * C0.upperWick) {
       const upperThird = C0.low + 0.66 * C0.range;
       const closeInUpperThird = C0.close >= upperThird;
       const smallBody = C0.body <= 0.35 * C0.range;
 
-      if (closeInUpperThird && smallBody) {
-        console.log(`✅ [Pattern] Pin Bar BUY detected`);
+      if (closeInUpperThird && smallBody && C0.isGreen) {
+        console.log(`✅ [Pattern] Pin Bar BUY detected (GREEN candle)`);
         return {
           detected: true,
           type: 'pinbar_buy',
@@ -69,13 +70,14 @@ export class PatternDetector {
       }
     }
 
+    // ШОРТ: Красная свеча, длинный верхний фитиль
     if (C0.upperWick >= 2 * C0.body && C0.upperWick >= 2 * C0.lowerWick) {
       const lowerThird = C0.high - 0.66 * C0.range;
       const closeInLowerThird = C0.close <= lowerThird;
       const smallBody = C0.body <= 0.35 * C0.range;
 
-      if (closeInLowerThird && smallBody) {
-        console.log(`✅ [Pattern] Pin Bar SELL detected`);
+      if (closeInLowerThird && smallBody && C0.isRed) {
+        console.log(`✅ [Pattern] Pin Bar SELL detected (RED candle)`);
         return {
           detected: true,
           type: 'pinbar_sell',
@@ -102,8 +104,9 @@ export class PatternDetector {
     const probeBelow = C0.low < C1.low;
     const closeAbove = C0.close > C1.high;
 
-    if (probeBelow && closeAbove) {
-      console.log(`✅ [Pattern] Fakey BUY detected`);
+    // ЛОНГ: C2 зеленая, C1 красная, C0 зеленая
+    if (probeBelow && closeAbove && C2.isGreen && C1.isRed && C0.isGreen) {
+      console.log(`✅ [Pattern] Fakey BUY detected (GREEN-RED-GREEN)`);
       return {
         detected: true,
         type: 'fakey_buy',
@@ -115,8 +118,9 @@ export class PatternDetector {
     const probeAbove = C0.high > C1.high;
     const closeBelow = C0.close < C1.low;
 
-    if (probeAbove && closeBelow) {
-      console.log(`✅ [Pattern] Fakey SELL detected`);
+    // ШОРТ: C2 красная, C1 зеленая, C0 красная
+    if (probeAbove && closeBelow && C2.isRed && C1.isGreen && C0.isRed) {
+      console.log(`✅ [Pattern] Fakey SELL detected (RED-GREEN-RED)`);
       return {
         detected: true,
         type: 'fakey_sell',
@@ -134,8 +138,9 @@ export class PatternDetector {
     const C0 = analyzeCand(candles[candles.length - 1]);
     const C1 = analyzeCand(candles[candles.length - 2]);
 
-    if (C0.close > C1.high) {
-      console.log(`✅ [Pattern] ППР BUY detected`);
+    // ЛОНГ: C1 красная, C0 зеленая, закрепляется выше максимума
+    if (C0.close > C1.high && C1.isRed && C0.isGreen) {
+      console.log(`✅ [Pattern] ППР BUY detected (RED->GREEN)`);
       return {
         detected: true,
         type: 'ppr_buy',
@@ -144,8 +149,9 @@ export class PatternDetector {
       };
     }
 
-    if (C0.close < C1.low) {
-      console.log(`✅ [Pattern] ППР SELL detected`);
+    // ШОРТ: C1 зеленая, C0 красная, закрепляется ниже минимума
+    if (C0.close < C1.low && C1.isGreen && C0.isRed) {
+      console.log(`✅ [Pattern] ППР SELL detected (GREEN->RED)`);
       return {
         detected: true,
         type: 'ppr_sell',
