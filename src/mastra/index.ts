@@ -11,7 +11,6 @@ import { sharedPostgresStorage } from "./storage";
 import { inngest, inngestServe } from "./inngest";
 import { cryptoPatternWorkflow } from "./workflows/cryptoPatternWorkflow";
 import { cryptoPatternAgent } from "./agents/cryptoPatternAgent";
-import { registerTelegramTrigger } from "../triggers/telegramTriggers";
 import { scheduler } from "../services/scheduler";
 import { statisticsTool } from "./tools/statisticsTool";
 import { statusTool } from "./tools/statusTool";
@@ -121,21 +120,6 @@ export const mastra = new Mastra({
         method: "ALL",
         createHandler: async ({ mastra }) => inngestServe({ mastra, inngest }),
       },
-      ...registerTelegramTrigger({
-        triggerType: "telegram/message",
-        handler: async (mastra: Mastra, triggerInfo: any) => {
-          const logger = mastra.getLogger();
-          logger?.info("📨 [Telegram Trigger] Received message", { triggerInfo });
-
-          const run = await mastra.getWorkflow("crypto-pattern-workflow").createRunAsync();
-          await run.start({
-            inputData: {
-              message: JSON.stringify(triggerInfo.payload),
-              threadId: `telegram/${triggerInfo.payload.message?.message_id || Date.now()}`,
-            }
-          });
-        },
-      }),
     ],
   },
   logger:
@@ -168,11 +152,13 @@ if (Object.keys(mastra.getAgents()).length > 1) {
 
 scheduler.start();
 
-// Initialize Telegram bot menu and send startup message
+// Initialize Telegram bot with polling
 (async () => {
   try {
     await telegramBot.setCommands();
     await telegramBot.sendStartupMessage();
+    await telegramBot.startPolling();
+    console.log('✅ [TelegramBot] Polling started successfully');
   } catch (error) {
     console.error('❌ [Mastra] Failed to initialize Telegram bot:', error);
   }
