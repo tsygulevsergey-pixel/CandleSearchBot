@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, decimal, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, decimal, pgEnum, integer } from 'drizzle-orm/pg-core';
 
 export const signalStatusEnum = pgEnum('signal_status', ['OPEN', 'TP1_HIT', 'TP2_HIT', 'SL_HIT']);
 export const signalDirectionEnum = pgEnum('signal_direction', ['LONG', 'SHORT']);
@@ -15,6 +15,7 @@ export const signals = pgTable('signals', {
   currentSl: decimal('current_sl', { precision: 18, scale: 8 }).notNull(),
   status: signalStatusEnum('status').default('OPEN').notNull(),
   direction: signalDirectionEnum('direction').notNull(),
+  telegramMessageId: integer('telegram_message_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });

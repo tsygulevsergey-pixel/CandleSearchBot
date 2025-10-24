@@ -13,21 +13,23 @@ export class Scanner {
     this.telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || '';
   }
 
-  async sendTelegramMessage(message: string): Promise<void> {
+  async sendTelegramMessage(message: string): Promise<number | null> {
     if (!this.telegramBotToken || !this.telegramChatId) {
       console.warn('⚠️ [Scanner] Telegram credentials not configured, skipping message send');
-      return;
+      return null;
     }
 
     try {
-      await axios.post(`https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`, {
+      const response = await axios.post(`https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`, {
         chat_id: this.telegramChatId,
         text: message,
         parse_mode: 'HTML',
       });
       console.log('✅ [Scanner] Telegram message sent successfully');
+      return response.data.result.message_id;
     } catch (error: any) {
       console.error('❌ [Scanner] Failed to send Telegram message:', error.message);
+      return null;
     }
   }
 
@@ -94,7 +96,11 @@ export class Scanner {
 🆔 Signal ID: ${signal.id}
             `.trim();
 
-            await this.sendTelegramMessage(message);
+            const messageId = await this.sendTelegramMessage(message);
+            if (messageId) {
+              await signalDB.updateTelegramMessageId(signal.id, messageId);
+              console.log(`✅ [Scanner] Saved Telegram message_id ${messageId} for signal ${signal.id}`);
+            }
             console.log(`✅ [Scanner] Signal created and sent: ${symbol} ${pattern.type}`);
           }
         } catch (error: any) {

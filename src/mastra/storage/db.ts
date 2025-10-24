@@ -32,6 +32,10 @@ export class SignalDB {
     await db.update(signals).set(updates).where(eq(signals.id, id));
   }
 
+  async updateTelegramMessageId(id: number, telegramMessageId: number): Promise<void> {
+    await db.update(signals).set({ telegramMessageId }).where(eq(signals.id, id));
+  }
+
   async getStatistics() {
     const allSignals = await db.select().from(signals);
     

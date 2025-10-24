@@ -12,18 +12,24 @@ export class SignalTracker {
     this.telegramBotToken = process.env.TELEGRAM_BOT_TOKEN || '';
   }
 
-  async sendTelegramMessage(message: string): Promise<void> {
+  async sendTelegramMessage(message: string, replyToMessageId?: number): Promise<void> {
     if (!this.telegramBotToken || !this.telegramChatId) {
       console.warn('⚠️ [SignalTracker] Telegram credentials not configured, skipping message send');
       return;
     }
 
     try {
-      await axios.post(`https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`, {
+      const payload: any = {
         chat_id: this.telegramChatId,
         text: message,
         parse_mode: 'HTML',
-      });
+      };
+
+      if (replyToMessageId) {
+        payload.reply_to_message_id = replyToMessageId;
+      }
+
+      await axios.post(`https://api.telegram.org/bot${this.telegramBotToken}/sendMessage`, payload);
       console.log('✅ [SignalTracker] Telegram message sent successfully');
     } catch (error: any) {
       console.error('❌ [SignalTracker] Failed to send Telegram message:', error.message);
@@ -81,7 +87,7 @@ ${statusEmoji} <b>ОБНОВЛЕНИЕ СИГНАЛА</b> ${statusEmoji}
 ${newSl ? `🔄 <b>Новый SL:</b> ${newSl.toFixed(8)}` : ''}
             `.trim();
 
-            await this.sendTelegramMessage(message);
+            await this.sendTelegramMessage(message, signal.telegramMessageId || undefined);
             console.log(`✅ [SignalTracker] Updated signal ${signal.id} to ${newStatus}`);
           }
         } catch (error: any) {
