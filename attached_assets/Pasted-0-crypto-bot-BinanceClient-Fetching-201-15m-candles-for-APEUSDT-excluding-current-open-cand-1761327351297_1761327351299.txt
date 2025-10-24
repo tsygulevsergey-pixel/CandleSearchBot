@@ -1,0 +1,1047 @@
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for APEUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 143/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 143/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 144/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.48, EMA50: 0.47, EMA200: 0.42 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 3422620, Avg(20): 2560095 | Above avg: true
+0|crypto-bot  | 📊 [Pattern Detection] Total patterns passed filters: 0
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for BNBUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 145/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 145/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 146/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1105.51, EMA50: 1117.49, EMA200: 1105.45 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 10930, Avg(20): 18729 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for CRVUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 147/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 147/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 148/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.53, EMA50: 0.53, EMA200: 0.53 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 945059, Avg(20): 2272919 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for PAXGUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 149/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 149/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 150/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 4111.97, EMA50: 4099.78, EMA200: 4103.06 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 499, Avg(20): 901 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for MYXUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 151/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 151/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 152/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 3.21, EMA50: 3.07, EMA200: 2.81 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 114748, Avg(20): 196665 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for XPINUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 153/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 153/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 154/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.01, EMA50: 0.01, EMA200: 0.01 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 160341263, Avg(20): 351110054 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for BNXUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 155/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 155/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 156/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 2.00, EMA50: 2.00, EMA200: 2.00 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for STBLUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 157/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 157/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 158/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.11, EMA50: 0.11, EMA200: 0.10 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 4629615, Avg(20): 10590962 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ZBTUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 159/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 159/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 160/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.26, EMA50: 0.26, EMA200: 0.26 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 1860770, Avg(20): 2362253 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for NEARUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 161/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 161/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 162/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 2.22, EMA50: 2.23, EMA200: 2.20 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 551635, Avg(20): 874922 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for PROVEUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 163/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 163/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 164/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1.00, EMA50: 0.97, EMA200: 0.87 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 602099, Avg(20): 985337 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for FILUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 165/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 165/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 166/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1.55, EMA50: 1.55, EMA200: 1.55 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 323483, Avg(20): 1107448 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ALGOUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 167/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 167/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 168/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.18, EMA50: 0.18, EMA200: 0.18 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 514331, Avg(20): 1877317 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for RVVUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 169/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 169/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 170/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.01, EMA50: 0.01, EMA200: 0.01 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 46172994, Avg(20): 87084677 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for DGBUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 171/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 171/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 172/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.02, EMA50: 0.02, EMA200: 0.02 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for B2USDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 173/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 173/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 174/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1.85, EMA50: 1.93, EMA200: 1.81 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 70947, Avg(20): 73059 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for SEIUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 175/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 175/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 176/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.19, EMA50: 0.19, EMA200: 0.19 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 1188028, Avg(20): 3654114 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ETCUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 177/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 177/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 178/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 15.78, EMA50: 15.79, EMA200: 15.65 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 16967, Avg(20): 63013 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for BLESSUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 179/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 179/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 180/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.04, EMA50: 0.04, EMA200: 0.04 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 23290499, Avg(20): 41980968 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for TROYUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 181/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 181/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 182/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.00, EMA50: 0.00, EMA200: 0.00 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for STRAXUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 183/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 183/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 184/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1.42, EMA50: 1.42, EMA200: 1.42 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for HANAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 185/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 185/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 186/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.05, EMA50: 0.05, EMA200: 0.05 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 2871521, Avg(20): 4835259 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ARBUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 187/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 187/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 188/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.31, EMA50: 0.32, EMA200: 0.31 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 1661748, Avg(20): 4319117 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for TIAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 189/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 189/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 190/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1.01, EMA50: 1.01, EMA200: 0.99 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 464662, Avg(20): 1091077 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for CELOUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 191/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 191/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 192/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.25, EMA50: 0.25, EMA200: 0.25 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 99769, Avg(20): 1515928 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for TURTLEUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 193/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 193/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 194/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.17, EMA50: 0.17, EMA200: 0.18 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 10199444, Avg(20): 11200532 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for BIOUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 195/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 195/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 196/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.09, EMA50: 0.09, EMA200: 0.08 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 3361753, Avg(20): 8616929 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for COAIUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 197/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 197/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 198/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 16.71, EMA50: 16.97, EMA200: 15.36 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 268788, Avg(20): 612039 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for TONUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 199/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 199/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 200/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 2.16, EMA50: 2.14, EMA200: 2.13 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 252418, Avg(20): 264628 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for 2ZUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 201/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 201/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 202/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.23, EMA50: 0.23, EMA200: 0.23 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 1160084, Avg(20): 1777710 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for AAVEUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 203/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 203/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 204/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 226.49, EMA50: 227.85, EMA200: 223.26 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 2914, Avg(20): 9395 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for LINEAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 205/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 205/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 206/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.02, EMA50: 0.02, EMA200: 0.02 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 7253762, Avg(20): 33932810 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for PUMPUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 207/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 207/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 208/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.00, EMA50: 0.00, EMA200: 0.00 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 553630440, Avg(20): 944309380 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for KDAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 209/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 209/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 210/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.06, EMA50: 0.06, EMA200: 0.06 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 7858111, Avg(20): 8498532 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for BSWUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 211/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 211/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 212/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.01, EMA50: 0.01, EMA200: 0.01 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for SNTUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 213/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 213/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 214/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.04, EMA50: 0.04, EMA200: 0.04 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for FTMUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 215/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 215/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 216/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.77, EMA50: 0.77, EMA200: 0.77 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for USELESSUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 217/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 217/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 218/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.27, EMA50: 0.29, EMA200: 0.29 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 1882211, Avg(20): 3580276 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for GIGGLEUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 219/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 219/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 220/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 93.30, EMA50: 98.56, EMA200: 107.94 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 10269, Avg(20): 13800 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for HBARUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 221/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 221/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 222/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.17, EMA50: 0.17, EMA200: 0.17 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 3373625, Avg(20): 5221383 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ALPHAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 223/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 223/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 224/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.02, EMA50: 0.02, EMA200: 0.02 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for UXLINKUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 225/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 225/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 226/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.07, EMA50: 0.07, EMA200: 0.07 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for LINAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 227/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 227/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 228/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.00, EMA50: 0.00, EMA200: 0.00 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for SOMIUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 229/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 229/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 230/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.51, EMA50: 0.51, EMA200: 0.50 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 284401, Avg(20): 489584 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for CLOUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 231/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 231/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 232/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.28, EMA50: 0.29, EMA200: 0.32 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 890578, Avg(20): 2040434 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for XLMUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 233/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 233/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 234/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.32, EMA50: 0.32, EMA200: 0.31 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 1683338, Avg(20): 6119346 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for GALAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 235/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 235/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 236/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.01, EMA50: 0.01, EMA200: 0.01 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 21428271, Avg(20): 45332460 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for BLUAIUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 237/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 237/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 238/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.03, EMA50: 0.02, EMA200: 0.02 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 30616374, Avg(20): 61570174 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ENAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 239/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 239/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 240/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.47, EMA50: 0.47, EMA200: 0.46 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 4521736, Avg(20): 9699849 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for BASUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 241/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 241/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 242/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.01, EMA50: 0.01, EMA200: 0.01 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 55277782, Avg(20): 99242026 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for OMNIUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 243/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 243/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 244/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 4.27, EMA50: 4.27, EMA200: 4.27 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for LTCUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 245/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 245/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 246/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 95.75, EMA50: 95.48, EMA200: 93.94 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 14109, Avg(20): 31823 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for SANDUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 247/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 247/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 248/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.21, EMA50: 0.21, EMA200: 0.21 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 443710, Avg(20): 1382071 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for SNXUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 249/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 249/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 250/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1.25, EMA50: 1.25, EMA200: 1.28 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 796908, Avg(20): 1073727 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for BARDUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 251/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 251/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 252/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.65, EMA50: 0.65, EMA200: 0.65 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 77529, Avg(20): 375923 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for 1000SHIBUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 253/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 253/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 254/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.01, EMA50: 0.01, EMA200: 0.01 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 41954928, Avg(20): 100355874 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for JUPUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 255/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 255/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 256/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.38, EMA50: 0.37, EMA200: 0.36 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 1634334, Avg(20): 2114709 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for INJUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 257/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 257/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 258/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 8.34, EMA50: 8.42, EMA200: 8.37 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 45217, Avg(20): 98654 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for SPXUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 259/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 259/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 260/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1.00, EMA50: 1.00, EMA200: 0.96 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 315650, Avg(20): 775345 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ONUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 261/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 261/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 262/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 36 CLOSED candles (excluded current open candle)
+0|crypto-bot  | ⚠️ [Scanner] Insufficient candles for ONUSDT (need 200, got 36), skipping
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for APRUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 263/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 263/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 264/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 124 CLOSED candles (excluded current open candle)
+0|crypto-bot  | ⚠️ [Scanner] Insufficient candles for APRUSDT (need 200, got 124), skipping
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for OPUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 265/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 265/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 266/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.44, EMA50: 0.44, EMA200: 0.43 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 800008, Avg(20): 2000299 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for AUCTIONUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 267/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 267/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 268/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 7.53, EMA50: 7.59, EMA200: 7.73 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 17178, Avg(20): 39773 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for NEIROETHUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 269/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 269/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 270/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.01, EMA50: 0.01, EMA200: 0.01 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for OPENUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 271/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 271/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 272/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.36, EMA50: 0.35, EMA200: 0.35 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 877921, Avg(20): 743367 | Above avg: true
+0|crypto-bot  | 📊 [Pattern Detection] Total patterns passed filters: 0
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ALPACAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 273/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 273/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 274/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1.19, EMA50: 1.19, EMA200: 1.19 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for MKRUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 275/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 275/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 276/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1650.10, EMA50: 1650.10, EMA200: 1650.10 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for AMBUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 277/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 277/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 278/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.00, EMA50: 0.00, EMA200: 0.00 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for LAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 279/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 279/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 280/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.43, EMA50: 0.43, EMA200: 0.43 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 292197, Avg(20): 606510 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for BTCUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 281/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 281/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 282/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 110449.90, EMA50: 110594.46, EMA200: 109569.73 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 801, Avg(20): 2353 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for PNUTUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 283/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 283/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 284/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.13, EMA50: 0.14, EMA200: 0.13 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 1065362, Avg(20): 2585467 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ZENUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 285/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 285/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 286/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 10.94, EMA50: 10.96, EMA200: 10.98 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 23298, Avg(20): 77650 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for COMBOUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 287/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 287/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 288/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.07, EMA50: 0.07, EMA200: 0.07 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for UNFIUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 289/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 289/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 290/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1.73, EMA50: 1.73, EMA200: 1.73 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for DOTUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 291/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 291/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 292/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 3.04, EMA50: 3.04, EMA200: 2.98 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 143901, Avg(20): 616938 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ICPUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 293/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 293/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 294/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 3.08, EMA50: 3.08, EMA200: 3.03 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 39217, Avg(20): 87644 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for SOLUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 295/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 295/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 296/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 191.50, EMA50: 191.38, EMA200: 188.04 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 139424, Avg(20): 401206 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for 1000PEPEUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 297/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 297/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 298/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.01, EMA50: 0.01, EMA200: 0.01 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 365681522, Avg(20): 839403086 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for MEMEFIUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 299/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 299/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 300/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.00, EMA50: 0.00, EMA200: 0.00 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for LEVERUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 301/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 301/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 302/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.00, EMA50: 0.00, EMA200: 0.00 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for VIDTUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 303/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 303/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 304/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.00, EMA50: 0.00, EMA200: 0.00 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for PIPPINUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 305/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 305/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 306/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.03, EMA50: 0.03, EMA200: 0.02 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 216417246, Avg(20): 198244213 | Above avg: true
+0|crypto-bot  | 📊 [Pattern Detection] Total patterns passed filters: 0
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for BANKUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 307/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 307/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 308/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.10, EMA50: 0.11, EMA200: 0.13 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 1932861, Avg(20): 5543737 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for RECALLUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 309/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 309/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 310/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.38, EMA50: 0.38, EMA200: 0.38 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 977413, Avg(20): 1651128 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for TRUMPUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 311/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 311/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 312/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 5.87, EMA50: 5.87, EMA200: 5.81 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 52717, Avg(20): 172838 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for KGENUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 313/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 313/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 314/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.33, EMA50: 0.28, EMA200: 0.25 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 19425690, Avg(20): 10827915 | Above avg: true
+0|crypto-bot  | 📊 [Pattern Detection] Total patterns passed filters: 0
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for XPLUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 315/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 315/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 316/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.36, EMA50: 0.37, EMA200: 0.36 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 3717280, Avg(20): 8560397 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for LIGHTUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 317/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 317/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 318/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 2.31, EMA50: 2.32, EMA200: 2.06 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 559197, Avg(20): 383300 | Above avg: true
+0|crypto-bot  | 📊 [Pattern Detection] Total patterns passed filters: 0
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for OCEANUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 319/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 319/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 320/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.71, EMA50: 0.71, EMA200: 0.71 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 0, Avg(20): 0 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for EPTUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 321/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 321/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 322/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.01, EMA50: 0.01, EMA200: 0.00 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 30611064, Avg(20): 53915236 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ATOMUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 323/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 323/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 324/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 3.14, EMA50: 3.16, EMA200: 3.16 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 85983, Avg(20): 163097 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for EDENUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 325/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 325/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 326/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.16, EMA50: 0.15, EMA200: 0.14 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 3231476, Avg(20): 6970210 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for YBUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 327/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 327/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 328/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.46, EMA50: 0.47, EMA200: 0.46 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 985415, Avg(20): 2540772 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for UBUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 329/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 329/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 330/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.05, EMA50: 0.06, EMA200: 0.05 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 3782562, Avg(20): 10689938 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for IPUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 331/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 331/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 332/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 5.33, EMA50: 5.28, EMA200: 5.20 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 56247, Avg(20): 225062 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for VIRTUALUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 333/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 333/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 334/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.90, EMA50: 0.87, EMA200: 0.79 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 1072893, Avg(20): 3856377 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ORDERUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 335/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 335/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 336/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.30, EMA50: 0.29, EMA200: 0.23 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 2444448, Avg(20): 8339229 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for DEGOUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 337/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 337/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 338/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1.69, EMA50: 1.50, EMA200: 1.62 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 1025731, Avg(20): 1475202 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for WUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 339/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 339/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 340/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.07, EMA50: 0.07, EMA200: 0.07 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 2094093, Avg(20): 4760336 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for LYNUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 341/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 341/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 342/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.16, EMA50: 0.15, EMA200: 0.14 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 2516707, Avg(20): 1872156 | Above avg: true
+0|crypto-bot  | 📊 [Pattern Detection] Total patterns passed filters: 0
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for FORMUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 343/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 343/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 344/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.70, EMA50: 0.70, EMA200: 0.71 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 2595346, Avg(20): 1274029 | Above avg: true
+0|crypto-bot  | 📊 [Pattern Detection] Total patterns passed filters: 0
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for DYDXUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 345/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 345/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 346/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.33, EMA50: 0.33, EMA200: 0.32 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 987867, Avg(20): 1530437 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for SUIUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 347/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 347/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 348/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 2.48, EMA50: 2.47, EMA200: 2.44 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 1172161, Avg(20): 3096674 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for DOGEUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 349/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 349/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 350/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.20, EMA50: 0.20, EMA200: 0.19 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 28984214, Avg(20): 96702113 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for MIRAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 351/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 351/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 352/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.33, EMA50: 0.32, EMA200: 0.31 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 1850777, Avg(20): 1244571 | Above avg: true
+0|crypto-bot  | 📊 [Pattern Detection] Total patterns passed filters: 0
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for HYPEUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 353/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 353/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 354/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 39.04, EMA50: 39.61, EMA200: 38.74 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 53135, Avg(20): 140965 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for 1000FLOKIUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 355/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 355/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 356/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.07, EMA50: 0.07, EMA200: 0.07 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 3914952, Avg(20): 8837387 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ETHUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 357/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 357/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 358/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 3899.88, EMA50: 3919.84, EMA200: 3869.57 | Uptrend: false, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 37936, Avg(20): 78553 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for FETUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 359/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 359/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 360/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.26, EMA50: 0.26, EMA200: 0.25 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 1996339, Avg(20): 2874134 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for PENDLEUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 361/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 361/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 362/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 3.14, EMA50: 3.12, EMA200: 3.10 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 59111, Avg(20): 163963 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for BERAUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 363/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 363/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 364/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 1.91, EMA50: 1.94, EMA200: 1.98 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 91562, Avg(20): 200789 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for DASHUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 365/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 365/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 366/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 40.13, EMA50: 41.13, EMA200: 41.96 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 5331, Avg(20): 19536 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for ZECUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 367/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 367/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 368/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 257.92, EMA50: 256.93, EMA200: 245.97 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 23656, Avg(20): 36263 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for LINKUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 369/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 369/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 370/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 17.72, EMA50: 17.63, EMA200: 17.43 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 135302, Avg(20): 271802 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for FUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 371/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 371/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 372/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 0.02, EMA50: 0.02, EMA200: 0.02 | Uptrend: true, Downtrend: false
+0|crypto-bot  | 📊 [Volume] Current: 214225958, Avg(20): 276816194 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | 📈 [BinanceClient] Fetching 201 15m candles for MLNUSDT (excluding current open candle)...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 373/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 373/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 374/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 200 CLOSED candles (excluded current open candle)
+0|crypto-bot  | 🔍 [Pattern Detection] Starting pattern detection with 200 candles
+0|crypto-bot  | 📊 [Trend] Price: 7.70, EMA50: 8.08, EMA200: 8.34 | Uptrend: false, Downtrend: true
+0|crypto-bot  | 📊 [Volume] Current: 18892, Avg(20): 42245 | Above avg: false
+0|crypto-bot  | ❌ [Filter] REJECTED - Volume below average, skipping all patterns
+0|crypto-bot  | ✅ [Scanner] Completed scan for 15m
+0|crypto-bot  | 👀 [SignalTracker] Checking open signals...
+0|crypto-bot  | 📊 [SignalTracker] Found 0 open signals
+0|crypto-bot  | ✅ [SignalTracker] Completed signal tracking
+0|crypto-bot  | 📨 [TelegramBot] Received message from 436451652: /stats
+0|crypto-bot  | 📨 [TelegramBot] Handling command: /stats
+0|crypto-bot  | 📊 [TelegramBot] Fetching statistics...
+0|crypto-bot  | ✅ [TelegramBot] Message sent successfully
+  
