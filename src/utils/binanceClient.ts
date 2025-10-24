@@ -53,21 +53,23 @@ export class BinanceClient {
   }
 
   async getKlines(symbol: string, interval: string, limit: number = 3): Promise<Candle[]> {
-    console.log(`📈 [BinanceClient] Fetching ${limit} ${interval} candles for ${symbol}...`);
+    // Request one extra candle because the last one is always the current OPEN candle
+    const requestLimit = limit + 1;
+    console.log(`📈 [BinanceClient] Fetching ${requestLimit} ${interval} candles for ${symbol} (excluding current open candle)...`);
     
     const response = await binanceRateLimiter.executeRequest(1, async () => {
       return await axios.get(`${BINANCE_FUTURES_API}/fapi/v1/klines`, {
         params: {
           symbol,
           interval,
-          limit,
+          limit: requestLimit,
         },
       });
     });
 
     binanceRateLimiter.updateWeightFromResponse(response.headers);
 
-    const candles: Candle[] = response.data.map((k: any) => ({
+    const allCandles: Candle[] = response.data.map((k: any) => ({
       openTime: k[0],
       open: k[1],
       high: k[2],
@@ -77,7 +79,11 @@ export class BinanceClient {
       closeTime: k[6],
     }));
 
-    return candles;
+    // Remove the last candle (current open candle) and return only CLOSED candles
+    const closedCandles = allCandles.slice(0, -1);
+    console.log(`✅ [BinanceClient] Returning ${closedCandles.length} CLOSED candles (excluded current open candle)`);
+    
+    return closedCandles;
   }
 
   async getCurrentPrice(symbol: string): Promise<number> {
