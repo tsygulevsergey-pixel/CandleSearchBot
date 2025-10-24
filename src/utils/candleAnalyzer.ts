@@ -154,11 +154,211 @@ export function isVolumeAboveAverage(candles: Candle[]): boolean {
   return isAboveAverage;
 }
 
+export interface SRZone {
+  type: 'support' | 'resistance';
+  price: number;
+  touches: number; // Количество касаний
+  strength: 'weak' | 'medium' | 'strong'; // weak=2, medium=3-4, strong=5+
+}
+
+export interface SRAnalysis {
+  nearestSupport: SRZone | null;
+  nearestResistance: SRZone | null;
+  allZones: SRZone[];
+}
+
 export interface PatternResult {
   detected: boolean;
   type?: 'pinbar_buy' | 'pinbar_sell' | 'fakey_buy' | 'fakey_sell' | 'ppr_buy' | 'ppr_sell' | 'engulfing_buy' | 'engulfing_sell';
   direction?: 'LONG' | 'SHORT';
   entryPrice?: number;
+  srAnalysis?: SRAnalysis; // Добавляем S/R зоны
+  score?: number; // Добавляем scoring
+}
+
+/**
+ * Поиск Swing High (локальный максимум)
+ * Свеча является Swing High, если 2 свечи слева и 2 справа имеют МЕНЬШИЙ максимум
+ */
+function findSwingHighs(candles: Candle[], lookback: number = 2): number[] {
+  const swingHighs: number[] = [];
+  
+  for (let i = lookback; i < candles.length - lookback; i++) {
+    const currentHigh = parseFloat(candles[i].high);
+    let isSwingHigh = true;
+    
+    // Проверяем lookback свечей слева и справа
+    for (let j = 1; j <= lookback; j++) {
+      const leftHigh = parseFloat(candles[i - j].high);
+      const rightHigh = parseFloat(candles[i + j].high);
+      
+      if (leftHigh >= currentHigh || rightHigh >= currentHigh) {
+        isSwingHigh = false;
+        break;
+      }
+    }
+    
+    if (isSwingHigh) {
+      swingHighs.push(currentHigh);
+    }
+  }
+  
+  return swingHighs;
+}
+
+/**
+ * Поиск Swing Low (локальный минимум)
+ * Свеча является Swing Low, если 2 свечи слева и 2 справа имеют БОЛЬШИЙ минимум
+ */
+function findSwingLows(candles: Candle[], lookback: number = 2): number[] {
+  const swingLows: number[] = [];
+  
+  for (let i = lookback; i < candles.length - lookback; i++) {
+    const currentLow = parseFloat(candles[i].low);
+    let isSwingLow = true;
+    
+    // Проверяем lookback свечей слева и справа
+    for (let j = 1; j <= lookback; j++) {
+      const leftLow = parseFloat(candles[i - j].low);
+      const rightLow = parseFloat(candles[i + j].low);
+      
+      if (leftLow <= currentLow || rightLow <= currentLow) {
+        isSwingLow = false;
+        break;
+      }
+    }
+    
+    if (isSwingLow) {
+      swingLows.push(currentLow);
+    }
+  }
+  
+  return swingLows;
+}
+
+/**
+ * Группировка уровней в зоны (clustering)
+ * Уровни в пределах tolerance% объединяются в одну зону
+ */
+function clusterLevels(levels: number[], tolerance: number = 0.005): SRZone[] {
+  if (levels.length === 0) return [];
+  
+  const sortedLevels = [...levels].sort((a, b) => a - b);
+  const zones: SRZone[] = [];
+  
+  let currentZone: number[] = [sortedLevels[0]];
+  
+  for (let i = 1; i < sortedLevels.length; i++) {
+    const level = sortedLevels[i];
+    const zoneCenter = currentZone.reduce((sum, l) => sum + l, 0) / currentZone.length;
+    const diff = Math.abs(level - zoneCenter) / zoneCenter;
+    
+    if (diff <= tolerance) {
+      // Уровень близко к текущей зоне - добавляем
+      currentZone.push(level);
+    } else {
+      // Создаем новую зону из накопленных уровней
+      if (currentZone.length >= 2) {
+        const avgPrice = currentZone.reduce((sum, l) => sum + l, 0) / currentZone.length;
+        const touches = currentZone.length;
+        const strength: 'weak' | 'medium' | 'strong' = 
+          touches >= 5 ? 'strong' : touches >= 3 ? 'medium' : 'weak';
+        
+        zones.push({
+          type: 'support', // Тип определим позже
+          price: avgPrice,
+          touches,
+          strength,
+        });
+      }
+      
+      currentZone = [level];
+    }
+  }
+  
+  // Добавляем последнюю зону
+  if (currentZone.length >= 2) {
+    const avgPrice = currentZone.reduce((sum, l) => sum + l, 0) / currentZone.length;
+    const touches = currentZone.length;
+    const strength: 'weak' | 'medium' | 'strong' = 
+      touches >= 5 ? 'strong' : touches >= 3 ? 'medium' : 'weak';
+    
+    zones.push({
+      type: 'support',
+      price: avgPrice,
+      touches,
+      strength,
+    });
+  }
+  
+  return zones;
+}
+
+/**
+ * Анализ S/R зон на основе 200 свечей
+ */
+export function analyzeSRZones(candles: Candle[]): SRAnalysis {
+  if (candles.length < 50) {
+    return {
+      nearestSupport: null,
+      nearestResistance: null,
+      allZones: [],
+    };
+  }
+  
+  const currentPrice = parseFloat(candles[candles.length - 1].close);
+  
+  // Находим все локальные экстремумы
+  const swingHighs = findSwingHighs(candles);
+  const swingLows = findSwingLows(candles);
+  
+  console.log(`🔍 [S/R] Found ${swingHighs.length} swing highs, ${swingLows.length} swing lows`);
+  
+  // Группируем в зоны
+  const resistanceZones = clusterLevels(swingHighs, 0.005).map(z => ({ ...z, type: 'resistance' as const }));
+  const supportZones = clusterLevels(swingLows, 0.005).map(z => ({ ...z, type: 'support' as const }));
+  
+  // Фильтруем только зоны с 3+ касаниями (сильные и средние)
+  const strongResistances = resistanceZones.filter(z => z.touches >= 3 && z.price > currentPrice);
+  const strongSupports = supportZones.filter(z => z.touches >= 3 && z.price < currentPrice);
+  
+  // Находим ближайшие зоны
+  const nearestResistance = strongResistances.length > 0
+    ? strongResistances.reduce((closest, zone) => 
+        Math.abs(zone.price - currentPrice) < Math.abs(closest.price - currentPrice) ? zone : closest
+      )
+    : null;
+  
+  const nearestSupport = strongSupports.length > 0
+    ? strongSupports.reduce((closest, zone) => 
+        Math.abs(zone.price - currentPrice) < Math.abs(closest.price - currentPrice) ? zone : closest
+      )
+    : null;
+  
+  const allZones = [...strongResistances, ...strongSupports];
+  
+  console.log(`📊 [S/R] Found ${allZones.length} strong zones (3+ touches)`);
+  if (nearestSupport) {
+    console.log(`   📍 Nearest Support: ${nearestSupport.price.toFixed(4)} (${nearestSupport.touches} touches, ${nearestSupport.strength})`);
+  }
+  if (nearestResistance) {
+    console.log(`   📍 Nearest Resistance: ${nearestResistance.price.toFixed(4)} (${nearestResistance.touches} touches, ${nearestResistance.strength})`);
+  }
+  
+  return {
+    nearestSupport,
+    nearestResistance,
+    allZones,
+  };
+}
+
+/**
+ * Проверка близости паттерна к S/R зоне
+ * Возвращает расстояние в процентах (null если нет зоны)
+ */
+export function getDistanceToZone(price: number, zone: SRZone | null): number | null {
+  if (!zone) return null;
+  return Math.abs(price - zone.price) / zone.price;
 }
 
 export class PatternDetector {
@@ -319,92 +519,134 @@ export class PatternDetector {
     
     const results: PatternResult[] = [];
 
-    // Фильтр 1: Анализ тренда (EMA 50/200)
+    // Анализ тренда (EMA 50/200)
     const trend = analyzeTrend(candles);
     
-    // Фильтр 2: Проверка объема
+    // Анализ S/R зон
+    const srAnalysis = analyzeSRZones(candles);
+    
+    // Проверка объема
     const hasGoodVolume = isVolumeAboveAverage(candles);
     if (!hasGoodVolume) {
       console.log(`❌ [Filter] REJECTED - Volume below average, skipping all patterns`);
       return results;
     }
 
-    // Детектируем паттерны
-    const pinBar = this.detectPinBar(candles);
-    if (pinBar.detected && pinBar.direction) {
-      // Фильтр 3: Проверка направления тренда
-      const trendAligned = 
-        (pinBar.direction === 'LONG' && trend.isUptrend) ||
-        (pinBar.direction === 'SHORT' && trend.isDowntrend);
+    // Детектируем паттерны и оцениваем их
+    const patterns = [
+      this.detectPinBar(candles),
+      this.detectFakey(candles),
+      this.detectPPR(candles),
+      this.detectEngulfing(candles),
+    ];
 
-      if (!trendAligned) {
-        console.log(`❌ [Filter] Pin Bar ${pinBar.direction} REJECTED - against trend (Uptrend: ${trend.isUptrend}, Downtrend: ${trend.isDowntrend})`);
-      } else {
-        // Фильтр 4: Проверка резких движений
-        const hasSharpMove = hasSharpMoveBefore(candles, pinBar.direction);
-        if (hasSharpMove) {
-          console.log(`❌ [Filter] Pin Bar ${pinBar.direction} REJECTED - sharp move detected (profit-taking pattern)`);
+    for (const pattern of patterns) {
+      if (!pattern.detected || !pattern.direction || !pattern.entryPrice) continue;
+
+      // Добавляем S/R анализ к паттерну
+      pattern.srAnalysis = srAnalysis;
+
+      // === SCORING SYSTEM ===
+      let score = 0;
+      const patternName = pattern.type?.replace('_buy', '').replace('_sell', '').toUpperCase();
+      
+      console.log(`\n💯 [Scoring] ${patternName} ${pattern.direction}:`);
+
+      // 1️⃣ S/R ZONE SCORE (КРИТИЧНЫЙ GATING ФИЛЬТР)
+      const distanceToSupport = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestSupport);
+      const distanceToResistance = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestResistance);
+      
+      const isNearSupport = distanceToSupport !== null && distanceToSupport < 0.005; // < 0.5%
+      const isNearResistance = distanceToResistance !== null && distanceToResistance < 0.005;
+
+      // GATING: Отклоняем паттерны у НЕПРАВИЛЬНОЙ зоны
+      if (pattern.direction === 'LONG') {
+        if (isNearResistance && !isNearSupport) {
+          // LONG у Resistance - REJECT
+          console.log(`   ❌ S/R GATING: REJECT - LONG у Resistance зоны (неправильная сторона)\n`);
+          continue;
+        }
+        if (isNearSupport) {
+          score += 100;
+          console.log(`   ✅ S/R: +100 (у Support зоны ${srAnalysis.nearestSupport?.price.toFixed(4)})`);
         } else {
-          console.log(`✅ [Filter] Pin Bar ${pinBar.direction} PASSED all filters!`);
-          results.push(pinBar);
+          score += 50;
+          console.log(`   ⚠️ S/R: +50 (НЕ у зоны - слабый сигнал)`);
+        }
+      } else { // SHORT
+        if (isNearSupport && !isNearResistance) {
+          // SHORT у Support - REJECT
+          console.log(`   ❌ S/R GATING: REJECT - SHORT у Support зоны (неправильная сторона)\n`);
+          continue;
+        }
+        if (isNearResistance) {
+          score += 100;
+          console.log(`   ✅ S/R: +100 (у Resistance зоны ${srAnalysis.nearestResistance?.price.toFixed(4)})`);
+        } else {
+          score += 50;
+          console.log(`   ⚠️ S/R: +50 (НЕ у зоны - слабый сигнал)`);
         }
       }
-    }
 
-    const fakey = this.detectFakey(candles);
-    if (fakey.detected && fakey.direction) {
+      // 2️⃣ EMA TREND SCORE
       const trendAligned = 
-        (fakey.direction === 'LONG' && trend.isUptrend) ||
-        (fakey.direction === 'SHORT' && trend.isDowntrend);
+        (pattern.direction === 'LONG' && trend.isUptrend) ||
+        (pattern.direction === 'SHORT' && trend.isDowntrend);
+      
+      const weakTrend = 
+        (pattern.direction === 'LONG' && trend.currentPrice > trend.ema50 && Math.abs(trend.ema50 - trend.ema200) / trend.ema200 < 0.02) ||
+        (pattern.direction === 'SHORT' && trend.currentPrice < trend.ema50 && Math.abs(trend.ema50 - trend.ema200) / trend.ema200 < 0.02);
 
-      if (!trendAligned) {
-        console.log(`❌ [Filter] Fakey ${fakey.direction} REJECTED - against trend`);
+      if (trendAligned) {
+        score += 30;
+        console.log(`   ✅ Trend: +30 (сильный тренд aligned)`);
+      } else if (weakTrend) {
+        score += 15;
+        console.log(`   ⚠️ Trend: +15 (слабый тренд)`);
       } else {
-        const hasSharpMove = hasSharpMoveBefore(candles, fakey.direction);
-        if (hasSharpMove) {
-          console.log(`❌ [Filter] Fakey ${fakey.direction} REJECTED - sharp move detected`);
-        } else {
-          console.log(`✅ [Filter] Fakey ${fakey.direction} PASSED all filters!`);
-          results.push(fakey);
-        }
+        score += 0;
+        console.log(`   ❌ Trend: +0 (против тренда)`);
       }
-    }
 
-    const ppr = this.detectPPR(candles);
-    if (ppr.detected && ppr.direction) {
-      const trendAligned = 
-        (ppr.direction === 'LONG' && trend.isUptrend) ||
-        (ppr.direction === 'SHORT' && trend.isDowntrend);
+      // 3️⃣ VOLUME SCORE
+      const volumes = candles.map((c) => parseFloat(c.volume));
+      const last20Volumes = volumes.slice(volumes.length - 21, volumes.length - 1);
+      const avgVolume = last20Volumes.reduce((sum, vol) => sum + vol, 0) / last20Volumes.length;
+      const currentVolume = volumes[volumes.length - 1];
+      const volumeRatio = currentVolume / avgVolume;
 
-      if (!trendAligned) {
-        console.log(`❌ [Filter] PPR ${ppr.direction} REJECTED - against trend`);
+      if (volumeRatio > 1.5) {
+        score += 30;
+        console.log(`   ✅ Volume: +30 (${volumeRatio.toFixed(2)}x average)`);
+      } else if (volumeRatio > 1.0) {
+        score += 15;
+        console.log(`   ⚠️ Volume: +15 (${volumeRatio.toFixed(2)}x average)`);
       } else {
-        const hasSharpMove = hasSharpMoveBefore(candles, ppr.direction);
-        if (hasSharpMove) {
-          console.log(`❌ [Filter] PPR ${ppr.direction} REJECTED - sharp move detected`);
-        } else {
-          console.log(`✅ [Filter] PPR ${ppr.direction} PASSED all filters!`);
-          results.push(ppr);
-        }
+        score += 0;
+        console.log(`   ❌ Volume: +0 (${volumeRatio.toFixed(2)}x average)`);
       }
-    }
 
-    const engulfing = this.detectEngulfing(candles);
-    if (engulfing.detected && engulfing.direction) {
-      const trendAligned = 
-        (engulfing.direction === 'LONG' && trend.isUptrend) ||
-        (engulfing.direction === 'SHORT' && trend.isDowntrend);
-
-      if (!trendAligned) {
-        console.log(`❌ [Filter] Engulfing ${engulfing.direction} REJECTED - against trend`);
+      // 4️⃣ SHARP MOVE SCORE
+      const hasSharpMove = hasSharpMoveBefore(candles, pattern.direction);
+      if (!hasSharpMove) {
+        score += 20;
+        console.log(`   ✅ Sharp Move: +20 (нет profit-taking)`);
       } else {
-        const hasSharpMove = hasSharpMoveBefore(candles, engulfing.direction);
-        if (hasSharpMove) {
-          console.log(`❌ [Filter] Engulfing ${engulfing.direction} REJECTED - sharp move detected`);
-        } else {
-          console.log(`✅ [Filter] Engulfing ${engulfing.direction} PASSED all filters!`);
-          results.push(engulfing);
-        }
+        score += 0;
+        console.log(`   ❌ Sharp Move: +0 (обнаружен profit-taking)`);
+      }
+
+      // === ИТОГОВАЯ ОЦЕНКА ===
+      pattern.score = score;
+      console.log(`   🎯 ИТОГО: ${score} баллов`);
+
+      // Минимальный порог: 130 баллов (GOOD signal)
+      if (score >= 130) {
+        const quality = score >= 150 ? '⭐⭐⭐ PREMIUM' : '⭐⭐ GOOD';
+        console.log(`   ✅ ${quality} - сигнал ПРИНЯТ!\n`);
+        results.push(pattern);
+      } else {
+        console.log(`   ❌ ОТКЛОНЕН (score < 130)\n`);
       }
     }
 

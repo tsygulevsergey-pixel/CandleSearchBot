@@ -86,9 +86,22 @@ export class Scanner {
 
             const directionText = pattern.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
             const patternName = pattern.type.replace('_', ' ').toUpperCase();
+            
+            // Форматирование S/R зон
+            const supportZoneText = pattern.srAnalysis?.nearestSupport 
+              ? `${pattern.srAnalysis.nearestSupport.price.toFixed(8)} (${pattern.srAnalysis.nearestSupport.touches} касаний)`
+              : 'Не обнаружена';
+            
+            const resistanceZoneText = pattern.srAnalysis?.nearestResistance
+              ? `${pattern.srAnalysis.nearestResistance.price.toFixed(8)} (${pattern.srAnalysis.nearestResistance.touches} касаний)`
+              : 'Не обнаружена';
+            
+            // Рейтинг сигнала
+            const scoreEmoji = pattern.score && pattern.score >= 150 ? '⭐⭐⭐' : '⭐⭐';
+            const scoreText = pattern.score ? ` | Score: ${pattern.score}` : '';
 
             const message = `
-🚨 <b>НОВЫЙ СИГНАЛ</b> 🚨
+🚨 <b>НОВЫЙ СИГНАЛ ${scoreEmoji}</b> 🚨
 
 💎 <b>Монета:</b> ${symbol}
 📊 <b>Направление:</b> ${directionText}
@@ -100,7 +113,10 @@ export class Scanner {
 🎯 <b>Take Profit 1:</b> ${levels.tp1.toFixed(8)}
 🎯 <b>Take Profit 2:</b> ${levels.tp2.toFixed(8)}
 
-🆔 Signal ID: ${signal.id}
+📊 <b>Зона поддержки:</b> ${supportZoneText}
+📊 <b>Зона сопротивления:</b> ${resistanceZoneText}
+
+🆔 Signal ID: ${signal.id}${scoreText}
             `.trim();
 
             const messageId = await this.sendTelegramMessage(message);
