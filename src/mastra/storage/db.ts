@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { Pool } from 'pg';
 import { signals, type Signal, type NewSignal } from './schema';
 
@@ -17,6 +17,15 @@ export class SignalDB {
 
   async getOpenSignals(): Promise<Signal[]> {
     return await db.select().from(signals).where(eq(signals.status, 'OPEN'));
+  }
+
+  async hasOpenSignal(symbol: string): Promise<boolean> {
+    const openSignals = await db.select().from(signals)
+      .where(and(
+        eq(signals.symbol, symbol),
+        eq(signals.status, 'OPEN')
+      ));
+    return openSignals.length > 0;
   }
 
   async updateSignalStatus(id: number, status: 'TP1_HIT' | 'TP2_HIT' | 'SL_HIT', currentSl?: string): Promise<void> {

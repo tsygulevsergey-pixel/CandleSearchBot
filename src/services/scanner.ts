@@ -56,6 +56,13 @@ export class Scanner {
               continue;
             }
 
+            // Проверяем, есть ли уже открытый сигнал на эту монету
+            const hasOpenSignal = await signalDB.hasOpenSignal(symbol);
+            if (hasOpenSignal) {
+              console.log(`⏭️ [Scanner] Skipping ${symbol} - already has an open signal`);
+              continue;
+            }
+
             const currentPrice = await binanceClient.getCurrentPrice(symbol);
             const levels = riskCalculator.calculateLevels(
               pattern.type,
