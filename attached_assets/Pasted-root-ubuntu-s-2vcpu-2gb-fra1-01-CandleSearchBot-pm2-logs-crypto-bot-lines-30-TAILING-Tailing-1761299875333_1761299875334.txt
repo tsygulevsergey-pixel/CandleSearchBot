@@ -1,0 +1,34 @@
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# pm2 logs crypto-bot --lines 30
+[TAILING] Tailing last 30 lines for [crypto-bot] process (change the value with --lines option)
+/root/.pm2/logs/crypto-bot-error.log last 30 lines:
+/root/.pm2/logs/crypto-bot-out.log last 30 lines:
+0|crypto-b | 💰 [BinanceClient] Fetching current price for XPINUSDT...
+0|crypto-b | ✅ [RateLimiter] Request allowed: 14/2400
+0|crypto-b | 🚀 [RateLimiter] Executing request (weight: 1, total: 14/2400)
+0|crypto-b | 📊 [RateLimiter] Binance reports weight used: 14/2400
+0|crypto-b | 💰 [BinanceClient] Fetching current price for TIAUSDT...
+0|crypto-b | ✅ [RateLimiter] Request allowed: 15/2400
+0|crypto-b | 🚀 [RateLimiter] Executing request (weight: 1, total: 15/2400)
+0|crypto-b | 📊 [RateLimiter] Binance reports weight used: 15/2400
+0|crypto-b | 💰 [BinanceClient] Fetching current price for SLERFUSDT...
+0|crypto-b | ✅ [RateLimiter] Request allowed: 16/2400
+0|crypto-b | 🚀 [RateLimiter] Executing request (weight: 1, total: 16/2400)
+0|crypto-b | 📊 [RateLimiter] Binance reports weight used: 16/2400
+0|crypto-b | 💰 [BinanceClient] Fetching current price for ETHFIUSDT...
+0|crypto-b | ✅ [RateLimiter] Request allowed: 17/2400
+0|crypto-b | 🚀 [RateLimiter] Executing request (weight: 1, total: 17/2400)
+0|crypto-b | 📊 [RateLimiter] Binance reports weight used: 17/2400
+0|crypto-b | 💰 [BinanceClient] Fetching current price for OMNIUSDT...
+0|crypto-b | ✅ [RateLimiter] Request allowed: 18/2400
+0|crypto-b | 🚀 [RateLimiter] Executing request (weight: 1, total: 18/2400)
+0|crypto-b | 📊 [RateLimiter] Binance reports weight used: 18/2400
+0|crypto-b | 💰 [BinanceClient] Fetching current price for SUIUSDT...
+0|crypto-b | ✅ [RateLimiter] Request allowed: 19/2400
+0|crypto-b | 🚀 [RateLimiter] Executing request (weight: 1, total: 19/2400)
+0|crypto-b | 
+0|crypto-b | ✓ Dev server stopped
+0|crypto-b | 
+0|crypto-b | > agent-stack-mastra@1.0.0 dev
+0|crypto-b | > mastra dev
+0|crypto-b | 
+0|crypto-b | ◐ Preparing development environment...
