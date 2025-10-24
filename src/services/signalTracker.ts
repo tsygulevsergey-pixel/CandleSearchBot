@@ -64,12 +64,32 @@ export class SignalTracker {
               newSl !== undefined ? newSl.toString() : undefined
             );
 
-            const statusEmoji = newStatus === 'TP1_HIT' ? '🎯' : newStatus === 'TP2_HIT' ? '💎' : '🛑';
-            const statusText = newStatus === 'TP1_HIT' 
-              ? 'TP1 ДОСТИГНУТ! SL перенесен в безубыток.' 
-              : newStatus === 'TP2_HIT'
-              ? 'TP2 ДОСТИГНУТ! Полная прибыль!' 
-              : 'STOP LOSS сработал.';
+            // Определяем тип закрытия
+            const entryPrice = parseFloat(signal.entryPrice);
+            const isBreakeven = newStatus === 'SL_HIT' && 
+              Math.abs(parseFloat(signal.currentSl) - entryPrice) < entryPrice * 0.0001; // 0.01% tolerance
+
+            let statusEmoji: string;
+            let statusText: string;
+
+            if (newStatus === 'TP1_HIT') {
+              statusEmoji = '🎯';
+              statusText = 'TP1 ДОСТИГНУТ! SL перенесен в безубыток.';
+            } else if (newStatus === 'TP2_HIT') {
+              statusEmoji = '💎';
+              statusText = 'TP2 ДОСТИГНУТ! Полная прибыль!';
+            } else if (newStatus === 'SL_HIT') {
+              if (isBreakeven) {
+                statusEmoji = '⚖️';
+                statusText = 'Позиция закрыта в БЕЗУБЫТКЕ после TP1.';
+              } else {
+                statusEmoji = '🛑';
+                statusText = 'STOP LOSS сработал.';
+              }
+            } else {
+              statusEmoji = '❓';
+              statusText = 'Статус обновлен.';
+            }
 
             const directionText = signal.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
 
@@ -88,7 +108,7 @@ ${newSl ? `🔄 <b>Новый SL:</b> ${newSl.toFixed(8)}` : ''}
             `.trim();
 
             await this.sendTelegramMessage(message, signal.telegramMessageId || undefined);
-            console.log(`✅ [SignalTracker] Updated signal ${signal.id} to ${newStatus}`);
+            console.log(`✅ [SignalTracker] Updated signal ${signal.id} to ${newStatus}${isBreakeven ? ' (BREAKEVEN)' : ''}`);
           }
         } catch (error: any) {
           console.error(`❌ [SignalTracker] Error tracking signal ${signal.id}:`, error.message);
