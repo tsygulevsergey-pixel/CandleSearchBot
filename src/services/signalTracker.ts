@@ -66,30 +66,66 @@ export class SignalTracker {
 
             // Определяем тип закрытия
             const entryPrice = parseFloat(signal.entryPrice);
+            const tp1Price = parseFloat(signal.tp1Price);
+            const tp2Price = parseFloat(signal.tp2Price);
+            const slPrice = parseFloat(signal.slPrice);
             const isBreakeven = newStatus === 'SL_HIT' && 
               Math.abs(parseFloat(signal.currentSl) - entryPrice) < entryPrice * 0.0001; // 0.01% tolerance
 
             let statusEmoji: string;
             let statusText: string;
+            let pnl = 0;
 
             if (newStatus === 'TP1_HIT') {
               statusEmoji = '🎯';
               statusText = 'TP1 ДОСТИГНУТ! SL перенесен в безубыток.';
+              // TP1: 50% позиции от entry до TP1
+              if (signal.direction === 'LONG') {
+                pnl = ((tp1Price - entryPrice) / entryPrice) * 100 * 0.5;
+              } else {
+                pnl = ((entryPrice - tp1Price) / entryPrice) * 100 * 0.5;
+              }
             } else if (newStatus === 'TP2_HIT') {
               statusEmoji = '💎';
               statusText = 'TP2 ДОСТИГНУТ! Полная прибыль!';
+              // TP2: 50% от entry до TP1 + 50% от entry до TP2
+              if (signal.direction === 'LONG') {
+                const pnlTp1 = ((tp1Price - entryPrice) / entryPrice) * 100 * 0.5;
+                const pnlTp2 = ((tp2Price - entryPrice) / entryPrice) * 100 * 0.5;
+                pnl = pnlTp1 + pnlTp2;
+              } else {
+                const pnlTp1 = ((entryPrice - tp1Price) / entryPrice) * 100 * 0.5;
+                const pnlTp2 = ((entryPrice - tp2Price) / entryPrice) * 100 * 0.5;
+                pnl = pnlTp1 + pnlTp2;
+              }
             } else if (newStatus === 'SL_HIT') {
               if (isBreakeven) {
                 statusEmoji = '⚖️';
                 statusText = 'Позиция закрыта в БЕЗУБЫТКЕ после TP1.';
+                // Breakeven: 50% закрыто на TP1, 50% в ноль
+                if (signal.direction === 'LONG') {
+                  pnl = ((tp1Price - entryPrice) / entryPrice) * 100 * 0.5;
+                } else {
+                  pnl = ((entryPrice - tp1Price) / entryPrice) * 100 * 0.5;
+                }
               } else {
                 statusEmoji = '🛑';
                 statusText = 'STOP LOSS сработал.';
+                // SL: полный убыток
+                if (signal.direction === 'LONG') {
+                  pnl = ((slPrice - entryPrice) / entryPrice) * 100;
+                } else {
+                  pnl = ((entryPrice - slPrice) / entryPrice) * 100;
+                }
               }
             } else {
               statusEmoji = '❓';
               statusText = 'Статус обновлен.';
             }
+
+            // Форматируем PnL
+            const pnlSign = pnl >= 0 ? '+' : '';
+            const pnlText = pnl !== 0 ? `\n💵 <b>PnL:</b> ${pnlSign}${pnl.toFixed(2)}%` : '';
 
             const directionText = signal.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
 
@@ -101,7 +137,7 @@ ${statusEmoji} <b>ОБНОВЛЕНИЕ СИГНАЛА</b> ${statusEmoji}
 📊 <b>Направление:</b> ${directionText}
 ⏰ <b>Таймфрейм:</b> ${signal.timeframe}
 
-<b>${statusText}</b>
+<b>${statusText}</b>${pnlText}
 
 💰 <b>Текущая цена:</b> ${currentPrice.toFixed(8)}
 ${newSl ? `🔄 <b>Новый SL:</b> ${newSl.toFixed(8)}` : ''}
