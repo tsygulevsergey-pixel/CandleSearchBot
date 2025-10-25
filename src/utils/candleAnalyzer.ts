@@ -705,6 +705,7 @@ export class PatternDetector {
       let score = 0;
       const patternName = pattern.type?.replace('_buy', '').replace('_sell', '').toUpperCase();
       const isPinbar = pattern.type?.startsWith('pinbar');
+      const isFakey = pattern.type?.startsWith('fakey');
       
       console.log(`\n💯 [Scoring] ${patternName} ${pattern.direction}:`);
 
@@ -713,45 +714,49 @@ export class PatternDetector {
         score = 200; // Автоматически PREMIUM уровень
         console.log(`   🎯 PINBAR AUTO-PASS: score=200 (игнорируем S/R и Trend фильтры)`);
       } else {
-        // Для остальных паттернов применяем S/R и Trend фильтры
+        // Для остальных паттернов применяем фильтры
         
-        // 1️⃣ S/R ZONE SCORE (КРИТИЧНЫЙ GATING ФИЛЬТР)
-        const distanceToSupport = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestSupport);
-        const distanceToResistance = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestResistance);
-        
-        const isNearSupport = distanceToSupport !== null && distanceToSupport < 0.005; // < 0.5%
-        const isNearResistance = distanceToResistance !== null && distanceToResistance < 0.005;
+        // 1️⃣ S/R ZONE SCORE (только для PPR и Engulfing, НЕ для Fakey)
+        if (!isFakey) {
+          const distanceToSupport = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestSupport);
+          const distanceToResistance = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestResistance);
+          
+          const isNearSupport = distanceToSupport !== null && distanceToSupport < 0.005; // < 0.5%
+          const isNearResistance = distanceToResistance !== null && distanceToResistance < 0.005;
 
-        // GATING: Отклоняем паттерны у НЕПРАВИЛЬНОЙ зоны
-        if (pattern.direction === 'LONG') {
-          if (isNearResistance && !isNearSupport) {
-            // LONG у Resistance - REJECT
-            console.log(`   ❌ S/R GATING: REJECT - LONG у Resistance зоны (неправильная сторона)\n`);
-            continue;
+          // GATING: Отклоняем паттерны у НЕПРАВИЛЬНОЙ зоны
+          if (pattern.direction === 'LONG') {
+            if (isNearResistance && !isNearSupport) {
+              // LONG у Resistance - REJECT
+              console.log(`   ❌ S/R GATING: REJECT - LONG у Resistance зоны (неправильная сторона)\n`);
+              continue;
+            }
+            if (isNearSupport) {
+              score += 100;
+              console.log(`   ✅ S/R: +100 (у Support зоны ${srAnalysis.nearestSupport?.price.toFixed(4)})`);
+            } else {
+              score += 50;
+              console.log(`   ⚠️ S/R: +50 (НЕ у зоны - слабый сигнал)`);
+            }
+          } else { // SHORT
+            if (isNearSupport && !isNearResistance) {
+              // SHORT у Support - REJECT
+              console.log(`   ❌ S/R GATING: REJECT - SHORT у Support зоны (неправильная сторона)\n`);
+              continue;
+            }
+            if (isNearResistance) {
+              score += 100;
+              console.log(`   ✅ S/R: +100 (у Resistance зоны ${srAnalysis.nearestResistance?.price.toFixed(4)})`);
+            } else {
+              score += 50;
+              console.log(`   ⚠️ S/R: +50 (НЕ у зоны - слабый сигнал)`);
+            }
           }
-          if (isNearSupport) {
-            score += 100;
-            console.log(`   ✅ S/R: +100 (у Support зоны ${srAnalysis.nearestSupport?.price.toFixed(4)})`);
-          } else {
-            score += 50;
-            console.log(`   ⚠️ S/R: +50 (НЕ у зоны - слабый сигнал)`);
-          }
-        } else { // SHORT
-          if (isNearSupport && !isNearResistance) {
-            // SHORT у Support - REJECT
-            console.log(`   ❌ S/R GATING: REJECT - SHORT у Support зоны (неправильная сторона)\n`);
-            continue;
-          }
-          if (isNearResistance) {
-            score += 100;
-            console.log(`   ✅ S/R: +100 (у Resistance зоны ${srAnalysis.nearestResistance?.price.toFixed(4)})`);
-          } else {
-            score += 50;
-            console.log(`   ⚠️ S/R: +50 (НЕ у зоны - слабый сигнал)`);
-          }
+        } else {
+          console.log(`   ⏭️ S/R: ПРОПУЩЕН (Fakey не использует S/R)`);
         }
 
-        // 2️⃣ EMA TREND SCORE
+        // 2️⃣ EMA TREND SCORE (для всех паттернов кроме Pin Bar)
         const trendAligned = 
           (pattern.direction === 'LONG' && trend.isUptrend) ||
           (pattern.direction === 'SHORT' && trend.isDowntrend);
