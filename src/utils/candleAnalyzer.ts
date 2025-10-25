@@ -708,37 +708,118 @@ export class PatternDetector {
     return { detected: false };
   }
 
-  detectEngulfing(candles: Candle[]): PatternResult {
-    if (candles.length < 2) return { detected: false };
+  detectEngulfing(candles: Candle[], timeframe?: string): PatternResult {
+    // Нужно минимум 2 свечи + история для ATR
+    if (candles.length < 6) return { detected: false };
 
-    const C0 = analyzeCand(candles[candles.length - 1]);
-    const C1 = analyzeCand(candles[candles.length - 2]);
+    console.log(`\n🔍 [Engulfing] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
-    const engulfs = C0.high >= C1.high && C0.low <= C1.low;
+    // Параметры по таймфреймам
+    const tfParams = {
+      '15m': { gamma: 0.175, bodyRatio: 1.3, minBodyATR: 1.1 },
+      '1h':  { gamma: 0.15,  bodyRatio: 1.2, minBodyATR: 1.0 },
+      '4h':  { gamma: 0.125, bodyRatio: 1.1, minBodyATR: 0.8 },
+    };
+    
+    const params = tfParams[timeframe as keyof typeof tfParams] || tfParams['1h'];
+    const { gamma, bodyRatio, minBodyATR } = params;
+    
+    const atr = this.calculateATR(candles, 5);
+    
+    console.log(`   📊 ATR=${atr.toFixed(8)}, γ=${gamma}, bodyRatio=${bodyRatio}, minBodyATR=${minBodyATR}`);
 
-    if (engulfs && C0.isGreen && C1.isRed) {
-      const strongBody = C0.body >= C1.body && C0.close > C1.open;
-      if (strongBody) {
-        console.log(`✅ [Pattern] Engulfing BUY detected`);
-        return {
-          detected: true,
-          type: 'engulfing_buy',
-          direction: 'LONG',
-          entryPrice: C0.close,
-        };
+    // Bar₁ и Bar₂ (поглощающая)
+    const Bar1 = analyzeCand(candles[candles.length - 2]); // C1 (поглощаемая)
+    const Bar2 = analyzeCand(candles[candles.length - 1]); // C0 (поглощающая)
+    
+    console.log(`\n   🔎 Checking Engulfing:`);
+    console.log(`      Bar₁: O=${Bar1.open.toFixed(8)}, C=${Bar1.close.toFixed(8)}, B=${Bar1.body.toFixed(8)}, color=${Bar1.isGreen ? 'GREEN' : 'RED'}`);
+    console.log(`      Bar₂: O=${Bar2.open.toFixed(8)}, C=${Bar2.close.toFixed(8)}, H=${Bar2.high.toFixed(8)}, L=${Bar2.low.toFixed(8)}, B=${Bar2.body.toFixed(8)}, R=${Bar2.range.toFixed(8)}, color=${Bar2.isGreen ? 'GREEN' : 'RED'}`);
+
+    // Общие константы
+    const EDGE_MAX = 0.25;
+    
+    // Проверка импульсности Bar₂
+    // 1. B₂ ≥ k_body·B₁
+    const bodyRatioActual = Bar1.body > 0 ? Bar2.body / Bar1.body : 0;
+    const bodyRatioOK = bodyRatioActual >= bodyRatio;
+    if (!bodyRatioOK) {
+      console.log(`   ❌ Body ratio too small: ${bodyRatioActual.toFixed(2)} < ${bodyRatio}`);
+      return { detected: false };
+    }
+    console.log(`   ✅ Body ratio OK: ${bodyRatioActual.toFixed(2)} >= ${bodyRatio}`);
+    
+    // 2. B₂ ≥ k_ATR·ATR
+    const bodySizeOK = Bar2.body >= minBodyATR * atr;
+    if (!bodySizeOK) {
+      console.log(`   ❌ Body too small: ${Bar2.body.toFixed(8)} < ${(minBodyATR * atr).toFixed(8)}`);
+      return { detected: false };
+    }
+    console.log(`   ✅ Body size OK: ${Bar2.body.toFixed(8)} >= ${(minBodyATR * atr).toFixed(8)}`);
+
+    // ========== LONG (бычье поглощение) ==========
+    // Цвет: Bar₁ RED, Bar₂ GREEN
+    // Поглощение: O₂ ≤ C₁ − γ·ATR, C₂ ≥ O₁ + γ·ATR
+    if (Bar1.isRed && Bar2.isGreen) {
+      const gammaBuffer = gamma * atr;
+      
+      // Проверка поглощения с запасом
+      const openEngulfsBottom = Bar2.open <= Bar1.close - gammaBuffer;
+      const closeEngulfsTop = Bar2.close >= Bar1.open + gammaBuffer;
+      
+      console.log(`   🔍 BUY candidate (цвет: RED→GREEN ✅):`);
+      console.log(`      O₂ ≤ C₁ − γ·ATR: ${Bar2.open.toFixed(8)} <= ${(Bar1.close - gammaBuffer).toFixed(8)} ${openEngulfsBottom ? '✅' : '❌'}`);
+      console.log(`      C₂ ≥ O₁ + γ·ATR: ${Bar2.close.toFixed(8)} >= ${(Bar1.open + gammaBuffer).toFixed(8)} ${closeEngulfsTop ? '✅' : '❌'}`);
+      
+      if (openEngulfsBottom && closeEngulfsTop) {
+        // Проверка закрытия у верха: (H₂ - C₂) / R₂ ≤ 0.25
+        const closeAtTopFraction = Bar2.range > 0 ? (Bar2.high - Bar2.close) / Bar2.range : 1;
+        const closeAtTopOK = closeAtTopFraction <= EDGE_MAX;
+        
+        console.log(`      Close at top: ${(closeAtTopFraction * 100).toFixed(1)}% <= ${(EDGE_MAX * 100).toFixed(1)}% ${closeAtTopOK ? '✅' : '❌'}`);
+        
+        if (closeAtTopOK) {
+          console.log(`   ✅✅ [Pattern] Engulfing BUY detected (RED→GREEN с γ-запасом)`);
+          return {
+            detected: true,
+            type: 'engulfing_buy',
+            direction: 'LONG',
+            entryPrice: Bar2.close,
+          };
+        }
       }
     }
 
-    if (engulfs && C0.isRed && C1.isGreen) {
-      const strongBody = C0.body >= C1.body && C0.close < C1.open;
-      if (strongBody) {
-        console.log(`✅ [Pattern] Engulfing SELL detected`);
-        return {
-          detected: true,
-          type: 'engulfing_sell',
-          direction: 'SHORT',
-          entryPrice: C0.close,
-        };
+    // ========== SHORT (медвежье поглощение) ==========
+    // Цвет: Bar₁ GREEN, Bar₂ RED
+    // Поглощение: O₂ ≥ C₁ + γ·ATR, C₂ ≤ O₁ − γ·ATR
+    if (Bar1.isGreen && Bar2.isRed) {
+      const gammaBuffer = gamma * atr;
+      
+      // Проверка поглощения с запасом
+      const openEngulfsTop = Bar2.open >= Bar1.close + gammaBuffer;
+      const closeEngulfsBottom = Bar2.close <= Bar1.open - gammaBuffer;
+      
+      console.log(`   🔍 SELL candidate (цвет: GREEN→RED ✅):`);
+      console.log(`      O₂ ≥ C₁ + γ·ATR: ${Bar2.open.toFixed(8)} >= ${(Bar1.close + gammaBuffer).toFixed(8)} ${openEngulfsTop ? '✅' : '❌'}`);
+      console.log(`      C₂ ≤ O₁ − γ·ATR: ${Bar2.close.toFixed(8)} <= ${(Bar1.open - gammaBuffer).toFixed(8)} ${closeEngulfsBottom ? '✅' : '❌'}`);
+      
+      if (openEngulfsTop && closeEngulfsBottom) {
+        // Проверка закрытия у низа: (C₂ - L₂) / R₂ ≤ 0.25
+        const closeAtBottomFraction = Bar2.range > 0 ? (Bar2.close - Bar2.low) / Bar2.range : 1;
+        const closeAtBottomOK = closeAtBottomFraction <= EDGE_MAX;
+        
+        console.log(`      Close at bottom: ${(closeAtBottomFraction * 100).toFixed(1)}% <= ${(EDGE_MAX * 100).toFixed(1)}% ${closeAtBottomOK ? '✅' : '❌'}`);
+        
+        if (closeAtBottomOK) {
+          console.log(`   ✅✅ [Pattern] Engulfing SELL detected (GREEN→RED с γ-запасом)`);
+          return {
+            detected: true,
+            type: 'engulfing_sell',
+            direction: 'SHORT',
+            entryPrice: Bar2.close,
+          };
+        }
       }
     }
 
@@ -768,7 +849,7 @@ export class PatternDetector {
       this.detectPinBar(candles),
       this.detectFakey(candles, timeframe),
       this.detectPPR(candles, timeframe),
-      this.detectEngulfing(candles),
+      this.detectEngulfing(candles, timeframe),
     ];
 
     for (const pattern of patterns) {
@@ -783,6 +864,7 @@ export class PatternDetector {
       const isPinbar = pattern.type?.startsWith('pinbar');
       const isFakey = pattern.type?.startsWith('fakey');
       const isPPR = pattern.type?.startsWith('ppr');
+      const isEngulfing = pattern.type?.startsWith('engulfing');
       
       console.log(`\n💯 [Scoring] ${patternName} ${pattern.direction}:`);
 
@@ -793,8 +875,8 @@ export class PatternDetector {
       } else {
         // Для остальных паттернов применяем фильтры
         
-        // 1️⃣ S/R ZONE SCORE (только для Engulfing, НЕ для Fakey и PPR)
-        if (!isFakey && !isPPR) {
+        // 1️⃣ S/R ZONE SCORE (НЕ используется для Fakey, PPR, Engulfing)
+        if (!isFakey && !isPPR && !isEngulfing) {
           const distanceToSupport = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestSupport);
           const distanceToResistance = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestResistance);
           
@@ -833,6 +915,8 @@ export class PatternDetector {
           console.log(`   ⏭️ S/R: ПРОПУЩЕН (Fakey не использует S/R)`);
         } else if (isPPR) {
           console.log(`   ⏭️ S/R: ПРОПУЩЕН (PPR не использует S/R)`);
+        } else if (isEngulfing) {
+          console.log(`   ⏭️ S/R: ПРОПУЩЕН (Engulfing не использует S/R)`);
         }
 
         // 2️⃣ EMA TREND SCORE (для всех паттернов кроме Pin Bar)
@@ -892,10 +976,7 @@ export class PatternDetector {
       let minScore = 130;
       let thresholdLabel = '130';
       
-      if (isFakey) {
-        minScore = 50;
-        thresholdLabel = '50';
-      } else if (isPPR) {
+      if (isFakey || isPPR || isEngulfing) {
         minScore = 50;
         thresholdLabel = '50';
       }
