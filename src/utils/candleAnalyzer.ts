@@ -486,43 +486,116 @@ export class PatternDetector {
     return { detected: false };
   }
 
-  detectFakey(candles: Candle[]): PatternResult {
-    if (candles.length < 3) return { detected: false };
+  detectFakey(candles: Candle[], timeframe?: string): PatternResult {
+    // Нужно минимум 4-5 свечей: MB + IB + FB + (возможно еще IB) + ATR расчет
+    if (candles.length < 6) return { detected: false };
 
-    const C0 = analyzeCand(candles[candles.length - 1]);
-    const C1 = analyzeCand(candles[candles.length - 2]);
-    const C2 = analyzeCand(candles[candles.length - 3]);
+    console.log(`\n🔍 [Fakey] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
-    const isC1Inside = C1.high <= C2.high && C1.low >= C2.low;
+    // Параметры по таймфреймам
+    const tfParams = {
+      '15m': { epsilon: 0.225, minMBSize: 1.2, maxConfirmBars: 2 },
+      '1h':  { epsilon: 0.175, minMBSize: 1.0, maxConfirmBars: 3 },
+      '4h':  { epsilon: 0.125, minMBSize: 0.8, maxConfirmBars: 3 },
+    };
+    
+    const params = tfParams[timeframe as keyof typeof tfParams] || tfParams['1h'];
+    const { epsilon, minMBSize, maxConfirmBars } = params;
+    
+    const atr = this.calculateATR(candles, 5);
+    
+    console.log(`   📊 ATR=${atr.toFixed(8)}, ε=${epsilon}, minMB=${minMBSize}×ATR`);
 
-    if (!isC1Inside) return { detected: false };
+    // Пробуем разные варианты: MB + 1 IB, MB + 2 IB
+    for (let numIB = 1; numIB <= 2; numIB++) {
+      const requiredBars = 1 + numIB + 1; // MB + IB(s) + FB
+      if (candles.length < requiredBars) continue;
 
-    const probeBelow = C0.low < C1.low;
-    const closeAbove = C0.close > C1.high;
+      // MB = материнская свеча
+      const MB = analyzeCand(candles[candles.length - requiredBars]);
+      
+      // IB = inside bar(s) - свечи полностью внутри MB
+      const IBs: ReturnType<typeof analyzeCand>[] = [];
+      let allInside = true;
+      
+      for (let i = 1; i <= numIB; i++) {
+        const IB = analyzeCand(candles[candles.length - requiredBars + i]);
+        if (IB.high > MB.high || IB.low < MB.low) {
+          allInside = false;
+          break;
+        }
+        IBs.push(IB);
+      }
+      
+      if (!allInside) continue;
+      
+      // FB = свеча ложного пробоя (последняя закрытая)
+      const FB = analyzeCand(candles[candles.length - 1]);
+      
+      // Диапазон всех IB
+      const IBHigh = Math.max(...IBs.map(ib => ib.high));
+      const IBLow = Math.min(...IBs.map(ib => ib.low));
+      
+      console.log(`\n   🔎 Checking structure: MB + ${numIB} IB + FB`);
+      console.log(`      MB: H=${MB.high.toFixed(8)}, L=${MB.low.toFixed(8)}, Range=${MB.range.toFixed(8)}`);
+      console.log(`      IB: H=${IBHigh.toFixed(8)}, L=${IBLow.toFixed(8)}`);
+      console.log(`      FB: H=${FB.high.toFixed(8)}, L=${FB.low.toFixed(8)}, C=${FB.close.toFixed(8)}`);
 
-    // ЛОНГ: C2 зеленая, C1 красная, C0 зеленая
-    if (probeBelow && closeAbove && C2.isGreen && C1.isRed && C0.isGreen) {
-      console.log(`✅ [Pattern] Fakey BUY detected (GREEN-RED-GREEN)`);
-      return {
-        detected: true,
-        type: 'fakey_buy',
-        direction: 'LONG',
-        entryPrice: C0.close,
-      };
-    }
+      // ФИЛЬТР 1: Минимальный размер MB
+      const mbSizeOK = MB.range >= minMBSize * atr;
+      if (!mbSizeOK) {
+        console.log(`   ❌ MB too small: ${MB.range.toFixed(8)} < ${(minMBSize * atr).toFixed(8)}`);
+        continue;
+      }
+      console.log(`   ✅ MB size OK: ${MB.range.toFixed(8)} >= ${(minMBSize * atr).toFixed(8)}`);
 
-    const probeAbove = C0.high > C1.high;
-    const closeBelow = C0.close < C1.low;
+      // ========== LONG FAKEY ==========
+      // FB пробивает вниз (ложный пробой low IB), но закрывается обратно
+      const fbProbeBelowIB = FB.low < IBLow;
+      const fbProbeDepth = IBLow - FB.low;
+      const fbProbeOK = fbProbeDepth >= epsilon * atr;
+      const fbCloseBackInMB = FB.close >= MB.low && FB.close <= MB.high;
+      
+      if (fbProbeBelowIB && fbProbeOK && fbCloseBackInMB) {
+        // Подтверждение: FB закрылся выше IBHigh (пробой противоположного края)
+        const confirmedLong = FB.close > IBHigh;
+        
+        console.log(`   🔍 LONG candidate: probe=${fbProbeDepth.toFixed(8)} (need ${(epsilon * atr).toFixed(8)}), closeBack=${fbCloseBackInMB}, confirm=${confirmedLong}`);
+        
+        if (confirmedLong) {
+          console.log(`   ✅✅ [Pattern] Fakey BUY detected (цвет НЕ важен, ${numIB} IB)`);
+          return {
+            detected: true,
+            type: 'fakey_buy',
+            direction: 'LONG',
+            entryPrice: FB.close,
+          };
+        }
+      }
 
-    // ШОРТ: C2 красная, C1 зеленая, C0 красная
-    if (probeAbove && closeBelow && C2.isRed && C1.isGreen && C0.isRed) {
-      console.log(`✅ [Pattern] Fakey SELL detected (RED-GREEN-RED)`);
-      return {
-        detected: true,
-        type: 'fakey_sell',
-        direction: 'SHORT',
-        entryPrice: C0.close,
-      };
+      // ========== SHORT FAKEY ==========
+      // FB пробивает вверх (ложный пробой high IB), но закрывается обратно
+      const fbProbeAboveIB = FB.high > IBHigh;
+      const fbProbeDepthShort = FB.high - IBHigh;
+      const fbProbeOKShort = fbProbeDepthShort >= epsilon * atr;
+      const fbCloseBackInMBShort = FB.close >= MB.low && FB.close <= MB.high;
+      
+      if (fbProbeAboveIB && fbProbeOKShort && fbCloseBackInMBShort) {
+        // Подтверждение: FB закрылся ниже IBLow (пробой противоположного края)
+        const confirmedShort = FB.close < IBLow;
+        
+        console.log(`   🔍 SHORT candidate: probe=${fbProbeDepthShort.toFixed(8)} (need ${(epsilon * atr).toFixed(8)}), closeBack=${fbCloseBackInMBShort}, confirm=${confirmedShort}`);
+        
+        if (confirmedShort) {
+          console.log(`   ✅✅ [Pattern] Fakey SELL detected (цвет НЕ важен, ${numIB} IB)`);
+          return {
+            detected: true,
+            type: 'fakey_sell',
+            direction: 'SHORT',
+            entryPrice: FB.close,
+          };
+        }
+      }
     }
 
     return { detected: false };
@@ -596,8 +669,8 @@ export class PatternDetector {
     return { detected: false };
   }
 
-  detectAllPatterns(candles: Candle[]): PatternResult[] {
-    console.log(`\n🔍 [Pattern Detection] Starting pattern detection with ${candles.length} candles`);
+  detectAllPatterns(candles: Candle[], timeframe?: string): PatternResult[] {
+    console.log(`\n🔍 [Pattern Detection] Starting pattern detection with ${candles.length} candles (TF: ${timeframe || 'unknown'})`);
     
     const results: PatternResult[] = [];
 
@@ -617,7 +690,7 @@ export class PatternDetector {
     // Детектируем паттерны и оцениваем их
     const patterns = [
       this.detectPinBar(candles),
-      this.detectFakey(candles),
+      this.detectFakey(candles, timeframe),
       this.detectPPR(candles),
       this.detectEngulfing(candles),
     ];

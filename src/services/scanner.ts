@@ -49,7 +49,7 @@ export class Scanner {
             continue;
           }
 
-          const patterns = patternDetector.detectAllPatterns(candles);
+          const patterns = patternDetector.detectAllPatterns(candles, timeframe);
 
           for (const pattern of patterns) {
             if (!pattern.detected || !pattern.type || !pattern.direction || !pattern.entryPrice) {
