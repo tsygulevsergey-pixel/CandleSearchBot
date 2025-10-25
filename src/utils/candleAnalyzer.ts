@@ -809,13 +809,16 @@ export class PatternDetector {
       pattern.score = score;
       console.log(`   🎯 ИТОГО: ${score} баллов`);
 
-      // Минимальный порог: 130 баллов (GOOD signal)
-      if (score >= 130) {
+      // Минимальный порог зависит от паттерна
+      const minScore = isFakey ? 50 : 130; // Fakey: 50, остальные: 130
+      const thresholdLabel = isFakey ? '50' : '130';
+      
+      if (score >= minScore) {
         const quality = score >= 150 ? '⭐⭐⭐ PREMIUM' : '⭐⭐ GOOD';
         console.log(`   ✅ ${quality} - сигнал ПРИНЯТ!\n`);
         results.push(pattern);
       } else {
-        console.log(`   ❌ ОТКЛОНЕН (score < 130)\n`);
+        console.log(`   ❌ ОТКЛОНЕН (score < ${thresholdLabel})\n`);
       }
     }
 
