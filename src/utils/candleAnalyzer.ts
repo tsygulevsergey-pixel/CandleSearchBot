@@ -362,42 +362,124 @@ export function getDistanceToZone(price: number, zone: SRZone | null): number | 
 }
 
 export class PatternDetector {
+  /**
+   * Расчет ATR (Average True Range) для N свечей
+   */
+  private calculateATR(candles: Candle[], period: number = 5): number {
+    if (candles.length < period + 1) return 0;
+    
+    let trSum = 0;
+    for (let i = candles.length - period; i < candles.length; i++) {
+      const curr = candles[i];
+      const prev = i > 0 ? candles[i - 1] : curr;
+      
+      const currHigh = Number(curr.high);
+      const currLow = Number(curr.low);
+      const prevClose = Number(prev.close);
+      
+      const high_low = currHigh - currLow;
+      const high_prevClose = Math.abs(currHigh - prevClose);
+      const low_prevClose = Math.abs(currLow - prevClose);
+      
+      const tr = Math.max(high_low, high_prevClose, low_prevClose);
+      trSum += tr;
+    }
+    
+    return trSum / period;
+  }
+
   detectPinBar(candles: Candle[]): PatternResult {
-    if (candles.length < 1) return { detected: false };
+    // Нужно минимум 5-6 свечей для ATR и проверки "выступания"
+    if (candles.length < 6) return { detected: false };
 
     const C0 = analyzeCand(candles[candles.length - 1]);
-
-    // ЛОНГ: Зеленая свеча, длинный нижний фитиль
-    if (C0.lowerWick >= 2 * C0.body && C0.lowerWick >= 2 * C0.upperWick) {
-      const upperThird = C0.low + 0.66 * C0.range;
-      const closeInUpperThird = C0.close >= upperThird;
-      const smallBody = C0.body <= 0.35 * C0.range;
-
-      if (closeInUpperThird && smallBody && C0.isGreen) {
-        console.log(`✅ [Pattern] Pin Bar BUY detected (GREEN candle)`);
+    
+    // Базовые обозначения
+    const R = C0.range; // H - L
+    const B = C0.body;  // abs(C - O)
+    const U = C0.upperWick; // H - max(O, C)
+    const D = C0.lowerWick; // min(O, C) - L
+    
+    // Пропускаем свечи с нулевым диапазоном
+    if (R === 0) {
+      console.log(`⏭️ [Pinbar] Skipped: zero range`);
+      return { detected: false };
+    }
+    
+    // Параметры пинбара
+    const BODY_MAX_FRACTION = 0.33;
+    const EDGE_THRESHOLD = 0.25;
+    const TAIL_BODY_RATIO_MIN = 2.0;
+    const LONG_TAIL_RANGE_MIN = 0.60;
+    const OPP_TAIL_RANGE_MAX = 0.20;
+    const OPP_TAIL_BODY_MAX = 0.50;
+    
+    // Параметры "выступания"
+    const ATR_LOOKBACK = 5;
+    const ATR_EPSILON = 0.10; // 10% от ATR
+    const TAIL_LOOKBACK = 5;
+    
+    const atr = this.calculateATR(candles, ATR_LOOKBACK);
+    
+    console.log(`\n🔍 [Pinbar] Analyzing C0: R=${R.toFixed(8)}, B=${B.toFixed(8)}, U=${U.toFixed(8)}, D=${D.toFixed(8)}, ATR=${atr.toFixed(8)}`);
+    
+    // ========== ЛОНГ ПИНБАР (нижний хвост) ==========
+    const bodyMaxLong = B <= BODY_MAX_FRACTION * R;
+    const bodyAtTopLong = U / R <= EDGE_THRESHOLD;
+    const longTailBodyLong = D >= TAIL_BODY_RATIO_MIN * B;
+    const longTailRangeLong = D >= LONG_TAIL_RANGE_MIN * R;
+    const oppTailShortLong = U <= Math.min(OPP_TAIL_RANGE_MAX * R, OPP_TAIL_BODY_MAX * B);
+    
+    if (bodyMaxLong && bodyAtTopLong && longTailBodyLong && longTailRangeLong && oppTailShortLong) {
+      console.log(`   ✅ Geometry LONG: body=${(B/R*100).toFixed(1)}%, bodyAtTop=${(U/R*100).toFixed(1)}%, tailVsBody=${(D/B).toFixed(2)}x, tailVsRange=${(D/R*100).toFixed(1)}%, oppTail=${(U/R*100).toFixed(1)}%`);
+      
+      // Проверка "выступания" нижнего хвоста
+      const recentLows = candles.slice(-TAIL_LOOKBACK - 1, -1).map(c => Number(c.low));
+      const minRecentLow = Math.min(...recentLows);
+      const tailProtrusion = C0.low <= minRecentLow - ATR_EPSILON * atr;
+      
+      console.log(`   🔎 Tail protrusion check: C0.low=${C0.low.toFixed(8)}, minLow(${TAIL_LOOKBACK})=${minRecentLow.toFixed(8)}, threshold=${(minRecentLow - ATR_EPSILON * atr).toFixed(8)}`);
+      
+      if (tailProtrusion) {
+        console.log(`   ✅✅ [Pattern] Pin Bar BUY detected (цвет НЕ важен, хвост выступает)`);
         return {
           detected: true,
           type: 'pinbar_buy',
           direction: 'LONG',
           entryPrice: C0.close,
         };
+      } else {
+        console.log(`   ❌ REJECT: Tail does NOT protrude below recent lows`);
       }
     }
-
-    // ШОРТ: Красная свеча, длинный верхний фитиль
-    if (C0.upperWick >= 2 * C0.body && C0.upperWick >= 2 * C0.lowerWick) {
-      const lowerThird = C0.high - 0.66 * C0.range;
-      const closeInLowerThird = C0.close <= lowerThird;
-      const smallBody = C0.body <= 0.35 * C0.range;
-
-      if (closeInLowerThird && smallBody && C0.isRed) {
-        console.log(`✅ [Pattern] Pin Bar SELL detected (RED candle)`);
+    
+    // ========== ШОРТ ПИНБАР (верхний хвост) ==========
+    const bodyMaxShort = B <= BODY_MAX_FRACTION * R;
+    const bodyAtBottomShort = D / R <= EDGE_THRESHOLD;
+    const longTailBodyShort = U >= TAIL_BODY_RATIO_MIN * B;
+    const longTailRangeShort = U >= LONG_TAIL_RANGE_MIN * R;
+    const oppTailShortShort = D <= Math.min(OPP_TAIL_RANGE_MAX * R, OPP_TAIL_BODY_MAX * B);
+    
+    if (bodyMaxShort && bodyAtBottomShort && longTailBodyShort && longTailRangeShort && oppTailShortShort) {
+      console.log(`   ✅ Geometry SHORT: body=${(B/R*100).toFixed(1)}%, bodyAtBottom=${(D/R*100).toFixed(1)}%, tailVsBody=${(U/B).toFixed(2)}x, tailVsRange=${(U/R*100).toFixed(1)}%, oppTail=${(D/R*100).toFixed(1)}%`);
+      
+      // Проверка "выступания" верхнего хвоста
+      const recentHighs = candles.slice(-TAIL_LOOKBACK - 1, -1).map(c => Number(c.high));
+      const maxRecentHigh = Math.max(...recentHighs);
+      const tailProtrusion = C0.high >= maxRecentHigh + ATR_EPSILON * atr;
+      
+      console.log(`   🔎 Tail protrusion check: C0.high=${C0.high.toFixed(8)}, maxHigh(${TAIL_LOOKBACK})=${maxRecentHigh.toFixed(8)}, threshold=${(maxRecentHigh + ATR_EPSILON * atr).toFixed(8)}`);
+      
+      if (tailProtrusion) {
+        console.log(`   ✅✅ [Pattern] Pin Bar SELL detected (цвет НЕ важен, хвост выступает)`);
         return {
           detected: true,
           type: 'pinbar_sell',
           direction: 'SHORT',
           entryPrice: C0.close,
         };
+      } else {
+        console.log(`   ❌ REJECT: Tail does NOT protrude above recent highs`);
       }
     }
 
@@ -549,63 +631,72 @@ export class PatternDetector {
       // === SCORING SYSTEM ===
       let score = 0;
       const patternName = pattern.type?.replace('_buy', '').replace('_sell', '').toUpperCase();
+      const isPinbar = pattern.type?.startsWith('pinbar');
       
       console.log(`\n💯 [Scoring] ${patternName} ${pattern.direction}:`);
 
-      // 1️⃣ S/R ZONE SCORE (КРИТИЧНЫЙ GATING ФИЛЬТР)
-      const distanceToSupport = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestSupport);
-      const distanceToResistance = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestResistance);
-      
-      const isNearSupport = distanceToSupport !== null && distanceToSupport < 0.005; // < 0.5%
-      const isNearResistance = distanceToResistance !== null && distanceToResistance < 0.005;
-
-      // GATING: Отклоняем паттерны у НЕПРАВИЛЬНОЙ зоны
-      if (pattern.direction === 'LONG') {
-        if (isNearResistance && !isNearSupport) {
-          // LONG у Resistance - REJECT
-          console.log(`   ❌ S/R GATING: REJECT - LONG у Resistance зоны (неправильная сторона)\n`);
-          continue;
-        }
-        if (isNearSupport) {
-          score += 100;
-          console.log(`   ✅ S/R: +100 (у Support зоны ${srAnalysis.nearestSupport?.price.toFixed(4)})`);
-        } else {
-          score += 50;
-          console.log(`   ⚠️ S/R: +50 (НЕ у зоны - слабый сигнал)`);
-        }
-      } else { // SHORT
-        if (isNearSupport && !isNearResistance) {
-          // SHORT у Support - REJECT
-          console.log(`   ❌ S/R GATING: REJECT - SHORT у Support зоны (неправильная сторона)\n`);
-          continue;
-        }
-        if (isNearResistance) {
-          score += 100;
-          console.log(`   ✅ S/R: +100 (у Resistance зоны ${srAnalysis.nearestResistance?.price.toFixed(4)})`);
-        } else {
-          score += 50;
-          console.log(`   ⚠️ S/R: +50 (НЕ у зоны - слабый сигнал)`);
-        }
-      }
-
-      // 2️⃣ EMA TREND SCORE
-      const trendAligned = 
-        (pattern.direction === 'LONG' && trend.isUptrend) ||
-        (pattern.direction === 'SHORT' && trend.isDowntrend);
-      
-      const weakTrend = 
-        (pattern.direction === 'LONG' && trend.currentPrice > trend.ema50 && Math.abs(trend.ema50 - trend.ema200) / trend.ema200 < 0.02) ||
-        (pattern.direction === 'SHORT' && trend.currentPrice < trend.ema50 && Math.abs(trend.ema50 - trend.ema200) / trend.ema200 < 0.02);
-
-      if (trendAligned) {
-        score += 30;
-        console.log(`   ✅ Trend: +30 (сильный тренд aligned)`);
-      } else if (weakTrend) {
-        score += 15;
-        console.log(`   ⚠️ Trend: +15 (слабый тренд)`);
+      // 🎯 ПИНБАРЫ: Игнорируют S/R и Trend фильтры (автопроход)
+      if (isPinbar) {
+        score = 200; // Автоматически PREMIUM уровень
+        console.log(`   🎯 PINBAR AUTO-PASS: score=200 (игнорируем S/R и Trend фильтры)`);
       } else {
-        score += 0;
-        console.log(`   ❌ Trend: +0 (против тренда)`);
+        // Для остальных паттернов применяем S/R и Trend фильтры
+        
+        // 1️⃣ S/R ZONE SCORE (КРИТИЧНЫЙ GATING ФИЛЬТР)
+        const distanceToSupport = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestSupport);
+        const distanceToResistance = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestResistance);
+        
+        const isNearSupport = distanceToSupport !== null && distanceToSupport < 0.005; // < 0.5%
+        const isNearResistance = distanceToResistance !== null && distanceToResistance < 0.005;
+
+        // GATING: Отклоняем паттерны у НЕПРАВИЛЬНОЙ зоны
+        if (pattern.direction === 'LONG') {
+          if (isNearResistance && !isNearSupport) {
+            // LONG у Resistance - REJECT
+            console.log(`   ❌ S/R GATING: REJECT - LONG у Resistance зоны (неправильная сторона)\n`);
+            continue;
+          }
+          if (isNearSupport) {
+            score += 100;
+            console.log(`   ✅ S/R: +100 (у Support зоны ${srAnalysis.nearestSupport?.price.toFixed(4)})`);
+          } else {
+            score += 50;
+            console.log(`   ⚠️ S/R: +50 (НЕ у зоны - слабый сигнал)`);
+          }
+        } else { // SHORT
+          if (isNearSupport && !isNearResistance) {
+            // SHORT у Support - REJECT
+            console.log(`   ❌ S/R GATING: REJECT - SHORT у Support зоны (неправильная сторона)\n`);
+            continue;
+          }
+          if (isNearResistance) {
+            score += 100;
+            console.log(`   ✅ S/R: +100 (у Resistance зоны ${srAnalysis.nearestResistance?.price.toFixed(4)})`);
+          } else {
+            score += 50;
+            console.log(`   ⚠️ S/R: +50 (НЕ у зоны - слабый сигнал)`);
+          }
+        }
+
+        // 2️⃣ EMA TREND SCORE
+        const trendAligned = 
+          (pattern.direction === 'LONG' && trend.isUptrend) ||
+          (pattern.direction === 'SHORT' && trend.isDowntrend);
+        
+        const weakTrend = 
+          (pattern.direction === 'LONG' && trend.currentPrice > trend.ema50 && Math.abs(trend.ema50 - trend.ema200) / trend.ema200 < 0.02) ||
+          (pattern.direction === 'SHORT' && trend.currentPrice < trend.ema50 && Math.abs(trend.ema50 - trend.ema200) / trend.ema200 < 0.02);
+
+        if (trendAligned) {
+          score += 30;
+          console.log(`   ✅ Trend: +30 (сильный тренд aligned)`);
+        } else if (weakTrend) {
+          score += 15;
+          console.log(`   ⚠️ Trend: +15 (слабый тренд)`);
+        } else {
+          score += 0;
+          console.log(`   ❌ Trend: +0 (против тренда)`);
+        }
       }
 
       // 3️⃣ VOLUME SCORE
