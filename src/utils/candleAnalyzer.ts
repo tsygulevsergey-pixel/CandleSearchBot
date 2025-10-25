@@ -601,31 +601,107 @@ export class PatternDetector {
     return { detected: false };
   }
 
-  detectPPR(candles: Candle[]): PatternResult {
-    if (candles.length < 2) return { detected: false };
+  detectPPR(candles: Candle[], timeframe?: string): PatternResult {
+    // Нужно минимум 2 свечи + история для ATR
+    if (candles.length < 6) return { detected: false };
 
-    const C0 = analyzeCand(candles[candles.length - 1]);
-    const C1 = analyzeCand(candles[candles.length - 2]);
+    console.log(`\n🔍 [PPR] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
-    // ЛОНГ: C1 красная, C0 зеленая, закрепляется выше максимума
-    if (C0.close > C1.high && C1.isRed && C0.isGreen) {
-      console.log(`✅ [Pattern] ППР BUY detected (RED->GREEN)`);
+    // Параметры по таймфреймам
+    const tfParams = {
+      '15m': { epsilon: 0.225, minImpulseATR: 1.2, rangeRatio: 1.2 },
+      '1h':  { epsilon: 0.175, minImpulseATR: 1.0, rangeRatio: 1.1 },
+      '4h':  { epsilon: 0.125, minImpulseATR: 0.8, rangeRatio: 1.0 },
+    };
+    
+    const params = tfParams[timeframe as keyof typeof tfParams] || tfParams['1h'];
+    const { epsilon, minImpulseATR, rangeRatio } = params;
+    
+    const atr = this.calculateATR(candles, 5);
+    
+    console.log(`   📊 ATR=${atr.toFixed(8)}, ε=${epsilon}, minImpulse=${minImpulseATR}×ATR, rangeRatio=${rangeRatio}`);
+
+    // Bar₁ и Bar₂ (двухсвечный ППР)
+    const Bar1 = analyzeCand(candles[candles.length - 2]); // C1
+    const Bar2 = analyzeCand(candles[candles.length - 1]); // C0 (импульсная)
+    
+    console.log(`\n   🔎 Checking 2-bar PPR:`);
+    console.log(`      Bar₁: H=${Bar1.high.toFixed(8)}, L=${Bar1.low.toFixed(8)}, R=${Bar1.range.toFixed(8)}`);
+    console.log(`      Bar₂: H=${Bar2.high.toFixed(8)}, L=${Bar2.low.toFixed(8)}, C=${Bar2.close.toFixed(8)}, R=${Bar2.range.toFixed(8)}, B=${Bar2.body.toFixed(8)}`);
+
+    // Общие проверки импульсности Bar₂
+    const BODY_FRACTION_MIN = 0.60;
+    const CLOSE_AT_EDGE_MAX = 0.25;
+    
+    // Проверка размера Bar₂
+    const bar2SizeOK = Bar2.range >= minImpulseATR * atr;
+    if (!bar2SizeOK) {
+      console.log(`   ❌ Bar₂ too small: ${Bar2.range.toFixed(8)} < ${(minImpulseATR * atr).toFixed(8)}`);
+      return { detected: false };
+    }
+    console.log(`   ✅ Bar₂ size OK: ${Bar2.range.toFixed(8)} >= ${(minImpulseATR * atr).toFixed(8)}`);
+    
+    // Проверка тела Bar₂
+    const bodyFraction = Bar2.range > 0 ? Bar2.body / Bar2.range : 0;
+    const bodyOK = bodyFraction >= BODY_FRACTION_MIN;
+    if (!bodyOK) {
+      console.log(`   ❌ Bar₂ body too small: ${(bodyFraction * 100).toFixed(1)}% < ${(BODY_FRACTION_MIN * 100).toFixed(1)}%`);
+      return { detected: false };
+    }
+    console.log(`   ✅ Bar₂ body OK: ${(bodyFraction * 100).toFixed(1)}% >= ${(BODY_FRACTION_MIN * 100).toFixed(1)}%`);
+    
+    // Проверка R₂/R₁ ratio
+    const rangeRatioActual = Bar1.range > 0 ? Bar2.range / Bar1.range : 0;
+    const rangeRatioOK = rangeRatioActual >= rangeRatio;
+    if (!rangeRatioOK) {
+      console.log(`   ❌ R₂/R₁ too small: ${rangeRatioActual.toFixed(2)} < ${rangeRatio}`);
+      return { detected: false };
+    }
+    console.log(`   ✅ R₂/R₁ OK: ${rangeRatioActual.toFixed(2)} >= ${rangeRatio}`);
+
+    // ========== BUY PPR ==========
+    // Закрепление: C₂ ≥ H₁ + ε·ATR
+    const closingBufferBuy = epsilon * atr;
+    const closeAboveBar1 = Bar2.close >= Bar1.high + closingBufferBuy;
+    
+    // Закрытие у верха: (H₂ - C₂) / R₂ ≤ 0.25
+    const closeAtTopFraction = Bar2.range > 0 ? (Bar2.high - Bar2.close) / Bar2.range : 1;
+    const closeAtTopOK = closeAtTopFraction <= CLOSE_AT_EDGE_MAX;
+    
+    if (closeAboveBar1 && closeAtTopOK) {
+      console.log(`   🔍 BUY candidate:`);
+      console.log(`      Close above Bar₁.high + buffer: ${Bar2.close.toFixed(8)} >= ${(Bar1.high + closingBufferBuy).toFixed(8)} ✅`);
+      console.log(`      Close at top: ${(closeAtTopFraction * 100).toFixed(1)}% <= ${(CLOSE_AT_EDGE_MAX * 100).toFixed(1)}% ✅`);
+      console.log(`   ✅✅ [Pattern] PPR BUY detected (цвет НЕ важен)`);
+      
       return {
         detected: true,
         type: 'ppr_buy',
         direction: 'LONG',
-        entryPrice: C0.close,
+        entryPrice: Bar2.close,
       };
     }
 
-    // ШОРТ: C1 зеленая, C0 красная, закрепляется ниже минимума
-    if (C0.close < C1.low && C1.isGreen && C0.isRed) {
-      console.log(`✅ [Pattern] ППР SELL detected (GREEN->RED)`);
+    // ========== SELL PPR ==========
+    // Закрепление: C₂ ≤ L₁ - ε·ATR
+    const closingBufferSell = epsilon * atr;
+    const closeBelowBar1 = Bar2.close <= Bar1.low - closingBufferSell;
+    
+    // Закрытие у низа: (C₂ - L₂) / R₂ ≤ 0.25
+    const closeAtBottomFraction = Bar2.range > 0 ? (Bar2.close - Bar2.low) / Bar2.range : 1;
+    const closeAtBottomOK = closeAtBottomFraction <= CLOSE_AT_EDGE_MAX;
+    
+    if (closeBelowBar1 && closeAtBottomOK) {
+      console.log(`   🔍 SELL candidate:`);
+      console.log(`      Close below Bar₁.low - buffer: ${Bar2.close.toFixed(8)} <= ${(Bar1.low - closingBufferSell).toFixed(8)} ✅`);
+      console.log(`      Close at bottom: ${(closeAtBottomFraction * 100).toFixed(1)}% <= ${(CLOSE_AT_EDGE_MAX * 100).toFixed(1)}% ✅`);
+      console.log(`   ✅✅ [Pattern] PPR SELL detected (цвет НЕ важен)`);
+      
       return {
         detected: true,
         type: 'ppr_sell',
         direction: 'SHORT',
-        entryPrice: C0.close,
+        entryPrice: Bar2.close,
       };
     }
 
@@ -691,7 +767,7 @@ export class PatternDetector {
     const patterns = [
       this.detectPinBar(candles),
       this.detectFakey(candles, timeframe),
-      this.detectPPR(candles),
+      this.detectPPR(candles, timeframe),
       this.detectEngulfing(candles),
     ];
 
@@ -706,6 +782,7 @@ export class PatternDetector {
       const patternName = pattern.type?.replace('_buy', '').replace('_sell', '').toUpperCase();
       const isPinbar = pattern.type?.startsWith('pinbar');
       const isFakey = pattern.type?.startsWith('fakey');
+      const isPPR = pattern.type?.startsWith('ppr');
       
       console.log(`\n💯 [Scoring] ${patternName} ${pattern.direction}:`);
 
@@ -716,8 +793,8 @@ export class PatternDetector {
       } else {
         // Для остальных паттернов применяем фильтры
         
-        // 1️⃣ S/R ZONE SCORE (только для PPR и Engulfing, НЕ для Fakey)
-        if (!isFakey) {
+        // 1️⃣ S/R ZONE SCORE (только для Engulfing, НЕ для Fakey и PPR)
+        if (!isFakey && !isPPR) {
           const distanceToSupport = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestSupport);
           const distanceToResistance = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestResistance);
           
@@ -752,8 +829,10 @@ export class PatternDetector {
               console.log(`   ⚠️ S/R: +50 (НЕ у зоны - слабый сигнал)`);
             }
           }
-        } else {
+        } else if (isFakey) {
           console.log(`   ⏭️ S/R: ПРОПУЩЕН (Fakey не использует S/R)`);
+        } else if (isPPR) {
+          console.log(`   ⏭️ S/R: ПРОПУЩЕН (PPR не использует S/R)`);
         }
 
         // 2️⃣ EMA TREND SCORE (для всех паттернов кроме Pin Bar)
@@ -810,8 +889,16 @@ export class PatternDetector {
       console.log(`   🎯 ИТОГО: ${score} баллов`);
 
       // Минимальный порог зависит от паттерна
-      const minScore = isFakey ? 50 : 130; // Fakey: 50, остальные: 130
-      const thresholdLabel = isFakey ? '50' : '130';
+      let minScore = 130;
+      let thresholdLabel = '130';
+      
+      if (isFakey) {
+        minScore = 50;
+        thresholdLabel = '50';
+      } else if (isPPR) {
+        minScore = 50;
+        thresholdLabel = '50';
+      }
       
       if (score >= minScore) {
         const quality = score >= 150 ? '⭐⭐⭐ PREMIUM' : '⭐⭐ GOOD';
