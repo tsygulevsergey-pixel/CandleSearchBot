@@ -78,18 +78,31 @@ export function calculateEMA(candles: Candle[], period: number): number {
  * UPTREND: Price > EMA50 > EMA200 (strong bull trend)
  * DOWNTREND: Price < EMA50 < EMA200 (strong bear trend)
  * NEUTRAL: Price близко к EMA50 или EMA50 близко к EMA200 (ranging/transition)
+ * 
+ * Timeframe-aware thresholds для крипто-волатильности
  */
-export function analyzeTrend(candles: Candle[]): TrendAnalysis {
+export function analyzeTrend(candles: Candle[], timeframe: string = '15m'): TrendAnalysis {
   const ema50 = calculateEMA(candles, 50);
   const ema200 = calculateEMA(candles, 200);
   const currentPrice = parseFloat(candles[candles.length - 1].close);
 
-  // Пороги для определения "близко" (2% от цены)
+  // Timeframe-aware пороги (15m = более волатильно, 4h = менее волатильно)
+  let PRICE_THRESHOLD: number;
+  let EMA_THRESHOLD: number;
+  
+  if (timeframe === '15m') {
+    PRICE_THRESHOLD = 0.005;  // 0.5% - 15m очень динамичен
+    EMA_THRESHOLD = 0.004;    // 0.4%
+  } else if (timeframe === '1h') {
+    PRICE_THRESHOLD = 0.01;   // 1.0%
+    EMA_THRESHOLD = 0.008;    // 0.8%
+  } else { // 4h и выше
+    PRICE_THRESHOLD = 0.015;  // 1.5%
+    EMA_THRESHOLD = 0.012;    // 1.2%
+  }
+  
   const priceToEma50Distance = Math.abs(currentPrice - ema50) / currentPrice;
   const ema50ToEma200Distance = Math.abs(ema50 - ema200) / ema200;
-  
-  const PRICE_THRESHOLD = 0.02; // 2% - если цена в пределах 2% от EMA50
-  const EMA_THRESHOLD = 0.015;  // 1.5% - если EMA50 в пределах 1.5% от EMA200
   
   const priceNearEma50 = priceToEma50Distance < PRICE_THRESHOLD;
   const ema50NearEma200 = ema50ToEma200Distance < EMA_THRESHOLD;
@@ -102,8 +115,9 @@ export function analyzeTrend(candles: Candle[]): TrendAnalysis {
   const isDowntrend = !isNeutral && currentPrice < ema50 && ema50 < ema200;
 
   const trendType = isUptrend ? 'UPTREND' : isDowntrend ? 'DOWNTREND' : 'NEUTRAL';
-  console.log(`📊 [Trend] ${trendType} | Price: ${currentPrice.toFixed(2)}, EMA50: ${ema50.toFixed(2)}, EMA200: ${ema200.toFixed(2)}`);
+  console.log(`📊 [Trend ${timeframe}] ${trendType} | Price: ${currentPrice.toFixed(2)}, EMA50: ${ema50.toFixed(2)}, EMA200: ${ema200.toFixed(2)}`);
   console.log(`   Distance: Price↔EMA50=${(priceToEma50Distance*100).toFixed(2)}%, EMA50↔EMA200=${(ema50ToEma200Distance*100).toFixed(2)}%`);
+  console.log(`   Thresholds: Price=${(PRICE_THRESHOLD*100).toFixed(1)}%, EMA=${(EMA_THRESHOLD*100).toFixed(1)}%`);
 
   return {
     ema50,
@@ -646,7 +660,7 @@ export class PatternDetector {
     // ========== BULLISH PIERCING PATTERN ==========
     // 1. Bar₁ = RED (медвежья)
     // 2. Bar₂ = GREEN (бычья) ← КРИТИЧНО: должна быть зеленой!
-    // 3. Gap down: Open₂ < Low₁ (настоящий gap ЗА ПРЕДЕЛАМИ диапазона)
+    // 3. Gap down: Open₂ < Close₁ - tolerance (явный gap с учетом волатильности)
     // 4. Close₂ > 50% body Bar₁ (закрытие выше середины тела)
     // 5. Not full engulfing (Close₂ < Open₁)
     
@@ -665,12 +679,18 @@ export class PatternDetector {
       }
       
       const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
-      const gapDown = Bar2.open < Bar1.low; // ✅ ИСПРАВЛЕНО: gap ЗА ПРЕДЕЛАМИ диапазона Bar1
+      
+      // Gap check с tolerance: Bar2 должен открыться НИЖЕ Close Bar1 с учетом волатильности
+      // Tolerance = 15% ATR (компромисс между строгостью и гибкостью для крипты)
+      const gapTolerance = 0.15 * atr;
+      const gapThreshold = Bar1.close - gapTolerance;
+      const gapDown = Bar2.open < gapThreshold;
+      
       const closesAboveMid = Bar2.close > bar1BodyMid;
       const closesWithinBar1Range = Bar2.close < Bar1.open; // Не полное поглощение
       
       console.log(`   🔍 BULLISH PIERCING candidate (RED→GREEN):`);
-      console.log(`      Gap down (O₂ < L₁): ${Bar2.open.toFixed(8)} < ${Bar1.low.toFixed(8)} = ${gapDown ? '✅' : '❌'}`);
+      console.log(`      Gap down (O₂ < C₁-tol): ${Bar2.open.toFixed(8)} < ${gapThreshold.toFixed(8)} = ${gapDown ? '✅' : '❌'} (tolerance=${gapTolerance.toFixed(8)})`);
       console.log(`      Close above 50% body: ${Bar2.close.toFixed(8)} > ${bar1BodyMid.toFixed(8)} = ${closesAboveMid ? '✅' : '❌'}`);
       console.log(`      Not full engulfing (C₂ < O₁): ${Bar2.close.toFixed(8)} < ${Bar1.open.toFixed(8)} = ${closesWithinBar1Range ? '✅' : '❌'}`);
       
@@ -690,7 +710,7 @@ export class PatternDetector {
     // ========== BEARISH DARK CLOUD COVER ==========
     // 1. Bar₁ = GREEN (бычья)
     // 2. Bar₂ = RED (медвежья) ← КРИТИЧНО: должна быть красной!
-    // 3. Gap up: Open₂ > High₁ (настоящий gap ЗА ПРЕДЕЛАМИ диапазона)
+    // 3. Gap up: Open₂ > Close₁ + tolerance (явный gap с учетом волатильности)
     // 4. Close₂ < 50% body Bar₁ (закрытие ниже середины тела)
     // 5. Not full engulfing (Close₂ > Open₁)
     
@@ -709,12 +729,18 @@ export class PatternDetector {
       }
       
       const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
-      const gapUp = Bar2.open > Bar1.high; // ✅ ИСПРАВЛЕНО: gap ЗА ПРЕДЕЛАМИ диапазона Bar1
+      
+      // Gap check с tolerance: Bar2 должен открыться ВЫШЕ Close Bar1 с учетом волатильности
+      // Tolerance = 15% ATR (компромисс между строгостью и гибкостью для крипты)
+      const gapTolerance = 0.15 * atr;
+      const gapThreshold = Bar1.close + gapTolerance;
+      const gapUp = Bar2.open > gapThreshold;
+      
       const closesBelowMid = Bar2.close < bar1BodyMid;
       const closesWithinBar1Range = Bar2.close > Bar1.open; // Не полное поглощение
       
       console.log(`   🔍 BEARISH DARK CLOUD candidate (GREEN→RED):`);
-      console.log(`      Gap up (O₂ > H₁): ${Bar2.open.toFixed(8)} > ${Bar1.high.toFixed(8)} = ${gapUp ? '✅' : '❌'}`);
+      console.log(`      Gap up (O₂ > C₁+tol): ${Bar2.open.toFixed(8)} > ${gapThreshold.toFixed(8)} = ${gapUp ? '✅' : '❌'} (tolerance=${gapTolerance.toFixed(8)})`);
       console.log(`      Close below 50% body: ${Bar2.close.toFixed(8)} < ${bar1BodyMid.toFixed(8)} = ${closesBelowMid ? '✅' : '❌'}`);
       console.log(`      Not full engulfing (C₂ > O₁): ${Bar2.close.toFixed(8)} > ${Bar1.open.toFixed(8)} = ${closesWithinBar1Range ? '✅' : '❌'}`);
       
@@ -858,8 +884,8 @@ export class PatternDetector {
     
     const results: PatternResult[] = [];
 
-    // Анализ тренда (EMA 50/200)
-    const trend = analyzeTrend(candles);
+    // Анализ тренда (EMA 50/200) - используем timeframe-aware пороги
+    const trend = analyzeTrend(candles, timeframe || '15m');
     
     // Анализ S/R зон
     const srAnalysis = analyzeSRZones(candles);
