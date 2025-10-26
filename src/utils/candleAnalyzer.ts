@@ -18,6 +18,7 @@ export interface TrendAnalysis {
   ema200: number;
   isUptrend: boolean;
   isDowntrend: boolean;
+  isNeutral: boolean; // Добавлено: нейтральный/ranging рынок
   currentPrice: number;
 }
 
@@ -73,22 +74,43 @@ export function calculateEMA(candles: Candle[], period: number): number {
 
 /**
  * Анализ тренда на основе EMA 50 и EMA 200
+ * 
+ * UPTREND: Price > EMA50 > EMA200 (strong bull trend)
+ * DOWNTREND: Price < EMA50 < EMA200 (strong bear trend)
+ * NEUTRAL: Price близко к EMA50 или EMA50 близко к EMA200 (ranging/transition)
  */
 export function analyzeTrend(candles: Candle[]): TrendAnalysis {
   const ema50 = calculateEMA(candles, 50);
   const ema200 = calculateEMA(candles, 200);
   const currentPrice = parseFloat(candles[candles.length - 1].close);
 
-  const isUptrend = currentPrice > ema50 && ema50 > ema200;
-  const isDowntrend = currentPrice < ema50 && ema50 < ema200;
+  // Пороги для определения "близко" (2% от цены)
+  const priceToEma50Distance = Math.abs(currentPrice - ema50) / currentPrice;
+  const ema50ToEma200Distance = Math.abs(ema50 - ema200) / ema200;
+  
+  const PRICE_THRESHOLD = 0.02; // 2% - если цена в пределах 2% от EMA50
+  const EMA_THRESHOLD = 0.015;  // 1.5% - если EMA50 в пределах 1.5% от EMA200
+  
+  const priceNearEma50 = priceToEma50Distance < PRICE_THRESHOLD;
+  const ema50NearEma200 = ema50ToEma200Distance < EMA_THRESHOLD;
 
-  console.log(`📊 [Trend] Price: ${currentPrice.toFixed(2)}, EMA50: ${ema50.toFixed(2)}, EMA200: ${ema200.toFixed(2)} | Uptrend: ${isUptrend}, Downtrend: ${isDowntrend}`);
+  // NEUTRAL: если цена близко к EMA50 ИЛИ EMA50 близко к EMA200
+  const isNeutral = priceNearEma50 || ema50NearEma200;
+  
+  // UPTREND/DOWNTREND: только если НЕ neutral и есть четкая расстановка
+  const isUptrend = !isNeutral && currentPrice > ema50 && ema50 > ema200;
+  const isDowntrend = !isNeutral && currentPrice < ema50 && ema50 < ema200;
+
+  const trendType = isUptrend ? 'UPTREND' : isDowntrend ? 'DOWNTREND' : 'NEUTRAL';
+  console.log(`📊 [Trend] ${trendType} | Price: ${currentPrice.toFixed(2)}, EMA50: ${ema50.toFixed(2)}, EMA200: ${ema200.toFixed(2)}`);
+  console.log(`   Distance: Price↔EMA50=${(priceToEma50Distance*100).toFixed(2)}%, EMA50↔EMA200=${(ema50ToEma200Distance*100).toFixed(2)}%`);
 
   return {
     ema50,
     ema200,
     isUptrend,
     isDowntrend,
+    isNeutral,
     currentPrice,
   };
 }
@@ -624,7 +646,7 @@ export class PatternDetector {
     // ========== BULLISH PIERCING PATTERN ==========
     // 1. Bar₁ = RED (медвежья)
     // 2. Bar₂ = GREEN (бычья) ← КРИТИЧНО: должна быть зеленой!
-    // 3. Gap down: Open₂ < Close₁
+    // 3. Gap down: Open₂ < Low₁ (настоящий gap ЗА ПРЕДЕЛАМИ диапазона)
     // 4. Close₂ > 50% body Bar₁ (закрытие выше середины тела)
     // 5. Not full engulfing (Close₂ < Open₁)
     
@@ -641,13 +663,14 @@ export class PatternDetector {
         console.log(`   ❌ BULLISH PPR: Bar₂ body too small: ${Bar2.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
         return { detected: false };
       }
+      
       const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
-      const gapDown = Bar2.open < Bar1.close;
+      const gapDown = Bar2.open < Bar1.low; // ✅ ИСПРАВЛЕНО: gap ЗА ПРЕДЕЛАМИ диапазона Bar1
       const closesAboveMid = Bar2.close > bar1BodyMid;
       const closesWithinBar1Range = Bar2.close < Bar1.open; // Не полное поглощение
       
       console.log(`   🔍 BULLISH PIERCING candidate (RED→GREEN):`);
-      console.log(`      Gap down (O₂ < C₁): ${Bar2.open.toFixed(8)} < ${Bar1.close.toFixed(8)} = ${gapDown ? '✅' : '❌'}`);
+      console.log(`      Gap down (O₂ < L₁): ${Bar2.open.toFixed(8)} < ${Bar1.low.toFixed(8)} = ${gapDown ? '✅' : '❌'}`);
       console.log(`      Close above 50% body: ${Bar2.close.toFixed(8)} > ${bar1BodyMid.toFixed(8)} = ${closesAboveMid ? '✅' : '❌'}`);
       console.log(`      Not full engulfing (C₂ < O₁): ${Bar2.close.toFixed(8)} < ${Bar1.open.toFixed(8)} = ${closesWithinBar1Range ? '✅' : '❌'}`);
       
@@ -667,7 +690,7 @@ export class PatternDetector {
     // ========== BEARISH DARK CLOUD COVER ==========
     // 1. Bar₁ = GREEN (бычья)
     // 2. Bar₂ = RED (медвежья) ← КРИТИЧНО: должна быть красной!
-    // 3. Gap up: Open₂ > Close₁
+    // 3. Gap up: Open₂ > High₁ (настоящий gap ЗА ПРЕДЕЛАМИ диапазона)
     // 4. Close₂ < 50% body Bar₁ (закрытие ниже середины тела)
     // 5. Not full engulfing (Close₂ > Open₁)
     
@@ -684,13 +707,14 @@ export class PatternDetector {
         console.log(`   ❌ BEARISH PPR: Bar₂ body too small: ${Bar2.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
         return { detected: false };
       }
+      
       const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
-      const gapUp = Bar2.open > Bar1.close;
+      const gapUp = Bar2.open > Bar1.high; // ✅ ИСПРАВЛЕНО: gap ЗА ПРЕДЕЛАМИ диапазона Bar1
       const closesBelowMid = Bar2.close < bar1BodyMid;
       const closesWithinBar1Range = Bar2.close > Bar1.open; // Не полное поглощение
       
       console.log(`   🔍 BEARISH DARK CLOUD candidate (GREEN→RED):`);
-      console.log(`      Gap up (O₂ > C₁): ${Bar2.open.toFixed(8)} > ${Bar1.close.toFixed(8)} = ${gapUp ? '✅' : '❌'}`);
+      console.log(`      Gap up (O₂ > H₁): ${Bar2.open.toFixed(8)} > ${Bar1.high.toFixed(8)} = ${gapUp ? '✅' : '❌'}`);
       console.log(`      Close below 50% body: ${Bar2.close.toFixed(8)} < ${bar1BodyMid.toFixed(8)} = ${closesBelowMid ? '✅' : '❌'}`);
       console.log(`      Not full engulfing (C₂ > O₁): ${Bar2.close.toFixed(8)} > ${Bar1.open.toFixed(8)} = ${closesWithinBar1Range ? '✅' : '❌'}`);
       
@@ -872,6 +896,15 @@ export class PatternDetector {
       console.log(`\n💯 [Scoring] ${patternName} ${pattern.direction}:`);
 
       // ⛔ СТРОГАЯ ФИЛЬТРАЦИЯ ПО ТРЕНДУ (для ВСЕХ паттернов БЕЗ ИСКЛЮЧЕНИЙ)
+      
+      // 1. БЛОКИРУЕМ сигналы в NEUTRAL зоне (ranging/переходный рынок)
+      if (trend.isNeutral) {
+        console.log(`   ⛔ TREND GATING: REJECT - NEUTRAL market (ranging/transition), no clear trend`);
+        console.log(`      Price=${trend.currentPrice.toFixed(2)}, EMA50=${trend.ema50.toFixed(2)}, EMA200=${trend.ema200.toFixed(2)}\n`);
+        continue;
+      }
+      
+      // 2. БЛОКИРУЕМ контр-трендовые сигналы
       const isCounterTrend = 
         (pattern.direction === 'LONG' && trend.isDowntrend) ||
         (pattern.direction === 'SHORT' && trend.isUptrend);
@@ -881,6 +914,7 @@ export class PatternDetector {
         console.log(`      Uptrend=${trend.isUptrend}, Downtrend=${trend.isDowntrend}\n`);
         continue;
       }
+      
       console.log(`   ✅ TREND CHECK: Passed - ${pattern.direction} aligned with market trend`);
 
       // 🎯 SCORING: Базовый score для Pin Bar (без S/R анализа)
