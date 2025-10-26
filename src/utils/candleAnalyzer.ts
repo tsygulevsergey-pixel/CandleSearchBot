@@ -1,4 +1,5 @@
 import { Candle } from './binanceClient';
+import { findSRChannels, getNearestSupportChannel, getNearestResistanceChannel, SRChannel } from './srChannels';
 
 export interface CandleMetrics {
   body: number;
@@ -346,7 +347,95 @@ function clusterLevels(levels: number[], tolerance: number = 0.005, zoneWidthPer
 }
 
 /**
- * Анализ S/R зон на основе 200 свечей
+ * Анализ S/R зон с использованием TradingView алгоритма
+ * (Pivot Points + Channel grouping + Strength calculation)
+ */
+export function analyzeSRZonesTV(candles: Candle[]): SRAnalysis {
+  if (candles.length < 300) {
+    console.log(`⚠️ [S/R TV] Not enough candles: ${candles.length} < 300`);
+    return {
+      nearestSupport: null,
+      nearestResistance: null,
+      allZones: [],
+    };
+  }
+  
+  const currentPrice = parseFloat(candles[candles.length - 1].close);
+  
+  // Используем TradingView алгоритм для поиска каналов
+  const channels = findSRChannels(candles, {
+    pivotPeriod: 10,
+    maxChannelWidthPercent: 5,
+    minStrength: 1,
+    maxChannels: 6,
+    loopbackPeriod: 290,
+  });
+  
+  if (channels.length === 0) {
+    console.log(`⚠️ [S/R TV] No channels found`);
+    return {
+      nearestSupport: null,
+      nearestResistance: null,
+      allZones: [],
+    };
+  }
+  
+  // Преобразуем SRChannel[] в SRZone[]
+  // Пропускаем neutral каналы (цена внутри канала), оставляем только чистые support/resistance
+  const allZones: SRZone[] = channels
+    .filter((ch) => ch.type !== 'neutral')
+    .map((ch) => ({
+      type: ch.type as 'support' | 'resistance',
+      price: (ch.upper + ch.lower) / 2, // Центр канала
+      upper: ch.upper,
+      lower: ch.lower,
+      touches: ch.touchCount, // Только touchCount (strength уже учитывает pivotCount × 20)
+      strength: ch.strength > 80 ? 'strong' : ch.strength > 50 ? 'medium' : 'weak',
+    }));
+  
+  // Находим ближайшие Support/Resistance
+  const nearestSupport = getNearestSupportChannel(channels, currentPrice);
+  const nearestResistance = getNearestResistanceChannel(channels, currentPrice);
+  
+  const nearestSupportZone = nearestSupport
+    ? {
+        type: 'support' as const,
+        price: (nearestSupport.upper + nearestSupport.lower) / 2,
+        upper: nearestSupport.upper,
+        lower: nearestSupport.lower,
+        touches: nearestSupport.touchCount, // Только touchCount
+        strength: nearestSupport.strength > 80 ? 'strong' as const : nearestSupport.strength > 50 ? 'medium' as const : 'weak' as const,
+      }
+    : null;
+  
+  const nearestResistanceZone = nearestResistance
+    ? {
+        type: 'resistance' as const,
+        price: (nearestResistance.upper + nearestResistance.lower) / 2,
+        upper: nearestResistance.upper,
+        lower: nearestResistance.lower,
+        touches: nearestResistance.touchCount, // Только touchCount
+        strength: nearestResistance.strength > 80 ? 'strong' as const : nearestResistance.strength > 50 ? 'medium' as const : 'weak' as const,
+      }
+    : null;
+  
+  console.log(`📊 [S/R TV] Found ${allZones.length} channels`);
+  if (nearestSupportZone) {
+    console.log(`   📍 Nearest Support ZONE: ${nearestSupportZone.lower.toFixed(4)} - ${nearestSupportZone.upper.toFixed(4)} (center: ${nearestSupportZone.price.toFixed(4)}, ${nearestSupportZone.touches} touches, ${nearestSupportZone.strength})`);
+  }
+  if (nearestResistanceZone) {
+    console.log(`   📍 Nearest Resistance ZONE: ${nearestResistanceZone.lower.toFixed(4)} - ${nearestResistanceZone.upper.toFixed(4)} (center: ${nearestResistanceZone.price.toFixed(4)}, ${nearestResistanceZone.touches} touches, ${nearestResistanceZone.strength})`);
+  }
+  
+  return {
+    nearestSupport: nearestSupportZone,
+    nearestResistance: nearestResistanceZone,
+    allZones,
+  };
+}
+
+/**
+ * Анализ S/R зон на основе 200 свечей (СТАРЫЙ АЛГОРИТМ - сохранен для резерва)
  */
 export function analyzeSRZones(candles: Candle[]): SRAnalysis {
   if (candles.length < 50) {
@@ -915,8 +1004,8 @@ export class PatternDetector {
     // Анализ тренда (EMA 50/200) - используем timeframe-aware пороги
     const trend = analyzeTrend(candles, timeframe || '15m');
     
-    // Анализ S/R зон
-    const srAnalysis = analyzeSRZones(candles);
+    // Анализ S/R зон (TradingView алгоритм)
+    const srAnalysis = analyzeSRZonesTV(candles);
     
     // Проверка объема
     const hasGoodVolume = isVolumeAboveAverage(candles);

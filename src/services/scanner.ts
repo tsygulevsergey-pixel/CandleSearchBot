@@ -43,10 +43,10 @@ export class Scanner {
 
       for (const symbol of pairs) {
         try {
-          const candles = await binanceClient.getKlines(symbol, timeframe, 200);
+          const candles = await binanceClient.getKlines(symbol, timeframe, 350);
           
-          if (candles.length < 200) {
-            console.log(`⚠️ [Scanner] Insufficient candles for ${symbol} (need 200, got ${candles.length}), skipping`);
+          if (candles.length < 300) {
+            console.log(`⚠️ [Scanner] Insufficient candles for ${symbol} (need 300, got ${candles.length}), skipping`);
             continue;
           }
 
@@ -106,13 +106,13 @@ export class Scanner {
             const directionText = pattern.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
             const patternName = pattern.type.replace('_', ' ').toUpperCase();
             
-            // Форматирование S/R зон
+            // Форматирование S/R зон (показываем диапазон)
             const supportZoneText = pattern.srAnalysis?.nearestSupport 
-              ? `${pattern.srAnalysis.nearestSupport.price.toFixed(8)} (${pattern.srAnalysis.nearestSupport.touches} касаний)`
+              ? `${pattern.srAnalysis.nearestSupport.lower.toFixed(8)} - ${pattern.srAnalysis.nearestSupport.upper.toFixed(8)} (${pattern.srAnalysis.nearestSupport.touches} касаний)`
               : 'Не обнаружена';
             
             const resistanceZoneText = pattern.srAnalysis?.nearestResistance
-              ? `${pattern.srAnalysis.nearestResistance.price.toFixed(8)} (${pattern.srAnalysis.nearestResistance.touches} касаний)`
+              ? `${pattern.srAnalysis.nearestResistance.lower.toFixed(8)} - ${pattern.srAnalysis.nearestResistance.upper.toFixed(8)} (${pattern.srAnalysis.nearestResistance.touches} касаний)`
               : 'Не обнаружена';
             
             // Рейтинг сигнала
