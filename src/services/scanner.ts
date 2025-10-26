@@ -53,7 +53,16 @@ export class Scanner {
           const patterns = patternDetector.detectAllPatterns(candles, timeframe);
 
           for (const pattern of patterns) {
-            if (!pattern.detected || !pattern.type || !pattern.direction || !pattern.entryPrice) {
+            // Validate pattern has all required fields (including candleClosePrice)
+            if (!pattern.detected || !pattern.type || !pattern.direction || !pattern.candleClosePrice) {
+              continue;
+            }
+            
+            // Optional: Validate last candle is fully closed (5s buffer)
+            const lastCandle = candles[candles.length - 1];
+            const buffer = 5000;
+            if (lastCandle.closeTime > Date.now() - buffer) {
+              console.log(`⏭️ [Scanner] Skipping ${symbol} - last candle not fully closed yet`);
               continue;
             }
 
@@ -80,21 +89,31 @@ export class Scanner {
             
             console.log(`✅ [Scanner] Family check passed: ${symbol} (${familyId}) - ${openFamilySignals}/${MAX_SIGNALS_PER_FAMILY} signals`);
 
-            // ВАЖНО: Используем pattern.entryPrice (из ЗАКРЫТОЙ свечи), а не текущую цену
-            // Pattern detectors возвращают entryPrice = C0.close, где C0 = candles[length-2] (последняя ЗАКРЫТАЯ свеча)
+            // DUAL-PRICE STRATEGY:
+            // 1. Get current market price for Entry (actual trading price)
+            const currentPrice = await binanceClient.getCurrentPrice(symbol);
+            
+            // 2. Calculate SL based on pattern candle (candleClosePrice)
+            const slPrice = riskCalculator.calculateStopLoss(
+              pattern.type,
+              pattern.direction,
+              candles,
+              0.0035
+            );
+            
+            // 3. Calculate TP levels using candleClosePrice (for accurate R calculation)
             const levels = riskCalculator.calculateLevels(
               pattern.type,
               pattern.direction,
-              pattern.entryPrice, // Используем entryPrice из паттерна (ЗАКРЫТАЯ свеча)
-              candles
-              // S/R зоны больше НЕ используются для стопов (только свечная логика)
+              pattern.candleClosePrice, // Use pattern candle close for SL/TP math
+              slPrice
             );
 
             const signal = await signalDB.createSignal({
               symbol,
               timeframe,
               patternType: pattern.type,
-              entryPrice: pattern.entryPrice.toString(), // Entry = ЗАКРЫТАЯ свеча
+              entryPrice: currentPrice.toString(), // Entry = CURRENT MARKET PRICE
               slPrice: levels.sl.toString(),
               tp1Price: levels.tp1.toString(),
               tp2Price: levels.tp2.toString(),
@@ -128,7 +147,7 @@ export class Scanner {
 📈 <b>Паттерн:</b> ${patternName}
 🏷️ <b>Кластер:</b> ${cluster.leader} | ${cluster.sector}
 
-💰 <b>Entry:</b> ${pattern.entryPrice.toFixed(8)}
+💰 <b>Entry:</b> ${currentPrice.toFixed(8)}
 🛑 <b>Stop Loss:</b> ${levels.sl.toFixed(8)}
 🎯 <b>Take Profit 1:</b> ${levels.tp1.toFixed(8)}
 🎯 <b>Take Profit 2:</b> ${levels.tp2.toFixed(8)}

@@ -11,53 +11,48 @@ export class RiskCalculator {
   calculateLevels(
     patternType: string,
     direction: 'LONG' | 'SHORT',
-    entryPrice: number,
-    candles: Candle[]
+    candleClosePrice: number,
+    stopLoss: number
   ): RiskLevels {
-    const slPercentage = 0.0035; // 0.35% offset от свечи
-    
-    // 🛑 СТОПЫ ТОЛЬКО ПО СВЕЧАМ (S/R зоны игнорируются)
-    const slPrice = this.calculateStopLoss(patternType, direction, candles, slPercentage);
-
-    const R = Math.abs(entryPrice - slPrice);
+    // Use candleClosePrice for R calculation and TP levels
+    const R = Math.abs(candleClosePrice - stopLoss);
 
     let tp1Price: number;
     let tp2Price: number;
 
     if (direction === 'LONG') {
-      tp1Price = entryPrice + R;
-      tp2Price = entryPrice + 2 * R;
+      tp1Price = candleClosePrice + R;
+      tp2Price = candleClosePrice + 2 * R;
     } else {
-      tp1Price = entryPrice - R;
-      tp2Price = entryPrice - 2 * R;
+      tp1Price = candleClosePrice - R;
+      tp2Price = candleClosePrice - 2 * R;
     }
 
     console.log(`💰 [RiskCalculator] Levels for ${patternType} ${direction}:`, {
-      entry: entryPrice.toFixed(8),
-      sl: slPrice.toFixed(8),
+      candleClose: candleClosePrice.toFixed(8),
+      sl: stopLoss.toFixed(8),
       tp1: tp1Price.toFixed(8),
       tp2: tp2Price.toFixed(8),
       R: R.toFixed(8),
     });
 
     return {
-      sl: slPrice,
+      sl: stopLoss,
       tp1: tp1Price,
       tp2: tp2Price,
     };
   }
 
-  private calculateStopLoss(
+  calculateStopLoss(
     patternType: string,
     direction: 'LONG' | 'SHORT',
     candles: Candle[],
     slPercentage: number
   ): number {
-    // ВАЖНО: Используем ЗАКРЫТЫЕ свечи (second-to-last), чтобы соответствовать логике pattern detection
-    // C0 = последняя ЗАКРЫТАЯ свеча (candles[length-2])
-    // C1 = предпоследняя ЗАКРЫТАЯ свеча (candles[length-3])
-    const C0 = analyzeCand(candles[candles.length - 2]);
-    const C1 = candles.length >= 3 ? analyzeCand(candles[candles.length - 3]) : null;
+    // C0 = последняя ЗАКРЫТАЯ свеча (candles[length-1])
+    // C1 = предпоследняя ЗАКРЫТАЯ свеча (candles[length-2])
+    const C0 = analyzeCand(candles[candles.length - 1]);
+    const C1 = candles.length >= 2 ? analyzeCand(candles[candles.length - 2]) : null;
     
     console.log(`🔧 [RiskCalculator] calculateStopLoss for ${patternType} ${direction}:`, {
       C0_high: C0.high.toFixed(8),
