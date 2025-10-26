@@ -621,28 +621,26 @@ export class PatternDetector {
     console.log(`      Bar₁: O=${Bar1.open.toFixed(8)}, C=${Bar1.close.toFixed(8)}, H=${Bar1.high.toFixed(8)}, L=${Bar1.low.toFixed(8)}, body=${Bar1.body.toFixed(8)}, color=${Bar1.isGreen ? 'GREEN' : 'RED'}`);
     console.log(`      Bar₂: O=${Bar2.open.toFixed(8)}, C=${Bar2.close.toFixed(8)}, H=${Bar2.high.toFixed(8)}, L=${Bar2.low.toFixed(8)}, body=${Bar2.body.toFixed(8)}, color=${Bar2.isGreen ? 'GREEN' : 'RED'}`);
 
-    // Минимальные требования к размеру свечей
-    const MIN_BODY_ATR = 0.5; // Минимальное тело относительно ATR
-    
-    if (Bar1.body < MIN_BODY_ATR * atr) {
-      console.log(`   ❌ Bar₁ body too small: ${Bar1.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
-      return { detected: false };
-    }
-    
-    if (Bar2.body < MIN_BODY_ATR * atr) {
-      console.log(`   ❌ Bar₂ body too small: ${Bar2.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
-      return { detected: false };
-    }
-
-    console.log(`   ✅ Both bodies OK (>= ${MIN_BODY_ATR}×ATR)`);
-
     // ========== BULLISH PIERCING PATTERN ==========
     // 1. Bar₁ = RED (медвежья)
-    // 2. Bar₂ = GREEN (бычья)
-    // 3. Gap down: Open₂ < Low₁ (или хотя бы < Close₁)
+    // 2. Bar₂ = GREEN (бычья) ← КРИТИЧНО: должна быть зеленой!
+    // 3. Gap down: Open₂ < Close₁
     // 4. Close₂ > 50% body Bar₁ (закрытие выше середины тела)
+    // 5. Not full engulfing (Close₂ < Open₁)
     
     if (Bar1.isRed && Bar2.isGreen) {
+      // Минимальные требования к размеру свечей
+      const MIN_BODY_ATR = 0.5;
+      
+      if (Bar1.body < MIN_BODY_ATR * atr) {
+        console.log(`   ❌ BULLISH PPR: Bar₁ body too small: ${Bar1.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
+        return { detected: false };
+      }
+      
+      if (Bar2.body < MIN_BODY_ATR * atr) {
+        console.log(`   ❌ BULLISH PPR: Bar₂ body too small: ${Bar2.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
+        return { detected: false };
+      }
       const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
       const gapDown = Bar2.open < Bar1.close;
       const closesAboveMid = Bar2.close > bar1BodyMid;
@@ -668,11 +666,24 @@ export class PatternDetector {
 
     // ========== BEARISH DARK CLOUD COVER ==========
     // 1. Bar₁ = GREEN (бычья)
-    // 2. Bar₂ = RED (медвежья)
-    // 3. Gap up: Open₂ > High₁ (или хотя бы > Close₁)
+    // 2. Bar₂ = RED (медвежья) ← КРИТИЧНО: должна быть красной!
+    // 3. Gap up: Open₂ > Close₁
     // 4. Close₂ < 50% body Bar₁ (закрытие ниже середины тела)
+    // 5. Not full engulfing (Close₂ > Open₁)
     
     if (Bar1.isGreen && Bar2.isRed) {
+      // Минимальные требования к размеру свечей
+      const MIN_BODY_ATR = 0.5;
+      
+      if (Bar1.body < MIN_BODY_ATR * atr) {
+        console.log(`   ❌ BEARISH PPR: Bar₁ body too small: ${Bar1.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
+        return { detected: false };
+      }
+      
+      if (Bar2.body < MIN_BODY_ATR * atr) {
+        console.log(`   ❌ BEARISH PPR: Bar₂ body too small: ${Bar2.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
+        return { detected: false };
+      }
       const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
       const gapUp = Bar2.open > Bar1.close;
       const closesBelowMid = Bar2.close < bar1BodyMid;

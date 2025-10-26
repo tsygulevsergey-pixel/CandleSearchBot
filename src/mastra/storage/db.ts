@@ -37,13 +37,26 @@ export class SignalDB {
   /**
    * Подсчет открытых сигналов из определенного семейства (лидер:сектор)
    * Используется для диверсификации рисков - не больше 2-3 сигналов из одного семейства
+   * Включает OPEN и TP1_HIT сигналы (частично активные позиции)
    */
   async countOpenSignalsByFamily(symbols: string[]): Promise<number> {
     if (symbols.length === 0) return 0;
     
+    // Если только 1 символ, используем eq() без or() (Drizzle требует минимум 2 операнда для or())
+    if (symbols.length === 1) {
+      const openSignals = await db.select().from(signals).where(
+        and(
+          or(eq(signals.status, 'OPEN'), eq(signals.status, 'TP1_HIT')),
+          eq(signals.symbol, symbols[0])
+        )
+      );
+      return openSignals.length;
+    }
+    
+    // Для множественных символов используем or()
     const openSignals = await db.select().from(signals).where(
       and(
-        eq(signals.status, 'OPEN'),
+        or(eq(signals.status, 'OPEN'), eq(signals.status, 'TP1_HIT')),
         or(...symbols.map(sym => eq(signals.symbol, sym)))
       )
     );
