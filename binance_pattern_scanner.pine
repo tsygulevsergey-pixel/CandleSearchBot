@@ -1,0 +1,501 @@
+//@version=5
+indicator("Binance Pattern Scanner v1.0", overlay=true, max_boxes_count=500, max_lines_count=500, max_labels_count=500)
+
+// ============================================
+// НАСТРОЙКИ
+// ============================================
+// S/R Zones Settings
+pivotPeriod = input.int(10, "Pivot Period", minval=1, maxval=50, group="S/R Zones")
+maxChannelWidthPercent = input.float(5.0, "Max Channel Width %", minval=0.5, maxval=20, step=0.5, group="S/R Zones")
+maxChannels = input.int(6, "Max Channels", minval=1, maxval=20, group="S/R Zones")
+loopbackPeriod = input.int(290, "Lookback Period", minval=50, maxval=500, group="S/R Zones")
+showSRZones = input.bool(true, "Show S/R Zones", group="S/R Zones")
+
+// Pattern Settings
+enablePinBar = input.bool(true, "Pin Bar", group="Patterns")
+enableFakey = input.bool(true, "Fakey", group="Patterns")
+enablePPR = input.bool(true, "PPR (Piercing)", group="Patterns")
+enableEngulfing = input.bool(true, "Engulfing", group="Patterns")
+
+// Filters
+minScore = input.int(50, "Min Score", minval=0, maxval=200, group="Filters")
+volumeThreshold = input.float(0.40, "Volume Threshold", minval=0.1, maxval=2.0, step=0.05, group="Filters")
+
+// ============================================
+// ATR CALCULATION
+// ============================================
+calculateATR(period) =>
+    atrSum = 0.0
+    for i = 1 to period
+        tr = ta.tr(true)
+        atrSum := atrSum + tr[i-1]
+    atrSum / period
+
+atr = calculateATR(5)
+
+// ============================================
+// TREND ANALYSIS (EMA 50/200)
+// ============================================
+ema50 = ta.ema(close, 50)
+ema200 = ta.ema(close, 200)
+
+// Timeframe-aware thresholds (assuming 15m default)
+PRICE_THRESHOLD = 0.005  // 0.5%
+EMA_THRESHOLD = 0.004    // 0.4%
+
+priceToEma50Distance = math.abs(close - ema50) / close
+ema50ToEma200Distance = math.abs(ema50 - ema200) / ema200
+
+priceNearEma50 = priceToEma50Distance < PRICE_THRESHOLD
+ema50NearEma200 = ema50ToEma200Distance < EMA_THRESHOLD
+
+isNeutral = priceNearEma50 or ema50NearEma200
+isUptrend = not isNeutral and close > ema50 and ema50 > ema200
+isDowntrend = not isNeutral and close < ema50 and ema50 < ema200
+
+// ============================================
+// S/R ZONES (TRADINGVIEW ALGORITHM)
+// ============================================
+// Find pivot highs and lows
+pivotHigh = ta.pivothigh(high, pivotPeriod, pivotPeriod)
+pivotLow = ta.pivotlow(low, pivotPeriod, pivotPeriod)
+
+// Store recent pivots (simplified - using arrays for last 50 pivots)
+var float[] pivotHighValues = array.new_float(0)
+var int[] pivotHighBars = array.new_int(0)
+var float[] pivotLowValues = array.new_float(0)
+var int[] pivotLowBars = array.new_int(0)
+
+if not na(pivotHigh)
+    array.unshift(pivotHighValues, pivotHigh)
+    array.unshift(pivotHighBars, bar_index - pivotPeriod)
+    if array.size(pivotHighValues) > 50
+        array.pop(pivotHighValues)
+        array.pop(pivotHighBars)
+
+if not na(pivotLow)
+    array.unshift(pivotLowValues, pivotLow)
+    array.unshift(pivotLowBars, bar_index - pivotPeriod)
+    if array.size(pivotLowValues) > 50
+        array.pop(pivotLowValues)
+        array.pop(pivotLowBars)
+
+// Calculate max channel width
+highest300 = ta.highest(high, 300)
+lowest300 = ta.lowest(low, 300)
+maxWidth = (highest300 - lowest300) * (maxChannelWidthPercent / 100)
+
+// Create channels (simplified - we'll draw top 6 strongest)
+var box[] supportBoxes = array.new_box(0)
+var box[] resistanceBoxes = array.new_box(0)
+
+// Clear old boxes
+if barstate.islast and showSRZones
+    for i = 0 to array.size(supportBoxes) - 1
+        box.delete(array.get(supportBoxes, i))
+    array.clear(supportBoxes)
+    
+    for i = 0 to array.size(resistanceBoxes) - 1
+        box.delete(array.get(resistanceBoxes, i))
+    array.clear(resistanceBoxes)
+    
+    // Combine all pivots
+    var float[] allPivots = array.new_float(0)
+    for i = 0 to math.min(array.size(pivotHighValues) - 1, loopbackPeriod / pivotPeriod)
+        array.push(allPivots, array.get(pivotHighValues, i))
+    for i = 0 to math.min(array.size(pivotLowValues) - 1, loopbackPeriod / pivotPeriod)
+        array.push(allPivots, array.get(pivotLowValues, i))
+    
+    // Group into channels
+    var float[] channelUpper = array.new_float(0)
+    var float[] channelLower = array.new_float(0)
+    var int[] channelStrength = array.new_int(0)
+    
+    for i = 0 to array.size(allPivots) - 1
+        pivotVal = array.get(allPivots, i)
+        upper = pivotVal
+        lower = pivotVal
+        pivotCount = 1
+        
+        // Find all pivots within maxWidth
+        for j = 0 to array.size(allPivots) - 1
+            if i == j
+                continue
+            otherPivot = array.get(allPivots, j)
+            potentialLower = math.min(lower, otherPivot)
+            potentialUpper = math.max(upper, otherPivot)
+            if (potentialUpper - potentialLower) <= maxWidth
+                lower := potentialLower
+                upper := potentialUpper
+                pivotCount := pivotCount + 1
+        
+        // Calculate strength (pivotCount * 20 + touchCount)
+        touchCount = 0
+        for k = 0 to math.min(loopbackPeriod - 1, bar_index - 1)
+            h = high[k]
+            l = low[k]
+            if (h <= upper and h >= lower) or (l <= upper and l >= lower)
+                touchCount := touchCount + 1
+        
+        strength = pivotCount * 20 + touchCount
+        
+        // Store channel
+        array.push(channelUpper, upper)
+        array.push(channelLower, lower)
+        array.push(channelStrength, strength)
+    
+    // Sort by strength and remove duplicates (simplified)
+    for iter = 0 to math.min(maxChannels - 1, array.size(channelStrength) - 1)
+        maxStr = 0
+        maxIdx = 0
+        for i = 0 to array.size(channelStrength) - 1
+            if array.get(channelStrength, i) > maxStr
+                maxStr := array.get(channelStrength, i)
+                maxIdx := i
+        
+        if maxStr > 0
+            upper = array.get(channelUpper, maxIdx)
+            lower = array.get(channelLower, maxIdx)
+            
+            // Determine type
+            isSup = upper < close and lower < close
+            isRes = upper > close and lower > close
+            
+            if isSup
+                box newBox = box.new(bar_index - 100, lower, bar_index + 20, upper, 
+                     border_color=color.new(color.green, 60), 
+                     bgcolor=color.new(color.green, 90), 
+                     border_width=1)
+                array.push(supportBoxes, newBox)
+            else if isRes
+                box newBox = box.new(bar_index - 100, lower, bar_index + 20, upper, 
+                     border_color=color.new(color.red, 60), 
+                     bgcolor=color.new(color.red, 90), 
+                     border_width=1)
+                array.push(resistanceBoxes, newBox)
+            
+            // Remove used channel
+            array.set(channelStrength, maxIdx, 0)
+
+// ============================================
+// VOLUME FILTER
+// ============================================
+avgVolume = ta.sma(volume, 20)
+volumeRatio = volume / avgVolume
+hasGoodVolume = volume >= avgVolume * volumeThreshold
+
+// ============================================
+// PIN BAR DETECTION
+// ============================================
+detectPinBar() =>
+    body = math.abs(close - open)
+    range = high - low
+    upperWick = high - math.max(open, close)
+    lowerWick = math.min(open, close) - low
+    
+    if range == 0
+        [false, false]
+    else
+        // Parameters
+        BODY_MAX_FRACTION = 0.33
+        EDGE_THRESHOLD = 0.25
+        TAIL_BODY_RATIO_MIN = 2.0
+        LONG_TAIL_RANGE_MIN = 0.60
+        OPP_TAIL_RANGE_MAX = 0.20
+        OPP_TAIL_BODY_MAX = 0.50
+        ATR_EPSILON = 0.10
+        
+        // LONG Pin Bar (lower tail)
+        bodyMaxLong = body <= BODY_MAX_FRACTION * range
+        bodyAtTopLong = upperWick / range <= EDGE_THRESHOLD
+        longTailBodyLong = lowerWick >= TAIL_BODY_RATIO_MIN * body
+        longTailRangeLong = lowerWick >= LONG_TAIL_RANGE_MIN * range
+        oppTailShortLong = upperWick <= math.min(OPP_TAIL_RANGE_MAX * range, OPP_TAIL_BODY_MAX * body)
+        
+        isLongGeo = bodyMaxLong and bodyAtTopLong and longTailBodyLong and longTailRangeLong and oppTailShortLong
+        
+        // Check tail protrusion
+        minRecentLow = ta.lowest(low, 5)[1]
+        tailProtrusionLong = isLongGeo and low <= minRecentLow - ATR_EPSILON * atr
+        
+        // SHORT Pin Bar (upper tail)
+        bodyMaxShort = body <= BODY_MAX_FRACTION * range
+        bodyAtBottomShort = lowerWick / range <= EDGE_THRESHOLD
+        longTailBodyShort = upperWick >= TAIL_BODY_RATIO_MIN * body
+        longTailRangeShort = upperWick >= LONG_TAIL_RANGE_MIN * range
+        oppTailShortShort = lowerWick <= math.min(OPP_TAIL_RANGE_MAX * range, OPP_TAIL_BODY_MAX * body)
+        
+        isShortGeo = bodyMaxShort and bodyAtBottomShort and longTailBodyShort and longTailRangeShort and oppTailShortShort
+        
+        // Check tail protrusion
+        maxRecentHigh = ta.highest(high, 5)[1]
+        tailProtrusionShort = isShortGeo and high >= maxRecentHigh + ATR_EPSILON * atr
+        
+        [tailProtrusionLong, tailProtrusionShort]
+
+// ============================================
+// FAKEY DETECTION
+// ============================================
+detectFakey() =>
+    epsilon = 0.225
+    minMBSize = 1.0
+    
+    // Try MB + 1 IB + FB (3 bars)
+    MB_high = high[2]
+    MB_low = low[2]
+    MB_range = MB_high - MB_low
+    
+    IB_high = high[1]
+    IB_low = low[1]
+    
+    FB_high = high
+    FB_low = low
+    FB_close = close
+    
+    // Check if IB inside MB
+    ibInside = IB_high <= MB_high and IB_low >= MB_low
+    
+    // MB size check
+    mbSizeOK = MB_range >= minMBSize * atr
+    
+    isLongFakey = false
+    isShortFakey = false
+    
+    if ibInside and mbSizeOK
+        // LONG Fakey: FB probes below IB_low, closes back in MB, confirms above IB_high
+        fbProbeBelowIB = FB_low < IB_low
+        fbProbeDepth = IB_low - FB_low
+        fbProbeOK = fbProbeDepth >= epsilon * atr
+        fbCloseBackInMB = FB_close >= MB_low and FB_close <= MB_high
+        confirmedLong = FB_close > IB_high
+        
+        isLongFakey := fbProbeBelowIB and fbProbeOK and fbCloseBackInMB and confirmedLong
+        
+        // SHORT Fakey: FB probes above IB_high, closes back in MB, confirms below IB_low
+        fbProbeAboveIB = FB_high > IB_high
+        fbProbeDepthShort = FB_high - IB_high
+        fbProbeOKShort = fbProbeDepthShort >= epsilon * atr
+        fbCloseBackInMBShort = FB_close >= MB_low and FB_close <= MB_high
+        confirmedShort = FB_close < IB_low
+        
+        isShortFakey := fbProbeAboveIB and fbProbeOKShort and fbCloseBackInMBShort and confirmedShort
+    
+    [isLongFakey, isShortFakey]
+
+// ============================================
+// PPR DETECTION (Piercing Pattern Reversal)
+// ============================================
+detectPPR() =>
+    Bar1_open = open[1]
+    Bar1_high = high[1]
+    Bar1_low = low[1]
+    Bar1_close = close[1]
+    Bar1_body = math.abs(Bar1_close - Bar1_open)
+    Bar1_isGreen = Bar1_close > Bar1_open
+    Bar1_isRed = Bar1_close < Bar1_open
+    
+    Bar2_open = open
+    Bar2_high = high
+    Bar2_low = low
+    Bar2_close = close
+    Bar2_body = math.abs(Bar2_close - Bar2_open)
+    Bar2_isGreen = Bar2_close > Bar2_open
+    Bar2_isRed = Bar2_close < Bar2_open
+    
+    MIN_BODY_ATR = 0.5
+    
+    isLongPPR = false
+    isShortPPR = false
+    
+    // BULLISH PPR: RED→GREEN
+    if Bar1_isRed and Bar2_isGreen and Bar1_body >= MIN_BODY_ATR * atr and Bar2_body >= MIN_BODY_ATR * atr
+        bar1BodyMid = (Bar1_open + Bar1_close) / 2
+        gapTolerance = 0.15 * atr
+        gapThreshold = Bar1_close - gapTolerance
+        gapDown = Bar2_open < gapThreshold
+        closesAboveMid = Bar2_close > bar1BodyMid
+        closesWithinBar1Range = Bar2_close < Bar1_open
+        
+        isLongPPR := gapDown and closesAboveMid and closesWithinBar1Range
+    
+    // BEARISH PPR (Dark Cloud): GREEN→RED
+    if Bar1_isGreen and Bar2_isRed and Bar1_body >= MIN_BODY_ATR * atr and Bar2_body >= MIN_BODY_ATR * atr
+        bar1BodyMid = (Bar1_open + Bar1_close) / 2
+        gapTolerance = 0.15 * atr
+        gapThreshold = Bar1_close + gapTolerance
+        gapUp = Bar2_open > gapThreshold
+        closesBelowMid = Bar2_close < bar1BodyMid
+        closesWithinBar1Range = Bar2_close > Bar1_open
+        
+        isShortPPR := gapUp and closesBelowMid and closesWithinBar1Range
+    
+    [isLongPPR, isShortPPR]
+
+// ============================================
+// ENGULFING DETECTION
+// ============================================
+detectEngulfing() =>
+    Bar1_open = open[1]
+    Bar1_high = high[1]
+    Bar1_low = low[1]
+    Bar1_close = close[1]
+    Bar1_body = math.abs(Bar1_close - Bar1_open)
+    Bar1_isGreen = Bar1_close > Bar1_open
+    Bar1_isRed = Bar1_close < Bar1_open
+    
+    Bar2_open = open
+    Bar2_high = high
+    Bar2_low = low
+    Bar2_close = close
+    Bar2_body = math.abs(Bar2_close - Bar2_open)
+    Bar2_range = Bar2_high - Bar2_low
+    Bar2_isGreen = Bar2_close > Bar2_open
+    Bar2_isRed = Bar2_close < Bar2_open
+    
+    gamma = 0.175
+    bodyRatio = 1.3
+    minBodyATR = 0.8
+    EDGE_MAX = 0.25
+    
+    bodyRatioActual = Bar1_body > 0 ? Bar2_body / Bar1_body : 0
+    bodyRatioOK = bodyRatioActual >= bodyRatio
+    bodySizeOK = Bar2_body >= minBodyATR * atr
+    
+    isLongEngulfing = false
+    isShortEngulfing = false
+    
+    if bodyRatioOK and bodySizeOK
+        gammaBuffer = gamma * atr
+        
+        // LONG Engulfing: RED→GREEN
+        if Bar1_isRed and Bar2_isGreen
+            openEngulfsBottom = Bar2_open <= Bar1_close - gammaBuffer
+            closeEngulfsTop = Bar2_close >= Bar1_open + gammaBuffer
+            closeAtTopFraction = Bar2_range > 0 ? (Bar2_high - Bar2_close) / Bar2_range : 1
+            closeAtTopOK = closeAtTopFraction <= EDGE_MAX
+            
+            isLongEngulfing := openEngulfsBottom and closeEngulfsTop and closeAtTopOK
+        
+        // SHORT Engulfing: GREEN→RED
+        if Bar1_isGreen and Bar2_isRed
+            openEngulfsTop = Bar2_open >= Bar1_close + gammaBuffer
+            closeEngulfsBottom = Bar2_close <= Bar1_open - gammaBuffer
+            closeAtBottomFraction = Bar2_range > 0 ? (Bar2_close - Bar2_low) / Bar2_range : 1
+            closeAtBottomOK = closeAtBottomFraction <= EDGE_MAX
+            
+            isShortEngulfing := openEngulfsTop and closeEngulfsBottom and closeAtBottomOK
+    
+    [isLongEngulfing, isShortEngulfing]
+
+// ============================================
+// PATTERN DETECTION
+// ============================================
+[pinLong, pinShort] = detectPinBar()
+[fakeyLong, fakeyShort] = detectFakey()
+[pprLong, pprShort] = detectPPR()
+[engulfingLong, engulfingShort] = detectEngulfing()
+
+// Apply pattern enable filters
+pinLongSignal = enablePinBar and pinLong
+pinShortSignal = enablePinBar and pinShort
+fakeyLongSignal = enableFakey and fakeyLong
+fakeyShortSignal = enableFakey and fakeyShort
+pprLongSignal = enablePPR and pprLong
+pprShortSignal = enablePPR and pprShort
+engulfingLongSignal = enableEngulfing and engulfingLong
+engulfingShortSignal = enableEngulfing and engulfingShort
+
+// ============================================
+// SCORING SYSTEM
+// ============================================
+calculateScore(direction) =>
+    score = 0
+    
+    // Trend Gating (блокировка)
+    if isNeutral
+        score := -1  // Reject
+        score
+    else
+        isCounterTrend = (direction == 1 and isDowntrend) or (direction == -1 and isUptrend)
+        if isCounterTrend
+            score := -1  // Reject
+            score
+        else
+            // S/R Bonus (пока упрощенно - можно улучшить с distance check)
+            // score += 0-100
+            
+            // Trend Score
+            trendAligned = (direction == 1 and isUptrend) or (direction == -1 and isDowntrend)
+            if trendAligned
+                score := score + 30
+            
+            // Volume Score
+            if volumeRatio > 1.5
+                score := score + 30
+            else if volumeRatio > 1.0
+                score := score + 15
+            
+            // Sharp Move Score (упрощенно - +20 по умолчанию)
+            score := score + 20
+            
+            score
+
+// ============================================
+// SIGNAL GENERATION
+// ============================================
+// LONG signals
+longPinBarScore = pinLongSignal ? calculateScore(1) : 0
+longFakeyScore = fakeyLongSignal ? calculateScore(1) : 0
+longPPRScore = pprLongSignal ? calculateScore(1) : 0
+longEngulfingScore = engulfingLongSignal ? calculateScore(1) : 0
+
+showLongPinBar = longPinBarScore >= minScore
+showLongFakey = longFakeyScore >= minScore
+showLongPPR = longPPRScore >= minScore
+showLongEngulfing = longEngulfingScore >= minScore
+
+// SHORT signals
+shortPinBarScore = pinShortSignal ? calculateScore(-1) : 0
+shortFakeyScore = fakeyShortSignal ? calculateScore(-1) : 0
+shortPPRScore = pprShortSignal ? calculateScore(-1) : 0
+shortEngulfingScore = engulfingShortSignal ? calculateScore(-1) : 0
+
+showShortPinBar = shortPinBarScore >= minScore
+showShortFakey = shortFakeyScore >= minScore
+showShortPPR = shortPPRScore >= minScore
+showShortEngulfing = shortEngulfingScore >= minScore
+
+// Apply volume filter
+anyLong = hasGoodVolume and (showLongPinBar or showLongFakey or showLongPPR or showLongEngulfing)
+anyShort = hasGoodVolume and (showShortPinBar or showShortFakey or showShortPPR or showShortEngulfing)
+
+// ============================================
+// ВИЗУАЛИЗАЦИЯ
+// ============================================
+// Plot EMAs
+plot(ema50, "EMA 50", color=color.blue, linewidth=1)
+plot(ema200, "EMA 200", color=color.purple, linewidth=1)
+
+// LONG signals (под свечой)
+plotshape(showLongPinBar, "Pin Bar LONG", shape.labelup, location.belowbar, 
+         color=color.new(color.green, 0), text="PIN", textcolor=color.white, size=size.small)
+plotshape(showLongFakey, "Fakey LONG", shape.labelup, location.belowbar, 
+         color=color.new(color.lime, 0), text="FKY", textcolor=color.white, size=size.small)
+plotshape(showLongPPR, "PPR LONG", shape.labelup, location.belowbar, 
+         color=color.new(color.teal, 0), text="PPR", textcolor=color.white, size=size.small)
+plotshape(showLongEngulfing, "Engulfing LONG", shape.labelup, location.belowbar, 
+         color=color.new(color.aqua, 0), text="ENG", textcolor=color.white, size=size.small)
+
+// SHORT signals (над свечой)
+plotshape(showShortPinBar, "Pin Bar SHORT", shape.labeldown, location.abovebar, 
+         color=color.new(color.red, 0), text="PIN", textcolor=color.white, size=size.small)
+plotshape(showShortFakey, "Fakey SHORT", shape.labeldown, location.abovebar, 
+         color=color.new(color.maroon, 0), text="FKY", textcolor=color.white, size=size.small)
+plotshape(showShortPPR, "PPR SHORT", shape.labeldown, location.abovebar, 
+         color=color.new(color.orange, 0), text="PPR", textcolor=color.white, size=size.small)
+plotshape(showShortEngulfing, "Engulfing SHORT", shape.labeldown, location.abovebar, 
+         color=color.new(color.fuchsia, 0), text="ENG", textcolor=color.white, size=size.small)
+
+// Alerts
+alertcondition(anyLong, "LONG Signal", "Pattern detected: LONG")
+alertcondition(anyShort, "SHORT Signal", "Pattern detected: SHORT")
