@@ -1,5 +1,5 @@
 import { Candle } from './binanceClient';
-import { analyzeCand } from './candleAnalyzer';
+import { analyzeCand, SRAnalysis } from './candleAnalyzer';
 
 export interface RiskLevels {
   sl: number;
@@ -12,49 +12,32 @@ export class RiskCalculator {
     patternType: string,
     direction: 'LONG' | 'SHORT',
     entryPrice: number,
-    candles: Candle[]
+    candles: Candle[],
+    srAnalysis?: SRAnalysis
   ): RiskLevels {
-    const slPercentage = 0.0035;
+    const slPercentage = 0.0035; // 0.35% offset за зоной
     let slPrice: number;
 
-    const C0 = analyzeCand(candles[candles.length - 1]);
-    const C1 = candles.length >= 2 ? analyzeCand(candles[candles.length - 2]) : null;
-
-    if (patternType.startsWith('pinbar')) {
-      if (direction === 'LONG') {
-        const offset = C0.low * slPercentage;
-        slPrice = C0.low - offset;
+    // 🛑 НОВАЯ ЛОГИКА: Стоп ЗА S/R зоной (если зона есть)
+    if (srAnalysis) {
+      if (direction === 'LONG' && srAnalysis.nearestSupport) {
+        // LONG: стоп ПОД Support зоной
+        const offset = srAnalysis.nearestSupport.lower * slPercentage;
+        slPrice = srAnalysis.nearestSupport.lower - offset;
+        console.log(`🛑 [RiskCalculator] LONG SL: ЗА Support зоной (${srAnalysis.nearestSupport.lower.toFixed(8)} - ${slPercentage*100}% = ${slPrice.toFixed(8)})`);
+      } else if (direction === 'SHORT' && srAnalysis.nearestResistance) {
+        // SHORT: стоп НАД Resistance зоной
+        const offset = srAnalysis.nearestResistance.upper * slPercentage;
+        slPrice = srAnalysis.nearestResistance.upper + offset;
+        console.log(`🛑 [RiskCalculator] SHORT SL: ЗА Resistance зоной (${srAnalysis.nearestResistance.upper.toFixed(8)} + ${slPercentage*100}% = ${slPrice.toFixed(8)})`);
       } else {
-        const offset = C0.high * slPercentage;
-        slPrice = C0.high + offset;
-      }
-    } else if (patternType.startsWith('fakey')) {
-      if (direction === 'LONG') {
-        const offset = C0.low * slPercentage;
-        slPrice = C0.low - offset;
-      } else {
-        const offset = C0.high * slPercentage;
-        slPrice = C0.high + offset;
-      }
-    } else if (patternType.startsWith('ppr')) {
-      if (!C1) throw new Error('PPR requires C1 candle');
-      if (direction === 'LONG') {
-        const offset = C1.low * slPercentage;
-        slPrice = C1.low - offset;
-      } else {
-        const offset = C1.high * slPercentage;
-        slPrice = C1.high + offset;
-      }
-    } else if (patternType.startsWith('engulfing')) {
-      if (direction === 'LONG') {
-        const offset = C0.low * slPercentage;
-        slPrice = C0.low - offset;
-      } else {
-        const offset = C0.high * slPercentage;
-        slPrice = C0.high + offset;
+        // Fallback: если нет подходящей зоны, используем старую логику
+        console.log(`⚠️ [RiskCalculator] Нет подходящей S/R зоны, используем fallback логику`);
+        slPrice = this.calculateFallbackStopLoss(patternType, direction, candles, slPercentage);
       }
     } else {
-      throw new Error(`Unknown pattern type: ${patternType}`);
+      // Fallback: если S/R анализ не передан
+      slPrice = this.calculateFallbackStopLoss(patternType, direction, candles, slPercentage);
     }
 
     const R = Math.abs(entryPrice - slPrice);
@@ -83,6 +66,53 @@ export class RiskCalculator {
       tp1: tp1Price,
       tp2: tp2Price,
     };
+  }
+
+  private calculateFallbackStopLoss(
+    patternType: string,
+    direction: 'LONG' | 'SHORT',
+    candles: Candle[],
+    slPercentage: number
+  ): number {
+    const C0 = analyzeCand(candles[candles.length - 1]);
+    const C1 = candles.length >= 2 ? analyzeCand(candles[candles.length - 2]) : null;
+
+    if (patternType.startsWith('pinbar')) {
+      if (direction === 'LONG') {
+        const offset = C0.low * slPercentage;
+        return C0.low - offset;
+      } else {
+        const offset = C0.high * slPercentage;
+        return C0.high + offset;
+      }
+    } else if (patternType.startsWith('fakey')) {
+      if (direction === 'LONG') {
+        const offset = C0.low * slPercentage;
+        return C0.low - offset;
+      } else {
+        const offset = C0.high * slPercentage;
+        return C0.high + offset;
+      }
+    } else if (patternType.startsWith('ppr')) {
+      if (!C1) throw new Error('PPR requires C1 candle');
+      if (direction === 'LONG') {
+        const offset = C1.low * slPercentage;
+        return C1.low - offset;
+      } else {
+        const offset = C1.high * slPercentage;
+        return C1.high + offset;
+      }
+    } else if (patternType.startsWith('engulfing')) {
+      if (direction === 'LONG') {
+        const offset = C0.low * slPercentage;
+        return C0.low - offset;
+      } else {
+        const offset = C0.high * slPercentage;
+        return C0.high + offset;
+      }
+    } else {
+      throw new Error(`Unknown pattern type: ${patternType}`);
+    }
   }
 
   checkSignalStatus(
