@@ -388,10 +388,10 @@ export function analyzeSRZones(candles: Candle[]): SRAnalysis {
   
   console.log(`📊 [S/R] Found ${allZones.length} strong zones (3+ touches)`);
   if (nearestSupport) {
-    console.log(`   📍 Nearest Support: ${nearestSupport.price.toFixed(4)} (${nearestSupport.touches} touches, ${nearestSupport.strength})`);
+    console.log(`   📍 Nearest Support ZONE: ${nearestSupport.lower.toFixed(4)} - ${nearestSupport.upper.toFixed(4)} (center: ${nearestSupport.price.toFixed(4)}, ${nearestSupport.touches} touches, ${nearestSupport.strength})`);
   }
   if (nearestResistance) {
-    console.log(`   📍 Nearest Resistance: ${nearestResistance.price.toFixed(4)} (${nearestResistance.touches} touches, ${nearestResistance.strength})`);
+    console.log(`   📍 Nearest Resistance ZONE: ${nearestResistance.lower.toFixed(4)} - ${nearestResistance.upper.toFixed(4)} (center: ${nearestResistance.price.toFixed(4)}, ${nearestResistance.touches} touches, ${nearestResistance.strength})`);
   }
   
   return {
@@ -404,10 +404,23 @@ export function analyzeSRZones(candles: Candle[]): SRAnalysis {
 /**
  * Проверка близости паттерна к S/R зоне
  * Возвращает расстояние в процентах (null если нет зоны)
+ * Если цена ВНУТРИ зоны → расстояние = 0 (идеальный сигнал!)
  */
 export function getDistanceToZone(price: number, zone: SRZone | null): number | null {
   if (!zone) return null;
-  return Math.abs(price - zone.price) / zone.price;
+  
+  // Цена внутри зоны - идеально!
+  if (price >= zone.lower && price <= zone.upper) {
+    return 0;
+  }
+  
+  // Цена выше зоны resistance
+  if (price > zone.upper) {
+    return (price - zone.upper) / price;
+  }
+  
+  // Цена ниже зоны support
+  return (zone.lower - price) / price;
 }
 
 export class PatternDetector {
