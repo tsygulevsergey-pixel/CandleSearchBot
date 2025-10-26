@@ -192,7 +192,9 @@ export function isVolumeAboveAverage(candles: Candle[]): boolean {
 
 export interface SRZone {
   type: 'support' | 'resistance';
-  price: number;
+  price: number; // Центр зоны (среднее значение)
+  upper: number; // Верхняя граница зоны
+  lower: number; // Нижняя граница зоны
   touches: number; // Количество касаний
   strength: 'weak' | 'medium' | 'strong'; // weak=2, medium=3-4, strong=5+
 }
@@ -275,8 +277,9 @@ function findSwingLows(candles: Candle[], lookback: number = 2): number[] {
 /**
  * Группировка уровней в зоны (clustering)
  * Уровни в пределах tolerance% объединяются в одну зону
+ * Ширина зоны = ±1.5% от центра (для крипты, как на TradingView скриншотах)
  */
-function clusterLevels(levels: number[], tolerance: number = 0.005): SRZone[] {
+function clusterLevels(levels: number[], tolerance: number = 0.005, zoneWidthPercent: number = 0.015): SRZone[] {
   if (levels.length === 0) return [];
   
   const sortedLevels = [...levels].sort((a, b) => a - b);
@@ -300,9 +303,14 @@ function clusterLevels(levels: number[], tolerance: number = 0.005): SRZone[] {
         const strength: 'weak' | 'medium' | 'strong' = 
           touches >= 5 ? 'strong' : touches >= 3 ? 'medium' : 'weak';
         
+        // Рассчитываем границы зоны (ЗОНА, а не линия!)
+        const zoneWidth = avgPrice * zoneWidthPercent; // ±1.5% от центра
+        
         zones.push({
           type: 'support', // Тип определим позже
           price: avgPrice,
+          upper: avgPrice + zoneWidth,
+          lower: avgPrice - zoneWidth,
           touches,
           strength,
         });
@@ -319,9 +327,14 @@ function clusterLevels(levels: number[], tolerance: number = 0.005): SRZone[] {
     const strength: 'weak' | 'medium' | 'strong' = 
       touches >= 5 ? 'strong' : touches >= 3 ? 'medium' : 'weak';
     
+    // Рассчитываем границы зоны (ЗОНА, а не линия!)
+    const zoneWidth = avgPrice * zoneWidthPercent; // ±1.5% от центра
+    
     zones.push({
       type: 'support',
       price: avgPrice,
+      upper: avgPrice + zoneWidth,
+      lower: avgPrice - zoneWidth,
       touches,
       strength,
     });
