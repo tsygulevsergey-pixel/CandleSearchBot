@@ -971,7 +971,7 @@ export class PatternDetector {
       
       console.log(`   ✅ TREND CHECK: Passed - ${pattern.direction} aligned with market trend`);
 
-      // ⛔ СТРОГАЯ ФИЛЬТРАЦИЯ ПО S/R ЗОНАМ (для ВСЕХ паттернов БЕЗ ИСКЛЮЧЕНИЙ)
+      // 📊 S/R ЗОНЫ - ТОЛЬКО ДЛЯ ИНФОРМАЦИИ И БОНУСНОГО SCORING (НЕ ОБЯЗАТЕЛЬНО!)
       const distanceToSupport = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestSupport);
       const distanceToResistance = getDistanceToZone(pattern.entryPrice, srAnalysis.nearestResistance);
       
@@ -979,7 +979,7 @@ export class PatternDetector {
       const isNearSupport = distanceToSupport !== null && distanceToSupport <= 0.005;
       const isNearResistance = distanceToResistance !== null && distanceToResistance <= 0.005;
 
-      // Логирование S/R зон с границами
+      // Логирование S/R зон с границами (информационно)
       if (srAnalysis.nearestSupport) {
         const zone = srAnalysis.nearestSupport;
         console.log(`   📍 Support ZONE: ${zone.lower.toFixed(4)} - ${zone.upper.toFixed(4)} (center: ${zone.price.toFixed(4)}, ${zone.touches} touches)`);
@@ -991,38 +991,15 @@ export class PatternDetector {
         console.log(`      Distance: ${distanceToResistance !== null ? (distanceToResistance * 100).toFixed(2) + '%' : 'N/A'}`);
       }
 
-      // GATING RULE 1: LONG сигналы ТОЛЬКО возле Support зоны
-      if (pattern.direction === 'LONG') {
-        if (isNearResistance && !isNearSupport) {
-          // LONG у Resistance - КАТЕГОРИЧЕСКИ НЕПРАВИЛЬНО
-          console.log(`   ❌ S/R GATING: REJECT - LONG возле Resistance зоны (должен быть у Support!)\n`);
-          continue;
-        }
-        if (!isNearSupport) {
-          // LONG далеко от Support - REJECT (пользователь: "не должны быть далеко от зон")
-          console.log(`   ❌ S/R GATING: REJECT - LONG далеко от Support зоны (distance > 0.5%)\n`);
-          continue;
-        }
-        // LONG возле Support - OK!
+      // 🎁 БОНУСНЫЙ SCORING: даем +100 если паттерн возле правильной зоны, но НЕ ОТКЛОНЯЕМ если далеко
+      if (pattern.direction === 'LONG' && isNearSupport) {
         score += 100;
-        console.log(`   ✅ S/R: +100 (LONG возле Support зоны - ИДЕАЛЬНО!)`);
-      }
-      
-      // GATING RULE 2: SHORT сигналы ТОЛЬКО возле Resistance зоны
-      if (pattern.direction === 'SHORT') {
-        if (isNearSupport && !isNearResistance) {
-          // SHORT у Support - КАТЕГОРИЧЕСКИ НЕПРАВИЛЬНО
-          console.log(`   ❌ S/R GATING: REJECT - SHORT возле Support зоны (должен быть у Resistance!)\n`);
-          continue;
-        }
-        if (!isNearResistance) {
-          // SHORT далеко от Resistance - REJECT
-          console.log(`   ❌ S/R GATING: REJECT - SHORT далеко от Resistance зоны (distance > 0.5%)\n`);
-          continue;
-        }
-        // SHORT возле Resistance - OK!
+        console.log(`   ✅ S/R BONUS: +100 (LONG возле Support зоны)`);
+      } else if (pattern.direction === 'SHORT' && isNearResistance) {
         score += 100;
-        console.log(`   ✅ S/R: +100 (SHORT возле Resistance зоны - ИДЕАЛЬНО!)`);
+        console.log(`   ✅ S/R BONUS: +100 (SHORT возле Resistance зоны)`);
+      } else {
+        console.log(`   ⚪ S/R BONUS: +0 (паттерн вне S/R зон - OK, не отклоняем!)`);
       }
 
       // 2️⃣ EMA TREND SCORE (для ВСЕХ паттернов включая Pin Bar)
