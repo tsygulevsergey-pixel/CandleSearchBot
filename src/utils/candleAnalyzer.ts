@@ -542,10 +542,11 @@ export class PatternDetector {
   }
 
   detectPinBar(candles: Candle[]): PatternResult {
-    // Нужно минимум 5-6 свечей для ATR и проверки "выступания"
-    if (candles.length < 6) return { detected: false };
+    // Нужно минимум 6-7 свечей для ATR и проверки "выступания" (используем закрытую свечу)
+    if (candles.length < 7) return { detected: false };
 
-    const C0 = analyzeCand(candles[candles.length - 1]);
+    // ВАЖНО: Анализируем ПРЕДПОСЛЕДНЮЮ свечу (закрытую), а не последнюю (незакрытую)
+    const C0 = analyzeCand(candles[candles.length - 2]);
     
     // Базовые обозначения
     const R = C0.range; // H - L
@@ -586,8 +587,8 @@ export class PatternDetector {
     if (bodyMaxLong && bodyAtTopLong && longTailBodyLong && longTailRangeLong && oppTailShortLong) {
       console.log(`   ✅ Geometry LONG: body=${(B/R*100).toFixed(1)}%, bodyAtTop=${(U/R*100).toFixed(1)}%, tailVsBody=${(D/B).toFixed(2)}x, tailVsRange=${(D/R*100).toFixed(1)}%, oppTail=${(U/R*100).toFixed(1)}%`);
       
-      // Проверка "выступания" нижнего хвоста
-      const recentLows = candles.slice(-TAIL_LOOKBACK - 1, -1).map(c => Number(c.low));
+      // Проверка "выступания" нижнего хвоста (берем 5 свечей ПЕРЕД C0)
+      const recentLows = candles.slice(-TAIL_LOOKBACK - 2, -2).map(c => Number(c.low));
       const minRecentLow = Math.min(...recentLows);
       const tailProtrusion = C0.low <= minRecentLow - ATR_EPSILON * atr;
       
@@ -616,8 +617,8 @@ export class PatternDetector {
     if (bodyMaxShort && bodyAtBottomShort && longTailBodyShort && longTailRangeShort && oppTailShortShort) {
       console.log(`   ✅ Geometry SHORT: body=${(B/R*100).toFixed(1)}%, bodyAtBottom=${(D/R*100).toFixed(1)}%, tailVsBody=${(U/B).toFixed(2)}x, tailVsRange=${(U/R*100).toFixed(1)}%, oppTail=${(D/R*100).toFixed(1)}%`);
       
-      // Проверка "выступания" верхнего хвоста
-      const recentHighs = candles.slice(-TAIL_LOOKBACK - 1, -1).map(c => Number(c.high));
+      // Проверка "выступания" верхнего хвоста (берем 5 свечей ПЕРЕД C0)
+      const recentHighs = candles.slice(-TAIL_LOOKBACK - 2, -2).map(c => Number(c.high));
       const maxRecentHigh = Math.max(...recentHighs);
       const tailProtrusion = C0.high >= maxRecentHigh + ATR_EPSILON * atr;
       
@@ -640,8 +641,9 @@ export class PatternDetector {
   }
 
   detectFakey(candles: Candle[], timeframe?: string): PatternResult {
-    // Нужно минимум 4-5 свечей: MB + IB + FB + (возможно еще IB) + ATR расчет
-    if (candles.length < 6) return { detected: false };
+    // ВАЖНО: Анализируем ПРЕДПОСЛЕДНЮЮ (закрытую) свечу, а не последнюю (незакрытую)
+    // Нужно минимум 4-5 свечей: MB + IB + FB + (возможно еще IB) + ATR расчет + 1 для закрытой
+    if (candles.length < 7) return { detected: false };
 
     console.log(`\n🔍 [Fakey] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
@@ -664,15 +666,15 @@ export class PatternDetector {
       const requiredBars = 1 + numIB + 1; // MB + IB(s) + FB
       if (candles.length < requiredBars) continue;
 
-      // MB = материнская свеча
-      const MB = analyzeCand(candles[candles.length - requiredBars]);
+      // MB = материнская свеча (анализируем закрытые свечи, поэтому сдвиг на -1)
+      const MB = analyzeCand(candles[candles.length - requiredBars - 1]);
       
       // IB = inside bar(s) - свечи полностью внутри MB
       const IBs: ReturnType<typeof analyzeCand>[] = [];
       let allInside = true;
       
       for (let i = 1; i <= numIB; i++) {
-        const IB = analyzeCand(candles[candles.length - requiredBars + i]);
+        const IB = analyzeCand(candles[candles.length - requiredBars + i - 1]);
         if (IB.high > MB.high || IB.low < MB.low) {
           allInside = false;
           break;
@@ -682,8 +684,8 @@ export class PatternDetector {
       
       if (!allInside) continue;
       
-      // FB = свеча ложного пробоя (последняя закрытая)
-      const FB = analyzeCand(candles[candles.length - 1]);
+      // FB = свеча ложного пробоя (ПРЕДПОСЛЕДНЯЯ = последняя ЗАКРЫТАЯ свеча)
+      const FB = analyzeCand(candles[candles.length - 2]);
       
       // Диапазон всех IB
       const IBHigh = Math.max(...IBs.map(ib => ib.high));
@@ -755,20 +757,21 @@ export class PatternDetector {
   }
 
   detectPPR(candles: Candle[], timeframe?: string): PatternResult {
+    // ВАЖНО: Анализируем ПРЕДПОСЛЕДНЮЮ (закрытую) свечу, а не последнюю (незакрытую)
     // PPR = Piercing Pattern Reversal (двухсвечный разворотный паттерн)
     // BULLISH: RED→GREEN, gap down, close >50% body Bar1
     // BEARISH (Dark Cloud): GREEN→RED, gap up, close <50% body Bar1
     
-    if (candles.length < 6) return { detected: false };
+    if (candles.length < 7) return { detected: false };
 
     console.log(`\n🔍 [PPR - Piercing Pattern Reversal] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
     const atr = this.calculateATR(candles, 5);
     console.log(`   📊 ATR=${atr.toFixed(8)}`);
 
-    // Bar₁ и Bar₂
-    const Bar1 = analyzeCand(candles[candles.length - 2]);
-    const Bar2 = analyzeCand(candles[candles.length - 1]);
+    // Bar₁ и Bar₂ (используем ЗАКРЫТЫЕ свечи)
+    const Bar1 = analyzeCand(candles[candles.length - 3]); // Первая свеча паттерна (закрытая)
+    const Bar2 = analyzeCand(candles[candles.length - 2]); // Вторая свеча паттерна (ПРЕДПОСЛЕДНЯЯ = последняя ЗАКРЫТАЯ)
     
     console.log(`\n   🔎 Checking 2-bar Piercing Pattern:`);
     console.log(`      Bar₁: O=${Bar1.open.toFixed(8)}, C=${Bar1.close.toFixed(8)}, H=${Bar1.high.toFixed(8)}, L=${Bar1.low.toFixed(8)}, body=${Bar1.body.toFixed(8)}, color=${Bar1.isGreen ? 'GREEN' : 'RED'}`);
@@ -879,8 +882,9 @@ export class PatternDetector {
   }
 
   detectEngulfing(candles: Candle[], timeframe?: string): PatternResult {
-    // Нужно минимум 2 свечи + история для ATR
-    if (candles.length < 6) return { detected: false };
+    // ВАЖНО: Анализируем ПРЕДПОСЛЕДНЮЮ (закрытую) свечу, а не последнюю (незакрытую)
+    // Нужно минимум 2 свечи + история для ATR + 1 для закрытой
+    if (candles.length < 7) return { detected: false };
 
     console.log(`\n🔍 [Engulfing] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
@@ -898,9 +902,9 @@ export class PatternDetector {
     
     console.log(`   📊 ATR=${atr.toFixed(8)}, γ=${gamma}, bodyRatio=${bodyRatio}, minBodyATR=${minBodyATR}`);
 
-    // Bar₁ и Bar₂ (поглощающая)
-    const Bar1 = analyzeCand(candles[candles.length - 2]); // C1 (поглощаемая)
-    const Bar2 = analyzeCand(candles[candles.length - 1]); // C0 (поглощающая)
+    // Bar₁ и Bar₂ (используем ЗАКРЫТЫЕ свечи)
+    const Bar1 = analyzeCand(candles[candles.length - 3]); // C1 (поглощаемая, первая свеча паттерна)
+    const Bar2 = analyzeCand(candles[candles.length - 2]); // C0 (поглощающая, ПРЕДПОСЛЕДНЯЯ = последняя ЗАКРЫТАЯ)
     
     console.log(`\n   🔎 Checking Engulfing:`);
     console.log(`      Bar₁: O=${Bar1.open.toFixed(8)}, C=${Bar1.close.toFixed(8)}, B=${Bar1.body.toFixed(8)}, color=${Bar1.isGreen ? 'GREEN' : 'RED'}`);

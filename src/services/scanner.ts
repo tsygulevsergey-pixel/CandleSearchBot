@@ -80,12 +80,12 @@ export class Scanner {
             
             console.log(`✅ [Scanner] Family check passed: ${symbol} (${familyId}) - ${openFamilySignals}/${MAX_SIGNALS_PER_FAMILY} signals`);
 
-
-            const currentPrice = await binanceClient.getCurrentPrice(symbol);
+            // ВАЖНО: Используем pattern.entryPrice (из ЗАКРЫТОЙ свечи), а не текущую цену
+            // Pattern detectors возвращают entryPrice = C0.close, где C0 = candles[length-2] (последняя ЗАКРЫТАЯ свеча)
             const levels = riskCalculator.calculateLevels(
               pattern.type,
               pattern.direction,
-              currentPrice,
+              pattern.entryPrice, // Используем entryPrice из паттерна (ЗАКРЫТАЯ свеча)
               candles
               // S/R зоны больше НЕ используются для стопов (только свечная логика)
             );
@@ -94,7 +94,7 @@ export class Scanner {
               symbol,
               timeframe,
               patternType: pattern.type,
-              entryPrice: currentPrice.toString(),
+              entryPrice: pattern.entryPrice.toString(), // Entry = ЗАКРЫТАЯ свеча
               slPrice: levels.sl.toString(),
               tp1Price: levels.tp1.toString(),
               tp2Price: levels.tp2.toString(),
@@ -128,7 +128,7 @@ export class Scanner {
 📈 <b>Паттерн:</b> ${patternName}
 🏷️ <b>Кластер:</b> ${cluster.leader} | ${cluster.sector}
 
-💰 <b>Entry:</b> ${currentPrice.toFixed(8)}
+💰 <b>Entry:</b> ${pattern.entryPrice.toFixed(8)}
 🛑 <b>Stop Loss:</b> ${levels.sl.toFixed(8)}
 🎯 <b>Take Profit 1:</b> ${levels.tp1.toFixed(8)}
 🎯 <b>Take Profit 2:</b> ${levels.tp2.toFixed(8)}

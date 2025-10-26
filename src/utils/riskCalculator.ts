@@ -53,8 +53,18 @@ export class RiskCalculator {
     candles: Candle[],
     slPercentage: number
   ): number {
-    const C0 = analyzeCand(candles[candles.length - 1]);
-    const C1 = candles.length >= 2 ? analyzeCand(candles[candles.length - 2]) : null;
+    // ВАЖНО: Используем ЗАКРЫТЫЕ свечи (second-to-last), чтобы соответствовать логике pattern detection
+    // C0 = последняя ЗАКРЫТАЯ свеча (candles[length-2])
+    // C1 = предпоследняя ЗАКРЫТАЯ свеча (candles[length-3])
+    const C0 = analyzeCand(candles[candles.length - 2]);
+    const C1 = candles.length >= 3 ? analyzeCand(candles[candles.length - 3]) : null;
+    
+    console.log(`🔧 [RiskCalculator] calculateStopLoss for ${patternType} ${direction}:`, {
+      C0_high: C0.high.toFixed(8),
+      C0_low: C0.low.toFixed(8),
+      C1_high: C1?.high.toFixed(8),
+      C1_low: C1?.low.toFixed(8),
+    });
 
     if (patternType.startsWith('pinbar')) {
       if (direction === 'LONG') {
