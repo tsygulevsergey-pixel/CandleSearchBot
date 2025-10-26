@@ -1,7 +1,27 @@
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosInstance } from 'axios';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { binanceRateLimiter } from './rateLimiter';
 
 const BINANCE_FUTURES_API = 'https://fapi.binance.com';
+
+// Создаем axios instance с прокси (если указан в environment)
+function createAxiosInstance(): AxiosInstance {
+  const proxyUrl = process.env.PROXY_URL;
+  
+  if (proxyUrl) {
+    console.log(`🔒 [BinanceClient] Using proxy: ${proxyUrl.replace(/:[^:@]+@/, ':****@')}`); // Скрываем пароль в логах
+    const httpsAgent = new HttpsProxyAgent(proxyUrl);
+    return axios.create({
+      httpsAgent,
+      timeout: 30000,
+    });
+  }
+  
+  console.log('🌐 [BinanceClient] No proxy configured, using direct connection');
+  return axios.create({ timeout: 30000 });
+}
+
+const axiosInstance = createAxiosInstance();
 
 export interface Candle {
   openTime: number;
@@ -37,7 +57,7 @@ export class BinanceClient {
     console.log('📊 [BinanceClient] Fetching trading pairs from Binance...');
     
     const response = await binanceRateLimiter.executeRequest(40, async () => {
-      return await axios.get(`${BINANCE_FUTURES_API}/fapi/v1/ticker/24hr`);
+      return await axiosInstance.get(`${BINANCE_FUTURES_API}/fapi/v1/ticker/24hr`);
     });
 
     binanceRateLimiter.updateWeightFromResponse(response.headers);
@@ -58,7 +78,7 @@ export class BinanceClient {
     console.log(`📈 [BinanceClient] Fetching ${requestLimit} ${interval} candles for ${symbol} (excluding current open candle)...`);
     
     const response = await binanceRateLimiter.executeRequest(1, async () => {
-      return await axios.get(`${BINANCE_FUTURES_API}/fapi/v1/klines`, {
+      return await axiosInstance.get(`${BINANCE_FUTURES_API}/fapi/v1/klines`, {
         params: {
           symbol,
           interval,
@@ -90,7 +110,7 @@ export class BinanceClient {
     console.log(`💰 [BinanceClient] Fetching current price for ${symbol}...`);
     
     const response = await binanceRateLimiter.executeRequest(1, async () => {
-      return await axios.get(`${BINANCE_FUTURES_API}/fapi/v1/ticker/price`, {
+      return await axiosInstance.get(`${BINANCE_FUTURES_API}/fapi/v1/ticker/price`, {
         params: { symbol },
       });
     });
