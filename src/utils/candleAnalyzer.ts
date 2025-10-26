@@ -1161,14 +1161,9 @@ export class PatternDetector {
       pattern.score = score;
       console.log(`   🎯 ИТОГО: ${score} баллов`);
 
-      // Минимальный порог зависит от паттерна
-      let minScore = 130;
-      let thresholdLabel = '130';
-      
-      if (isFakey || isPPR || isEngulfing) {
-        minScore = 50;
-        thresholdLabel = '50';
-      }
+      // Минимальный порог для ВСЕХ паттернов (S/R зоны не обязательны)
+      let minScore = 50;
+      let thresholdLabel = '50';
       
       if (score >= minScore) {
         const quality = score >= 150 ? '⭐⭐⭐ PREMIUM' : '⭐⭐ GOOD';
