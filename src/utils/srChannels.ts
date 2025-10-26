@@ -344,22 +344,24 @@ export function findSRChannels(
 
 /**
  * Вспомогательная функция: Находит ближайший Support канал к текущей цене
+ * Support ВСЕГДА должен быть НИЖЕ текущей цены
  */
 export function getNearestSupportChannel(channels: SRChannel[], currentPrice: number): SRChannel | null {
   const supportChannels = channels
-    .filter(ch => ch.type === 'support')
-    .sort((a, b) => Math.abs(currentPrice - a.upper) - Math.abs(currentPrice - b.upper));
+    .filter(ch => ch.type === 'support' && ch.upper < currentPrice) // Только зоны НИЖЕ цены
+    .sort((a, b) => (currentPrice - a.upper) - (currentPrice - b.upper)); // Ближайшая снизу
 
   return supportChannels.length > 0 ? supportChannels[0] : null;
 }
 
 /**
  * Вспомогательная функция: Находит ближайший Resistance канал к текущей цене
+ * Resistance ВСЕГДА должен быть ВЫШЕ текущей цены
  */
 export function getNearestResistanceChannel(channels: SRChannel[], currentPrice: number): SRChannel | null {
   const resistanceChannels = channels
-    .filter(ch => ch.type === 'resistance')
-    .sort((a, b) => Math.abs(currentPrice - a.lower) - Math.abs(currentPrice - b.lower));
+    .filter(ch => ch.type === 'resistance' && ch.lower > currentPrice) // Только зоны ВЫШЕ цены
+    .sort((a, b) => (a.lower - currentPrice) - (b.lower - currentPrice)); // Ближайшая сверху
 
   return resistanceChannels.length > 0 ? resistanceChannels[0] : null;
 }
