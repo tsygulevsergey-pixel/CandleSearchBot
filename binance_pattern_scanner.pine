@@ -189,11 +189,11 @@ hasGoodVolume = volume >= avgVolume * volumeThreshold
 // ============================================
 detectPinBar() =>
     body = math.abs(close - open)
-    range = high - low
+    candleRange = high - low
     upperWick = high - math.max(open, close)
     lowerWick = math.min(open, close) - low
     
-    if range == 0
+    if candleRange == 0
         [false, false]
     else
         // Parameters
@@ -206,11 +206,11 @@ detectPinBar() =>
         ATR_EPSILON = 0.10
         
         // LONG Pin Bar (lower tail)
-        bodyMaxLong = body <= BODY_MAX_FRACTION * range
-        bodyAtTopLong = upperWick / range <= EDGE_THRESHOLD
+        bodyMaxLong = body <= BODY_MAX_FRACTION * candleRange
+        bodyAtTopLong = upperWick / candleRange <= EDGE_THRESHOLD
         longTailBodyLong = lowerWick >= TAIL_BODY_RATIO_MIN * body
-        longTailRangeLong = lowerWick >= LONG_TAIL_RANGE_MIN * range
-        oppTailShortLong = upperWick <= math.min(OPP_TAIL_RANGE_MAX * range, OPP_TAIL_BODY_MAX * body)
+        longTailRangeLong = lowerWick >= LONG_TAIL_RANGE_MIN * candleRange
+        oppTailShortLong = upperWick <= math.min(OPP_TAIL_RANGE_MAX * candleRange, OPP_TAIL_BODY_MAX * body)
         
         isLongGeo = bodyMaxLong and bodyAtTopLong and longTailBodyLong and longTailRangeLong and oppTailShortLong
         
@@ -219,11 +219,11 @@ detectPinBar() =>
         tailProtrusionLong = isLongGeo and low <= minRecentLow - ATR_EPSILON * atr
         
         // SHORT Pin Bar (upper tail)
-        bodyMaxShort = body <= BODY_MAX_FRACTION * range
-        bodyAtBottomShort = lowerWick / range <= EDGE_THRESHOLD
+        bodyMaxShort = body <= BODY_MAX_FRACTION * candleRange
+        bodyAtBottomShort = lowerWick / candleRange <= EDGE_THRESHOLD
         longTailBodyShort = upperWick >= TAIL_BODY_RATIO_MIN * body
-        longTailRangeShort = upperWick >= LONG_TAIL_RANGE_MIN * range
-        oppTailShortShort = lowerWick <= math.min(OPP_TAIL_RANGE_MAX * range, OPP_TAIL_BODY_MAX * body)
+        longTailRangeShort = upperWick >= LONG_TAIL_RANGE_MIN * candleRange
+        oppTailShortShort = lowerWick <= math.min(OPP_TAIL_RANGE_MAX * candleRange, OPP_TAIL_BODY_MAX * body)
         
         isShortGeo = bodyMaxShort and bodyAtBottomShort and longTailBodyShort and longTailRangeShort and oppTailShortShort
         
