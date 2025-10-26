@@ -86,8 +86,8 @@ export class Scanner {
               pattern.type,
               pattern.direction,
               currentPrice,
-              candles,
-              pattern.srAnalysis // Передаем S/R анализ для расчета стопов ЗА зоной
+              candles
+              // S/R зоны больше НЕ используются для стопов (только свечная логика)
             );
 
             const signal = await signalDB.createSignal({

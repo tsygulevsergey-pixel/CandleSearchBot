@@ -1,5 +1,5 @@
 import { Candle } from './binanceClient';
-import { analyzeCand, SRAnalysis } from './candleAnalyzer';
+import { analyzeCand } from './candleAnalyzer';
 
 export interface RiskLevels {
   sl: number;
@@ -12,33 +12,12 @@ export class RiskCalculator {
     patternType: string,
     direction: 'LONG' | 'SHORT',
     entryPrice: number,
-    candles: Candle[],
-    srAnalysis?: SRAnalysis
+    candles: Candle[]
   ): RiskLevels {
-    const slPercentage = 0.0035; // 0.35% offset за зоной
-    let slPrice: number;
-
-    // 🛑 НОВАЯ ЛОГИКА: Стоп ЗА S/R зоной (если зона есть)
-    if (srAnalysis) {
-      if (direction === 'LONG' && srAnalysis.nearestSupport) {
-        // LONG: стоп ПОД Support зоной
-        const offset = srAnalysis.nearestSupport.lower * slPercentage;
-        slPrice = srAnalysis.nearestSupport.lower - offset;
-        console.log(`🛑 [RiskCalculator] LONG SL: ЗА Support зоной (${srAnalysis.nearestSupport.lower.toFixed(8)} - ${slPercentage*100}% = ${slPrice.toFixed(8)})`);
-      } else if (direction === 'SHORT' && srAnalysis.nearestResistance) {
-        // SHORT: стоп НАД Resistance зоной
-        const offset = srAnalysis.nearestResistance.upper * slPercentage;
-        slPrice = srAnalysis.nearestResistance.upper + offset;
-        console.log(`🛑 [RiskCalculator] SHORT SL: ЗА Resistance зоной (${srAnalysis.nearestResistance.upper.toFixed(8)} + ${slPercentage*100}% = ${slPrice.toFixed(8)})`);
-      } else {
-        // Fallback: если нет подходящей зоны, используем старую логику
-        console.log(`⚠️ [RiskCalculator] Нет подходящей S/R зоны, используем fallback логику`);
-        slPrice = this.calculateFallbackStopLoss(patternType, direction, candles, slPercentage);
-      }
-    } else {
-      // Fallback: если S/R анализ не передан
-      slPrice = this.calculateFallbackStopLoss(patternType, direction, candles, slPercentage);
-    }
+    const slPercentage = 0.0035; // 0.35% offset от свечи
+    
+    // 🛑 СТОПЫ ТОЛЬКО ПО СВЕЧАМ (S/R зоны игнорируются)
+    const slPrice = this.calculateStopLoss(patternType, direction, candles, slPercentage);
 
     const R = Math.abs(entryPrice - slPrice);
 
@@ -68,7 +47,7 @@ export class RiskCalculator {
     };
   }
 
-  private calculateFallbackStopLoss(
+  private calculateStopLoss(
     patternType: string,
     direction: 'LONG' | 'SHORT',
     candles: Candle[],
