@@ -871,22 +871,23 @@ export class PatternDetector {
       
       console.log(`\n💯 [Scoring] ${patternName} ${pattern.direction}:`);
 
-      // 🎯 ПИНБАРЫ: Игнорируют S/R и Trend фильтры (автопроход)
+      // ⛔ СТРОГАЯ ФИЛЬТРАЦИЯ ПО ТРЕНДУ (для ВСЕХ паттернов БЕЗ ИСКЛЮЧЕНИЙ)
+      const isCounterTrend = 
+        (pattern.direction === 'LONG' && trend.isDowntrend) ||
+        (pattern.direction === 'SHORT' && trend.isUptrend);
+      
+      if (isCounterTrend) {
+        console.log(`   ⛔ TREND GATING: REJECT - ${pattern.direction} сигнал ПРОТИВ тренда (Price=${trend.currentPrice.toFixed(2)}, EMA50=${trend.ema50.toFixed(2)}, EMA200=${trend.ema200.toFixed(2)})`);
+        console.log(`      Uptrend=${trend.isUptrend}, Downtrend=${trend.isDowntrend}\n`);
+        continue;
+      }
+      console.log(`   ✅ TREND CHECK: Passed - ${pattern.direction} aligned with market trend`);
+
+      // 🎯 SCORING: Базовый score для Pin Bar (без S/R анализа)
       if (isPinbar) {
-        score = 200; // Автоматически PREMIUM уровень
-        console.log(`   🎯 PINBAR AUTO-PASS: score=200 (игнорируем S/R и Trend фильтры)`);
+        score = 100; // Базовый score для пинбара
+        console.log(`   🎯 PINBAR BASE: score=100 (пинбар не использует S/R)`);
       } else {
-        // ⛔ СТРОГАЯ ФИЛЬТРАЦИЯ ПО ТРЕНДУ (для всех паттернов кроме Pin Bar)
-        const isCounterTrend = 
-          (pattern.direction === 'LONG' && trend.isDowntrend) ||
-          (pattern.direction === 'SHORT' && trend.isUptrend);
-        
-        if (isCounterTrend) {
-          console.log(`   ⛔ TREND GATING: REJECT - ${pattern.direction} сигнал ПРОТИВ тренда (Price=${trend.currentPrice.toFixed(2)}, EMA50=${trend.ema50.toFixed(2)}, EMA200=${trend.ema200.toFixed(2)})`);
-          console.log(`      Uptrend=${trend.isUptrend}, Downtrend=${trend.isDowntrend}\n`);
-          continue;
-        }
-        console.log(`   ✅ TREND CHECK: Passed - ${pattern.direction} aligned with market trend`);
         
         // Для остальных паттернов применяем фильтры
         
@@ -933,26 +934,26 @@ export class PatternDetector {
         } else if (isEngulfing) {
           console.log(`   ⏭️ S/R: ПРОПУЩЕН (Engulfing не использует S/R)`);
         }
+      }
 
-        // 2️⃣ EMA TREND SCORE (для всех паттернов кроме Pin Bar)
-        const trendAligned = 
-          (pattern.direction === 'LONG' && trend.isUptrend) ||
-          (pattern.direction === 'SHORT' && trend.isDowntrend);
-        
-        const weakTrend = 
-          (pattern.direction === 'LONG' && trend.currentPrice > trend.ema50 && Math.abs(trend.ema50 - trend.ema200) / trend.ema200 < 0.02) ||
-          (pattern.direction === 'SHORT' && trend.currentPrice < trend.ema50 && Math.abs(trend.ema50 - trend.ema200) / trend.ema200 < 0.02);
+      // 2️⃣ EMA TREND SCORE (для ВСЕХ паттернов включая Pin Bar)
+      const trendAligned = 
+        (pattern.direction === 'LONG' && trend.isUptrend) ||
+        (pattern.direction === 'SHORT' && trend.isDowntrend);
+      
+      const weakTrend = 
+        (pattern.direction === 'LONG' && trend.currentPrice > trend.ema50 && Math.abs(trend.ema50 - trend.ema200) / trend.ema200 < 0.02) ||
+        (pattern.direction === 'SHORT' && trend.currentPrice < trend.ema50 && Math.abs(trend.ema50 - trend.ema200) / trend.ema200 < 0.02);
 
-        if (trendAligned) {
-          score += 30;
-          console.log(`   ✅ Trend: +30 (сильный тренд aligned)`);
-        } else if (weakTrend) {
-          score += 15;
-          console.log(`   ⚠️ Trend: +15 (слабый тренд)`);
-        } else {
-          score += 0;
-          console.log(`   ❌ Trend: +0 (против тренда)`);
-        }
+      if (trendAligned) {
+        score += 30;
+        console.log(`   ✅ Trend: +30 (сильный тренд aligned)`);
+      } else if (weakTrend) {
+        score += 15;
+        console.log(`   ⚠️ Trend: +15 (слабый тренд)`);
+      } else {
+        score += 0;
+        console.log(`   ❌ Trend: +0 (нейтральный тренд)`);
       }
 
       // 3️⃣ VOLUME SCORE

@@ -42,9 +42,11 @@ Automated trading signal bot for Binance Futures that detects candlestick patter
 
 ### Pattern Hierarchy
 ```
-Pin Bar:      Score 200 (auto-pass) → Bypasses trend filter
-Fakey/PPR:    Min score 50 → MUST respect trend direction
-Engulfing:    Min score 50 → MUST respect trend direction
+Pin Bar:      Base 100 + scoring → Min 130 → STRICT trend filter
+Fakey/PPR:    Min score 50 → STRICT trend filter
+Engulfing:    Min score 50 → STRICT trend filter
+
+ALL PATTERNS: NO counter-trend trades allowed!
 ```
 
 ### Market Clustering
