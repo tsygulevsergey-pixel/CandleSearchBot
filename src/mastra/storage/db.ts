@@ -33,6 +33,23 @@ export class SignalDB {
       ));
     return openSignals.length > 0;
   }
+  
+  /**
+   * Подсчет открытых сигналов из определенного семейства (лидер:сектор)
+   * Используется для диверсификации рисков - не больше 2-3 сигналов из одного семейства
+   */
+  async countOpenSignalsByFamily(symbols: string[]): Promise<number> {
+    if (symbols.length === 0) return 0;
+    
+    const openSignals = await db.select().from(signals).where(
+      and(
+        eq(signals.status, 'OPEN'),
+        or(...symbols.map(sym => eq(signals.symbol, sym)))
+      )
+    );
+    
+    return openSignals.length;
+  }
 
   async updateSignalStatus(id: number, status: 'TP1_HIT' | 'TP2_HIT' | 'SL_HIT', currentSl?: string): Promise<void> {
     const updates: any = {

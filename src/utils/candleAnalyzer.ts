@@ -602,109 +602,101 @@ export class PatternDetector {
   }
 
   detectPPR(candles: Candle[], timeframe?: string): PatternResult {
-    // Нужно минимум 2 свечи + история для ATR
+    // PPR = Piercing Pattern Reversal (двухсвечный разворотный паттерн)
+    // BULLISH: RED→GREEN, gap down, close >50% body Bar1
+    // BEARISH (Dark Cloud): GREEN→RED, gap up, close <50% body Bar1
+    
     if (candles.length < 6) return { detected: false };
 
-    console.log(`\n🔍 [PPR] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
+    console.log(`\n🔍 [PPR - Piercing Pattern Reversal] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
-    // Параметры по таймфреймам
-    const tfParams = {
-      '15m': { epsilon: 0.225, minImpulseATR: 1.2, rangeRatio: 1.2 },
-      '1h':  { epsilon: 0.175, minImpulseATR: 1.0, rangeRatio: 1.1 },
-      '4h':  { epsilon: 0.125, minImpulseATR: 0.8, rangeRatio: 1.0 },
-    };
-    
-    const params = tfParams[timeframe as keyof typeof tfParams] || tfParams['1h'];
-    const { epsilon, minImpulseATR, rangeRatio } = params;
-    
     const atr = this.calculateATR(candles, 5);
-    
-    console.log(`   📊 ATR=${atr.toFixed(8)}, ε=${epsilon}, minImpulse=${minImpulseATR}×ATR, rangeRatio=${rangeRatio}`);
+    console.log(`   📊 ATR=${atr.toFixed(8)}`);
 
-    // Bar₁ и Bar₂ (двухсвечный ППР)
-    const Bar1 = analyzeCand(candles[candles.length - 2]); // C1
-    const Bar2 = analyzeCand(candles[candles.length - 1]); // C0 (импульсная)
+    // Bar₁ и Bar₂
+    const Bar1 = analyzeCand(candles[candles.length - 2]);
+    const Bar2 = analyzeCand(candles[candles.length - 1]);
     
-    console.log(`\n   🔎 Checking 2-bar PPR:`);
-    console.log(`      Bar₁: H=${Bar1.high.toFixed(8)}, L=${Bar1.low.toFixed(8)}, R=${Bar1.range.toFixed(8)}`);
-    console.log(`      Bar₂: H=${Bar2.high.toFixed(8)}, L=${Bar2.low.toFixed(8)}, C=${Bar2.close.toFixed(8)}, R=${Bar2.range.toFixed(8)}, B=${Bar2.body.toFixed(8)}`);
+    console.log(`\n   🔎 Checking 2-bar Piercing Pattern:`);
+    console.log(`      Bar₁: O=${Bar1.open.toFixed(8)}, C=${Bar1.close.toFixed(8)}, H=${Bar1.high.toFixed(8)}, L=${Bar1.low.toFixed(8)}, body=${Bar1.body.toFixed(8)}, color=${Bar1.isGreen ? 'GREEN' : 'RED'}`);
+    console.log(`      Bar₂: O=${Bar2.open.toFixed(8)}, C=${Bar2.close.toFixed(8)}, H=${Bar2.high.toFixed(8)}, L=${Bar2.low.toFixed(8)}, body=${Bar2.body.toFixed(8)}, color=${Bar2.isGreen ? 'GREEN' : 'RED'}`);
 
-    // Общие проверки импульсности Bar₂
-    const BODY_FRACTION_MIN = 0.60;
-    const CLOSE_AT_EDGE_MAX = 0.25;
+    // Минимальные требования к размеру свечей
+    const MIN_BODY_ATR = 0.5; // Минимальное тело относительно ATR
     
-    // Проверка размера Bar₂
-    const bar2SizeOK = Bar2.range >= minImpulseATR * atr;
-    if (!bar2SizeOK) {
-      console.log(`   ❌ Bar₂ too small: ${Bar2.range.toFixed(8)} < ${(minImpulseATR * atr).toFixed(8)}`);
+    if (Bar1.body < MIN_BODY_ATR * atr) {
+      console.log(`   ❌ Bar₁ body too small: ${Bar1.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
       return { detected: false };
     }
-    console.log(`   ✅ Bar₂ size OK: ${Bar2.range.toFixed(8)} >= ${(minImpulseATR * atr).toFixed(8)}`);
     
-    // Проверка тела Bar₂
-    const bodyFraction = Bar2.range > 0 ? Bar2.body / Bar2.range : 0;
-    const bodyOK = bodyFraction >= BODY_FRACTION_MIN;
-    if (!bodyOK) {
-      console.log(`   ❌ Bar₂ body too small: ${(bodyFraction * 100).toFixed(1)}% < ${(BODY_FRACTION_MIN * 100).toFixed(1)}%`);
+    if (Bar2.body < MIN_BODY_ATR * atr) {
+      console.log(`   ❌ Bar₂ body too small: ${Bar2.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
       return { detected: false };
     }
-    console.log(`   ✅ Bar₂ body OK: ${(bodyFraction * 100).toFixed(1)}% >= ${(BODY_FRACTION_MIN * 100).toFixed(1)}%`);
-    
-    // Проверка R₂/R₁ ratio
-    const rangeRatioActual = Bar1.range > 0 ? Bar2.range / Bar1.range : 0;
-    const rangeRatioOK = rangeRatioActual >= rangeRatio;
-    if (!rangeRatioOK) {
-      console.log(`   ❌ R₂/R₁ too small: ${rangeRatioActual.toFixed(2)} < ${rangeRatio}`);
-      return { detected: false };
-    }
-    console.log(`   ✅ R₂/R₁ OK: ${rangeRatioActual.toFixed(2)} >= ${rangeRatio}`);
 
-    // ========== BUY PPR ==========
-    // Закрепление: C₂ ≥ H₁ + ε·ATR
-    const closingBufferBuy = epsilon * atr;
-    const closeAboveBar1 = Bar2.close >= Bar1.high + closingBufferBuy;
+    console.log(`   ✅ Both bodies OK (>= ${MIN_BODY_ATR}×ATR)`);
+
+    // ========== BULLISH PIERCING PATTERN ==========
+    // 1. Bar₁ = RED (медвежья)
+    // 2. Bar₂ = GREEN (бычья)
+    // 3. Gap down: Open₂ < Low₁ (или хотя бы < Close₁)
+    // 4. Close₂ > 50% body Bar₁ (закрытие выше середины тела)
     
-    // Закрытие у верха: (H₂ - C₂) / R₂ ≤ 0.25
-    const closeAtTopFraction = Bar2.range > 0 ? (Bar2.high - Bar2.close) / Bar2.range : 1;
-    const closeAtTopOK = closeAtTopFraction <= CLOSE_AT_EDGE_MAX;
-    
-    if (closeAboveBar1 && closeAtTopOK) {
-      console.log(`   🔍 BUY candidate:`);
-      console.log(`      Close above Bar₁.high + buffer: ${Bar2.close.toFixed(8)} >= ${(Bar1.high + closingBufferBuy).toFixed(8)} ✅`);
-      console.log(`      Close at top: ${(closeAtTopFraction * 100).toFixed(1)}% <= ${(CLOSE_AT_EDGE_MAX * 100).toFixed(1)}% ✅`);
-      console.log(`   ✅✅ [Pattern] PPR BUY detected (цвет НЕ важен)`);
+    if (Bar1.isRed && Bar2.isGreen) {
+      const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
+      const gapDown = Bar2.open < Bar1.close;
+      const closesAboveMid = Bar2.close > bar1BodyMid;
+      const closesWithinBar1Range = Bar2.close < Bar1.open; // Не полное поглощение
       
-      return {
-        detected: true,
-        type: 'ppr_buy',
-        direction: 'LONG',
-        entryPrice: Bar2.close,
-      };
-    }
-
-    // ========== SELL PPR ==========
-    // Закрепление: C₂ ≤ L₁ - ε·ATR
-    const closingBufferSell = epsilon * atr;
-    const closeBelowBar1 = Bar2.close <= Bar1.low - closingBufferSell;
-    
-    // Закрытие у низа: (C₂ - L₂) / R₂ ≤ 0.25
-    const closeAtBottomFraction = Bar2.range > 0 ? (Bar2.close - Bar2.low) / Bar2.range : 1;
-    const closeAtBottomOK = closeAtBottomFraction <= CLOSE_AT_EDGE_MAX;
-    
-    if (closeBelowBar1 && closeAtBottomOK) {
-      console.log(`   🔍 SELL candidate:`);
-      console.log(`      Close below Bar₁.low - buffer: ${Bar2.close.toFixed(8)} <= ${(Bar1.low - closingBufferSell).toFixed(8)} ✅`);
-      console.log(`      Close at bottom: ${(closeAtBottomFraction * 100).toFixed(1)}% <= ${(CLOSE_AT_EDGE_MAX * 100).toFixed(1)}% ✅`);
-      console.log(`   ✅✅ [Pattern] PPR SELL detected (цвет НЕ важен)`);
+      console.log(`   🔍 BULLISH PIERCING candidate (RED→GREEN):`);
+      console.log(`      Gap down (O₂ < C₁): ${Bar2.open.toFixed(8)} < ${Bar1.close.toFixed(8)} = ${gapDown ? '✅' : '❌'}`);
+      console.log(`      Close above 50% body: ${Bar2.close.toFixed(8)} > ${bar1BodyMid.toFixed(8)} = ${closesAboveMid ? '✅' : '❌'}`);
+      console.log(`      Not full engulfing (C₂ < O₁): ${Bar2.close.toFixed(8)} < ${Bar1.open.toFixed(8)} = ${closesWithinBar1Range ? '✅' : '❌'}`);
       
-      return {
-        detected: true,
-        type: 'ppr_sell',
-        direction: 'SHORT',
-        entryPrice: Bar2.close,
-      };
+      if (gapDown && closesAboveMid && closesWithinBar1Range) {
+        const penetration = ((Bar2.close - Bar1.close) / Bar1.body) * 100;
+        console.log(`   ✅✅ [Pattern] PPR BUY detected (Bullish Piercing Pattern, penetration=${penetration.toFixed(1)}%)`);
+        
+        return {
+          detected: true,
+          type: 'ppr_buy',
+          direction: 'LONG',
+          entryPrice: Bar2.close,
+        };
+      }
     }
 
+    // ========== BEARISH DARK CLOUD COVER ==========
+    // 1. Bar₁ = GREEN (бычья)
+    // 2. Bar₂ = RED (медвежья)
+    // 3. Gap up: Open₂ > High₁ (или хотя бы > Close₁)
+    // 4. Close₂ < 50% body Bar₁ (закрытие ниже середины тела)
+    
+    if (Bar1.isGreen && Bar2.isRed) {
+      const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
+      const gapUp = Bar2.open > Bar1.close;
+      const closesBelowMid = Bar2.close < bar1BodyMid;
+      const closesWithinBar1Range = Bar2.close > Bar1.open; // Не полное поглощение
+      
+      console.log(`   🔍 BEARISH DARK CLOUD candidate (GREEN→RED):`);
+      console.log(`      Gap up (O₂ > C₁): ${Bar2.open.toFixed(8)} > ${Bar1.close.toFixed(8)} = ${gapUp ? '✅' : '❌'}`);
+      console.log(`      Close below 50% body: ${Bar2.close.toFixed(8)} < ${bar1BodyMid.toFixed(8)} = ${closesBelowMid ? '✅' : '❌'}`);
+      console.log(`      Not full engulfing (C₂ > O₁): ${Bar2.close.toFixed(8)} > ${Bar1.open.toFixed(8)} = ${closesWithinBar1Range ? '✅' : '❌'}`);
+      
+      if (gapUp && closesBelowMid && closesWithinBar1Range) {
+        const penetration = ((Bar1.close - Bar2.close) / Bar1.body) * 100;
+        console.log(`   ✅✅ [Pattern] PPR SELL detected (Bearish Dark Cloud Cover, penetration=${penetration.toFixed(1)}%)`);
+        
+        return {
+          detected: true,
+          type: 'ppr_sell',
+          direction: 'SHORT',
+          entryPrice: Bar2.close,
+        };
+      }
+    }
+
+    console.log(`   ❌ No PPR pattern detected`);
     return { detected: false };
   }
 
@@ -873,6 +865,18 @@ export class PatternDetector {
         score = 200; // Автоматически PREMIUM уровень
         console.log(`   🎯 PINBAR AUTO-PASS: score=200 (игнорируем S/R и Trend фильтры)`);
       } else {
+        // ⛔ СТРОГАЯ ФИЛЬТРАЦИЯ ПО ТРЕНДУ (для всех паттернов кроме Pin Bar)
+        const isCounterTrend = 
+          (pattern.direction === 'LONG' && trend.isDowntrend) ||
+          (pattern.direction === 'SHORT' && trend.isUptrend);
+        
+        if (isCounterTrend) {
+          console.log(`   ⛔ TREND GATING: REJECT - ${pattern.direction} сигнал ПРОТИВ тренда (Price=${trend.currentPrice.toFixed(2)}, EMA50=${trend.ema50.toFixed(2)}, EMA200=${trend.ema200.toFixed(2)})`);
+          console.log(`      Uptrend=${trend.isUptrend}, Downtrend=${trend.isDowntrend}\n`);
+          continue;
+        }
+        console.log(`   ✅ TREND CHECK: Passed - ${pattern.direction} aligned with market trend`);
+        
         // Для остальных паттернов применяем фильтры
         
         // 1️⃣ S/R ZONE SCORE (НЕ используется для Fakey, PPR, Engulfing)

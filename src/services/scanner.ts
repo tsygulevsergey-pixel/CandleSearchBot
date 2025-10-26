@@ -2,6 +2,7 @@ import { binanceClient } from '../utils/binanceClient';
 import { patternDetector } from '../utils/candleAnalyzer';
 import { riskCalculator } from '../utils/riskCalculator';
 import { signalDB } from '../mastra/storage/db';
+import { getCoinCluster, getCoinsByFamily, getFamilyId } from '../utils/marketClusters';
 import axios from 'axios';
 
 export class Scanner {
@@ -62,6 +63,23 @@ export class Scanner {
               console.log(`⏭️ [Scanner] Skipping ${symbol} - already has an open signal`);
               continue;
             }
+            
+            // 🔥 КЛАСТЕРИЗАЦИЯ: проверяем лимит семейства (лидер:сектор)
+            const cluster = getCoinCluster(symbol);
+            const familyId = getFamilyId(cluster);
+            const familyCoins = getCoinsByFamily(cluster.leader, cluster.sector);
+            const familySymbols = familyCoins.map(c => c.symbol);
+            const openFamilySignals = await signalDB.countOpenSignalsByFamily(familySymbols);
+            
+            const MAX_SIGNALS_PER_FAMILY = 3; // Максимум 2-3 сигнала из одного семейства
+            
+            if (openFamilySignals >= MAX_SIGNALS_PER_FAMILY) {
+              console.log(`⏭️ [Scanner] Skipping ${symbol} (${familyId}) - family limit reached (${openFamilySignals}/${MAX_SIGNALS_PER_FAMILY} signals)`);
+              continue;
+            }
+            
+            console.log(`✅ [Scanner] Family check passed: ${symbol} (${familyId}) - ${openFamilySignals}/${MAX_SIGNALS_PER_FAMILY} signals`);
+
 
             const currentPrice = await binanceClient.getCurrentPrice(symbol);
             const levels = riskCalculator.calculateLevels(
@@ -107,6 +125,7 @@ export class Scanner {
 📊 <b>Направление:</b> ${directionText}
 ⏰ <b>Таймфрейм:</b> ${timeframe}
 📈 <b>Паттерн:</b> ${patternName}
+🏷️ <b>Кластер:</b> ${cluster.leader} | ${cluster.sector}
 
 💰 <b>Entry:</b> ${currentPrice.toFixed(8)}
 🛑 <b>Stop Loss:</b> ${levels.sl.toFixed(8)}
