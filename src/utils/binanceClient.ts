@@ -65,10 +65,10 @@ export class BinanceClient {
     const tickers: Ticker24hr[] = response.data;
     const usdtPairs = tickers
       .filter((ticker) => ticker.symbol.endsWith('USDT'))
-      .filter((ticker) => parseFloat(ticker.quoteVolume) > 20_000_000)
+      .filter((ticker) => parseFloat(ticker.quoteVolume) > 10_000_000) // More pairs to scan
       .map((ticker) => ticker.symbol);
 
-    console.log(`✅ [BinanceClient] Found ${usdtPairs.length} USDT pairs with volume > 20M`);
+    console.log(`✅ [BinanceClient] Found ${usdtPairs.length} USDT pairs with volume > 10M`);
     return usdtPairs;
   }
 

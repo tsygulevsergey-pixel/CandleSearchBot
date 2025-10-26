@@ -1,5 +1,5 @@
 import { binanceClient } from '../utils/binanceClient';
-import { patternDetector } from '../utils/candleAnalyzer';
+import { patternDetector, calculateATR } from '../utils/candleAnalyzer';
 import { riskCalculator } from '../utils/riskCalculator';
 import { signalDB } from '../mastra/storage/db';
 import { getCoinCluster, getCoinsByFamily, getFamilyId } from '../utils/marketClusters';
@@ -47,6 +47,13 @@ export class Scanner {
           
           if (candles.length < 300) {
             console.log(`⚠️ [Scanner] Insufficient candles for ${symbol} (need 300, got ${candles.length}), skipping`);
+            continue;
+          }
+
+          // Skip dead coins (ATR = 0) BEFORE pattern detection for performance
+          const atr = calculateATR(candles);
+          if (atr === 0) {
+            console.log(`⏭️ [Scanner] Skipping ${symbol} - dead coin (ATR=0)`);
             continue;
           }
 

@@ -184,11 +184,11 @@ export function isVolumeAboveAverage(candles: Candle[]): boolean {
   const avgVolume = last20Volumes.reduce((sum, vol) => sum + vol, 0) / last20Volumes.length;
   const currentVolume = volumes[volumes.length - 1];
 
-  // Смягчаем фильтр: 85% от среднего достаточно (было: currentVolume > avgVolume)
-  const threshold = avgVolume * 0.85;
+  // Смягчаем фильтр: 40% от среднего достаточно (было: 85%)
+  const threshold = avgVolume * 0.40; // More relaxed - allow patterns with moderate volume
   const isAboveAverage = currentVolume >= threshold;
 
-  console.log(`📊 [Volume] Current: ${currentVolume.toFixed(0)}, Avg(${last20Volumes.length}): ${avgVolume.toFixed(0)}, Threshold(85%): ${threshold.toFixed(0)} | Above avg: ${isAboveAverage}`);
+  console.log(`📊 [Volume] Current: ${currentVolume.toFixed(0)}, Avg(${last20Volumes.length}): ${avgVolume.toFixed(0)}, Threshold(40%): ${threshold.toFixed(0)} | Above avg: ${isAboveAverage}`);
 
   return isAboveAverage;
 }
@@ -515,31 +515,39 @@ export function getDistanceToZone(price: number, zone: SRZone | null): number | 
   return (zone.lower - price) / price;
 }
 
+/**
+ * Расчет ATR (Average True Range) для N свечей
+ * Exported utility function for dead coin detection
+ */
+export function calculateATR(candles: Candle[], period: number = 14): number {
+  if (candles.length < period + 1) return 0;
+  
+  let trSum = 0;
+  for (let i = candles.length - period; i < candles.length; i++) {
+    const curr = candles[i];
+    const prev = i > 0 ? candles[i - 1] : curr;
+    
+    const currHigh = Number(curr.high);
+    const currLow = Number(curr.low);
+    const prevClose = Number(prev.close);
+    
+    const high_low = currHigh - currLow;
+    const high_prevClose = Math.abs(currHigh - prevClose);
+    const low_prevClose = Math.abs(currLow - prevClose);
+    
+    const tr = Math.max(high_low, high_prevClose, low_prevClose);
+    trSum += tr;
+  }
+  
+  return trSum / period;
+}
+
 export class PatternDetector {
   /**
    * Расчет ATR (Average True Range) для N свечей
    */
   private calculateATR(candles: Candle[], period: number = 5): number {
-    if (candles.length < period + 1) return 0;
-    
-    let trSum = 0;
-    for (let i = candles.length - period; i < candles.length; i++) {
-      const curr = candles[i];
-      const prev = i > 0 ? candles[i - 1] : curr;
-      
-      const currHigh = Number(curr.high);
-      const currLow = Number(curr.low);
-      const prevClose = Number(prev.close);
-      
-      const high_low = currHigh - currLow;
-      const high_prevClose = Math.abs(currHigh - prevClose);
-      const low_prevClose = Math.abs(currLow - prevClose);
-      
-      const tr = Math.max(high_low, high_prevClose, low_prevClose);
-      trSum += tr;
-    }
-    
-    return trSum / period;
+    return calculateATR(candles, period);
   }
 
   detectPinBar(candles: Candle[]): PatternResult {
