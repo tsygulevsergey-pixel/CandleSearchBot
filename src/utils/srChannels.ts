@@ -168,6 +168,20 @@ function createChannelFromPivot(
     }
   }
 
+  // ИСПРАВЛЕНИЕ: Добавляем минимальную ширину канала (0.3% в каждую сторону)
+  // Это гарантирует что каналы будут показываться как диапазон, а не точка
+  const currentWidth = upper - lower;
+  const minWidthPercent = 0.3; // 0.3% от центра канала
+  const center = (upper + lower) / 2;
+  const minWidth = center * (minWidthPercent / 100);
+  
+  if (currentWidth < minWidth) {
+    // Расширяем канал симметрично от центра
+    const expansion = (minWidth - currentWidth) / 2;
+    upper += expansion;
+    lower -= expansion;
+  }
+
   return { upper, lower, pivotCount };
 }
 
