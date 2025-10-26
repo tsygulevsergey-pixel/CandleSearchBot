@@ -183,9 +183,11 @@ export function isVolumeAboveAverage(candles: Candle[]): boolean {
   const avgVolume = last20Volumes.reduce((sum, vol) => sum + vol, 0) / last20Volumes.length;
   const currentVolume = volumes[volumes.length - 1];
 
-  const isAboveAverage = currentVolume > avgVolume;
+  // Смягчаем фильтр: 85% от среднего достаточно (было: currentVolume > avgVolume)
+  const threshold = avgVolume * 0.85;
+  const isAboveAverage = currentVolume >= threshold;
 
-  console.log(`📊 [Volume] Current: ${currentVolume.toFixed(0)}, Avg(${last20Volumes.length}): ${avgVolume.toFixed(0)} | Above avg: ${isAboveAverage}`);
+  console.log(`📊 [Volume] Current: ${currentVolume.toFixed(0)}, Avg(${last20Volumes.length}): ${avgVolume.toFixed(0)}, Threshold(85%): ${threshold.toFixed(0)} | Above avg: ${isAboveAverage}`);
 
   return isAboveAverage;
 }
@@ -554,9 +556,9 @@ export class PatternDetector {
 
     console.log(`\n🔍 [Fakey] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
-    // Параметры по таймфреймам
+    // Параметры по таймфреймам (снижены для 15m: minMBSize 1.2→1.0)
     const tfParams = {
-      '15m': { epsilon: 0.225, minMBSize: 1.2, maxConfirmBars: 2 },
+      '15m': { epsilon: 0.225, minMBSize: 1.0, maxConfirmBars: 2 },
       '1h':  { epsilon: 0.175, minMBSize: 1.0, maxConfirmBars: 3 },
       '4h':  { epsilon: 0.125, minMBSize: 0.8, maxConfirmBars: 3 },
     };
@@ -793,9 +795,9 @@ export class PatternDetector {
 
     console.log(`\n🔍 [Engulfing] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
-    // Параметры по таймфреймам
+    // Параметры по таймфреймам (снижены для 15m: minBodyATR 1.1→0.8)
     const tfParams = {
-      '15m': { gamma: 0.175, bodyRatio: 1.3, minBodyATR: 1.1 },
+      '15m': { gamma: 0.175, bodyRatio: 1.3, minBodyATR: 0.8 },
       '1h':  { gamma: 0.15,  bodyRatio: 1.2, minBodyATR: 1.0 },
       '4h':  { gamma: 0.125, bodyRatio: 1.1, minBodyATR: 0.8 },
     };

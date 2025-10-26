@@ -230,6 +230,11 @@ export class TelegramBot {
     const winRate2 = closedSignals > 0
       ? (stats.tp2Hit / closedSignals * 100).toFixed(1)
       : '0.0';
+    
+    // Средний PnL на сделку
+    const avgPnl = closedSignals > 0 ? (stats.pnlNet / closedSignals).toFixed(2) : '0.00';
+    const pnlEmoji = stats.pnlNet > 0 ? '✅' : stats.pnlNet < 0 ? '❌' : '⚪';
+    const avgPnlEmoji = parseFloat(avgPnl) >= 1.5 ? '🎯' : parseFloat(avgPnl) > 0 ? '✅' : '❌';
 
     let message = `
 📊 <b>СТАТИСТИКА СИГНАЛОВ</b>
@@ -244,10 +249,11 @@ export class TelegramBot {
 • Win rate (TP1+): ${winRate1}%
 • Win rate (TP2): ${winRate2}%
 
-💰 <b>PnL (в %):</b>
+💰 <b>PnL:</b>
+${pnlEmoji} <b>Net PnL: ${stats.pnlNet >= 0 ? '+' : ''}${stats.pnlNet.toFixed(2)}%</b>
+${avgPnlEmoji} <b>Средний PnL: ${parseFloat(avgPnl) >= 0 ? '+' : ''}${avgPnl}%</b> (цель: +1.5%+)
 • PnL+: ${stats.pnlPositive.toFixed(2)}%
 • PnL-: ${stats.pnlNegative.toFixed(2)}%
-• Net PnL: ${stats.pnlNet >= 0 ? '+' : ''}${stats.pnlNet.toFixed(2)}%
 
 `;
 
