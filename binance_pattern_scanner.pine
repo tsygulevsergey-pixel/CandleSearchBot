@@ -1,4 +1,4 @@
-//@version=5
+//@version=6
 indicator("Binance Pattern Scanner v1.0", overlay=true, max_boxes_count=500, max_lines_count=500, max_labels_count=500)
 
 // ============================================
@@ -22,16 +22,15 @@ minScore = input.int(50, "Min Score", minval=0, maxval=200, group="Filters")
 volumeThreshold = input.float(0.40, "Volume Threshold", minval=0.1, maxval=2.0, step=0.05, group="Filters")
 
 // ============================================
-// ATR CALCULATION
+// ATR CALCULATION (глобальный уровень)
 // ============================================
-calculateATR(period) =>
-    atrSum = 0.0
-    for i = 1 to period
-        tr = ta.tr(true)
-        atrSum := atrSum + tr[i-1]
-    atrSum / period
+atr = ta.atr(5)
 
-atr = calculateATR(5)
+// ============================================
+// TAIL PROTRUSION CHECKS (глобальный уровень)
+// ============================================
+minRecentLow = ta.lowest(low, 6)[1]  // 5 bars before current + offset
+maxRecentHigh = ta.highest(high, 6)[1]
 
 // ============================================
 // TREND ANALYSIS (EMA 50/200)
@@ -89,14 +88,17 @@ maxWidth = (highest300 - lowest300) * (maxChannelWidthPercent / 100)
 var box[] supportBoxes = array.new_box(0)
 var box[] resistanceBoxes = array.new_box(0)
 
-// Clear old boxes
+// Clear old boxes (с проверкой размера массива)
 if barstate.islast and showSRZones
-    for i = 0 to array.size(supportBoxes) - 1
-        box.delete(array.get(supportBoxes, i))
+    // Безопасное удаление существующих боксов
+    if array.size(supportBoxes) > 0
+        for i = 0 to array.size(supportBoxes) - 1
+            box.delete(array.get(supportBoxes, i))
     array.clear(supportBoxes)
     
-    for i = 0 to array.size(resistanceBoxes) - 1
-        box.delete(array.get(resistanceBoxes, i))
+    if array.size(resistanceBoxes) > 0
+        for i = 0 to array.size(resistanceBoxes) - 1
+            box.delete(array.get(resistanceBoxes, i))
     array.clear(resistanceBoxes)
     
     // Combine all pivots
@@ -214,8 +216,7 @@ detectPinBar() =>
         
         isLongGeo = bodyMaxLong and bodyAtTopLong and longTailBodyLong and longTailRangeLong and oppTailShortLong
         
-        // Check tail protrusion
-        minRecentLow = ta.lowest(low, 5)[1]
+        // Check tail protrusion (используем глобальную переменную)
         tailProtrusionLong = isLongGeo and low <= minRecentLow - ATR_EPSILON * atr
         
         // SHORT Pin Bar (upper tail)
@@ -227,8 +228,7 @@ detectPinBar() =>
         
         isShortGeo = bodyMaxShort and bodyAtBottomShort and longTailBodyShort and longTailRangeShort and oppTailShortShort
         
-        // Check tail protrusion
-        maxRecentHigh = ta.highest(high, 5)[1]
+        // Check tail protrusion (используем глобальную переменную)
         tailProtrusionShort = isShortGeo and high >= maxRecentHigh + ATR_EPSILON * atr
         
         [tailProtrusionLong, tailProtrusionShort]
