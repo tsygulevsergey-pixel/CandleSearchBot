@@ -141,7 +141,8 @@ export class Scanner {
               });
 
               signalsFound++;
-              const elapsedSinceClose = ((Date.now() - startTime) / 1000).toFixed(1);
+              // Calculate delay from candle close time, not scan start time
+              const elapsedSinceClose = Math.max(0, (Date.now() - lastCandle.closeTime) / 1000).toFixed(1);
               const directionText = pattern.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
               const patternName = pattern.type.replace('_', ' ').toUpperCase();
               
