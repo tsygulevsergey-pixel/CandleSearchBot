@@ -1,5 +1,5 @@
 import { binanceClient } from '../utils/binanceClient';
-import { patternDetector, calculateATR } from '../utils/candleAnalyzer';
+import { patternDetector, calculateATR, analyzeSRZonesTV } from '../utils/candleAnalyzer';
 import { riskCalculator } from '../utils/riskCalculator';
 import { signalDB } from '../mastra/storage/db';
 import { getCoinCluster, getCoinsByFamily, getFamilyId } from '../utils/marketClusters';
@@ -146,13 +146,28 @@ export class Scanner {
               const directionText = pattern.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
               const patternName = pattern.type.replace('_', ' ').toUpperCase();
               
-              // Форматирование S/R зон (показываем диапазон)
-              const supportZoneText = pattern.srAnalysis?.nearestSupport 
-                ? `${pattern.srAnalysis.nearestSupport.lower.toFixed(8)} - ${pattern.srAnalysis.nearestSupport.upper.toFixed(8)} (${pattern.srAnalysis.nearestSupport.touches} касаний)`
+              // 📊 ВСЕГДА БЕРЕМ S/R ЗОНЫ С 4H ТАЙМФРЕЙМА (для всех сигналов)
+              console.log(`📊 [Scanner] Fetching 4H S/R zones for ${symbol}...`);
+              let sr4hAnalysis = null;
+              try {
+                const candles4h = await binanceClient.getKlines(symbol, '4h', 350);
+                if (candles4h.length >= 300) {
+                  sr4hAnalysis = analyzeSRZonesTV(candles4h);
+                  console.log(`✅ [Scanner] 4H S/R zones retrieved successfully`);
+                } else {
+                  console.log(`⚠️ [Scanner] Not enough 4H candles for S/R analysis (${candles4h.length} < 300)`);
+                }
+              } catch (error: any) {
+                console.error(`❌ [Scanner] Failed to fetch 4H S/R zones:`, error.message);
+              }
+              
+              // Форматирование S/R зон с 4H (показываем диапазон)
+              const supportZoneText = sr4hAnalysis?.nearestSupport 
+                ? `${sr4hAnalysis.nearestSupport.lower.toFixed(8)} - ${sr4hAnalysis.nearestSupport.upper.toFixed(8)} (${sr4hAnalysis.nearestSupport.touches} касаний, ${sr4hAnalysis.nearestSupport.strength})`
                 : 'Не обнаружена';
               
-              const resistanceZoneText = pattern.srAnalysis?.nearestResistance
-                ? `${pattern.srAnalysis.nearestResistance.lower.toFixed(8)} - ${pattern.srAnalysis.nearestResistance.upper.toFixed(8)} (${pattern.srAnalysis.nearestResistance.touches} касаний)`
+              const resistanceZoneText = sr4hAnalysis?.nearestResistance
+                ? `${sr4hAnalysis.nearestResistance.lower.toFixed(8)} - ${sr4hAnalysis.nearestResistance.upper.toFixed(8)} (${sr4hAnalysis.nearestResistance.touches} касаний, ${sr4hAnalysis.nearestResistance.strength})`
                 : 'Не обнаружена';
               
               // Рейтинг сигнала
@@ -173,8 +188,9 @@ export class Scanner {
 🎯 <b>Take Profit 1:</b> ${levels.tp1.toFixed(8)}
 🎯 <b>Take Profit 2:</b> ${levels.tp2.toFixed(8)}
 
-📊 <b>Зона поддержки:</b> ${supportZoneText}
-📊 <b>Зона сопротивления:</b> ${resistanceZoneText}
+📊 <b>S/R Зоны (4H):</b>
+📍 <b>Поддержка:</b> ${supportZoneText}
+📍 <b>Сопротивление:</b> ${resistanceZoneText}
 
 🆔 Signal ID: ${signal.id}${scoreText}
 ⚡ <b>Delay:</b> ${elapsedSinceClose}s after candle close
