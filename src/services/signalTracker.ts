@@ -61,7 +61,6 @@ export class SignalTracker {
             currentPrice: currentPrice.toFixed(8),
             high1m: Number(candles[candles.length - 1].high).toFixed(8),
             low1m: Number(candles[candles.length - 1].low).toFixed(8),
-            tp1: parseFloat(signal.tp1Price).toFixed(8),
             tp2: parseFloat(signal.tp2Price).toFixed(8),
             sl: parseFloat(signal.currentSl).toFixed(8),
           });
@@ -71,7 +70,6 @@ export class SignalTracker {
             currentPrice,
             parseFloat(signal.entryPrice),
             parseFloat(signal.currentSl),
-            parseFloat(signal.tp1Price),
             parseFloat(signal.tp2Price),
             signal.direction,
             signal.status
@@ -89,14 +87,13 @@ export class SignalTracker {
               status: newStatus,
               direction: signal.direction,
               entryPrice: signal.entryPrice,
-              tp1Price: signal.tp1Price,
               tp2Price: signal.tp2Price,
               slPrice: signal.slPrice,
               currentSl: newSl !== undefined ? newSl.toString() : signal.currentSl,
             });
 
             const statusEmoji = getStatusEmoji(outcome.outcomeType);
-            const statusText = outcome.description.toUpperCase() + (newStatus === 'TP1_HIT' ? ' SL перенесен в безубыток.' : '');
+            const statusText = outcome.description.toUpperCase();
             const pnlText = outcome.pnl !== 0 ? `\n💵 <b>PnL:</b> ${formatPnL(outcome.pnl)}` : '';
 
             const directionText = signal.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';

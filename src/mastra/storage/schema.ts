@@ -1,6 +1,6 @@
 import { pgTable, serial, text, timestamp, decimal, pgEnum, integer } from 'drizzle-orm/pg-core';
 
-export const signalStatusEnum = pgEnum('signal_status', ['OPEN', 'TP1_HIT', 'TP2_HIT', 'SL_HIT']);
+export const signalStatusEnum = pgEnum('signal_status', ['OPEN', 'TP2_HIT', 'SL_HIT']);
 export const signalDirectionEnum = pgEnum('signal_direction', ['LONG', 'SHORT']);
 
 export const signals = pgTable('signals', {
@@ -10,7 +10,6 @@ export const signals = pgTable('signals', {
   patternType: text('pattern_type').notNull(),
   entryPrice: decimal('entry_price', { precision: 18, scale: 8 }).notNull(),
   slPrice: decimal('sl_price', { precision: 18, scale: 8 }).notNull(),
-  tp1Price: decimal('tp1_price', { precision: 18, scale: 8 }).notNull(),
   tp2Price: decimal('tp2_price', { precision: 18, scale: 8 }).notNull(),
   currentSl: decimal('current_sl', { precision: 18, scale: 8 }).notNull(),
   status: signalStatusEnum('status').default('OPEN').notNull(),

@@ -133,7 +133,6 @@ export class Scanner {
                 patternType: pattern.type,
                 entryPrice: currentPrice.toString(), // Entry = CURRENT MARKET PRICE
                 slPrice: levels.sl.toString(),
-                tp1Price: levels.tp1.toString(),
                 tp2Price: levels.tp2.toString(),
                 currentSl: levels.sl.toString(),
                 direction: pattern.direction,
@@ -185,8 +184,7 @@ export class Scanner {
 
 💰 <b>Entry:</b> ${currentPrice.toFixed(8)}
 🛑 <b>Stop Loss:</b> ${levels.sl.toFixed(8)}
-🎯 <b>Take Profit 1:</b> ${levels.tp1.toFixed(8)}
-🎯 <b>Take Profit 2:</b> ${levels.tp2.toFixed(8)}
+🎯 <b>Take Profit:</b> ${levels.tp2.toFixed(8)}
 
 📊 <b>S/R Зоны (4H):</b>
 📍 <b>Поддержка:</b> ${supportZoneText}
