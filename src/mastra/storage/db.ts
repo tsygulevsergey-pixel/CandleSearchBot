@@ -2,6 +2,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq, and, or } from 'drizzle-orm';
 import { Pool } from 'pg';
 import { signals, type Signal, type NewSignal } from './schema';
+import { calculateTradeOutcome } from '../../utils/tradeOutcomes';
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL || 'postgresql://localhost:5432/mastra',
@@ -102,45 +103,28 @@ export class SignalDB {
     };
 
     allSignals.forEach((signal) => {
-      let pnl = 0;
+      // Используем централизованную логику расчета PnL
+      const outcome = calculateTradeOutcome({
+        status: signal.status,
+        direction: signal.direction,
+        entryPrice: signal.entryPrice,
+        tp1Price: signal.tp1Price,
+        tp2Price: signal.tp2Price,
+        slPrice: signal.slPrice,
+        currentSl: signal.currentSl,
+      });
 
+      const pnl = outcome.pnl;
+
+      // Обновляем счетчики статусов
       if (signal.status === 'OPEN') {
         stats.open++;
       } else if (signal.status === 'TP1_HIT') {
         stats.tp1Hit++;
-        // TP1: % движения от entry до TP1, умножить на 0.5 (половина позиции)
-        const entryPrice = parseFloat(signal.entryPrice);
-        const tp1Price = parseFloat(signal.tp1Price);
-        if (signal.direction === 'LONG') {
-          pnl = ((tp1Price - entryPrice) / entryPrice) * 100 * 0.5;
-        } else {
-          pnl = ((entryPrice - tp1Price) / entryPrice) * 100 * 0.5;
-        }
       } else if (signal.status === 'TP2_HIT') {
         stats.tp2Hit++;
-        // TP2: % от entry до TP1 * 0.5 + % от entry до TP2 * 0.5
-        const entryPrice = parseFloat(signal.entryPrice);
-        const tp1Price = parseFloat(signal.tp1Price);
-        const tp2Price = parseFloat(signal.tp2Price);
-        if (signal.direction === 'LONG') {
-          const pnlTp1 = ((tp1Price - entryPrice) / entryPrice) * 100 * 0.5;
-          const pnlTp2 = ((tp2Price - entryPrice) / entryPrice) * 100 * 0.5;
-          pnl = pnlTp1 + pnlTp2;
-        } else {
-          const pnlTp1 = ((entryPrice - tp1Price) / entryPrice) * 100 * 0.5;
-          const pnlTp2 = ((entryPrice - tp2Price) / entryPrice) * 100 * 0.5;
-          pnl = pnlTp1 + pnlTp2;
-        }
       } else if (signal.status === 'SL_HIT') {
         stats.slHit++;
-        // SL: % движения от entry до SL (отрицательный)
-        const entryPrice = parseFloat(signal.entryPrice);
-        const slPrice = parseFloat(signal.slPrice);
-        if (signal.direction === 'LONG') {
-          pnl = ((slPrice - entryPrice) / entryPrice) * 100;
-        } else {
-          pnl = ((entryPrice - slPrice) / entryPrice) * 100;
-        }
       }
 
       // Общий PnL
