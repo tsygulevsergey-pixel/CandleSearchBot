@@ -90,6 +90,7 @@ export class SignalDB {
       open: 0,
       tp1Hit: 0,
       tp2Hit: 0,
+      breakevenHit: 0,
       slHit: 0,
       pnlPositive: 0,
       pnlNegative: 0,
@@ -97,8 +98,8 @@ export class SignalDB {
       byPattern: {} as any,
       byTimeframe: {} as any,
       byDirection: { 
-        LONG: { total: 0, tp1: 0, tp2: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 }, 
-        SHORT: { total: 0, tp1: 0, tp2: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 } 
+        LONG: { total: 0, tp1: 0, tp2: 0, breakeven: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 }, 
+        SHORT: { total: 0, tp1: 0, tp2: 0, breakeven: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 } 
       },
     };
 
@@ -124,7 +125,12 @@ export class SignalDB {
       } else if (signal.status === 'TP2_HIT') {
         stats.tp2Hit++;
       } else if (signal.status === 'SL_HIT') {
-        stats.slHit++;
+        // Разделяем SL на breakeven и обычный SL
+        if (outcome.isBreakeven) {
+          stats.breakevenHit++;
+        } else {
+          stats.slHit++;
+        }
       }
 
       // Общий PnL
@@ -137,12 +143,18 @@ export class SignalDB {
 
       // По паттернам
       if (!stats.byPattern[signal.patternType]) {
-        stats.byPattern[signal.patternType] = { total: 0, tp1: 0, tp2: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 };
+        stats.byPattern[signal.patternType] = { total: 0, tp1: 0, tp2: 0, breakeven: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 };
       }
       stats.byPattern[signal.patternType].total++;
       if (signal.status === 'TP1_HIT') stats.byPattern[signal.patternType].tp1++;
       if (signal.status === 'TP2_HIT') stats.byPattern[signal.patternType].tp2++;
-      if (signal.status === 'SL_HIT') stats.byPattern[signal.patternType].sl++;
+      if (signal.status === 'SL_HIT') {
+        if (outcome.isBreakeven) {
+          stats.byPattern[signal.patternType].breakeven++;
+        } else {
+          stats.byPattern[signal.patternType].sl++;
+        }
+      }
       if (signal.status === 'OPEN') stats.byPattern[signal.patternType].open++;
       
       if (pnl > 0) {
@@ -154,12 +166,18 @@ export class SignalDB {
 
       // По таймфреймам
       if (!stats.byTimeframe[signal.timeframe]) {
-        stats.byTimeframe[signal.timeframe] = { total: 0, tp1: 0, tp2: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 };
+        stats.byTimeframe[signal.timeframe] = { total: 0, tp1: 0, tp2: 0, breakeven: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 };
       }
       stats.byTimeframe[signal.timeframe].total++;
       if (signal.status === 'TP1_HIT') stats.byTimeframe[signal.timeframe].tp1++;
       if (signal.status === 'TP2_HIT') stats.byTimeframe[signal.timeframe].tp2++;
-      if (signal.status === 'SL_HIT') stats.byTimeframe[signal.timeframe].sl++;
+      if (signal.status === 'SL_HIT') {
+        if (outcome.isBreakeven) {
+          stats.byTimeframe[signal.timeframe].breakeven++;
+        } else {
+          stats.byTimeframe[signal.timeframe].sl++;
+        }
+      }
       if (signal.status === 'OPEN') stats.byTimeframe[signal.timeframe].open++;
       
       if (pnl > 0) {
@@ -173,7 +191,13 @@ export class SignalDB {
       stats.byDirection[signal.direction].total++;
       if (signal.status === 'TP1_HIT') stats.byDirection[signal.direction].tp1++;
       if (signal.status === 'TP2_HIT') stats.byDirection[signal.direction].tp2++;
-      if (signal.status === 'SL_HIT') stats.byDirection[signal.direction].sl++;
+      if (signal.status === 'SL_HIT') {
+        if (outcome.isBreakeven) {
+          stats.byDirection[signal.direction].breakeven++;
+        } else {
+          stats.byDirection[signal.direction].sl++;
+        }
+      }
       
       if (pnl > 0) {
         stats.byDirection[signal.direction].pnlPositive += pnl;
