@@ -35,117 +35,130 @@ export class Scanner {
   }
 
   async scanTimeframe(timeframe: string): Promise<void> {
-    console.log(`\n🔍 [Scanner] Starting scan for ${timeframe}...`);
+    const startTime = Date.now();
+    console.log(`\n🔍 [Scanner] Starting PARALLEL scan for ${timeframe}...`);
 
     try {
       const pairs = await binanceClient.getTradingPairs();
-      console.log(`📊 [Scanner] Scanning ${pairs.length} pairs on ${timeframe}...`);
+      console.log(`📊 [Scanner] Scanning ${pairs.length} pairs on ${timeframe} with 20 parallel workers...`);
 
-      for (const symbol of pairs) {
-        try {
-          const candles = await binanceClient.getKlines(symbol, timeframe, 350);
-          
-          if (candles.length < 300) {
-            console.log(`⚠️ [Scanner] Insufficient candles for ${symbol} (need 300, got ${candles.length}), skipping`);
-            continue;
-          }
+      const BATCH_SIZE = 20; // 20 монет параллельно (безопасно для Binance rate limit)
+      let processedCount = 0;
+      let signalsFound = 0;
 
-          // Skip dead coins (ATR = 0) BEFORE pattern detection for performance
-          const atr = calculateATR(candles);
-          if (atr === 0) {
-            console.log(`⏭️ [Scanner] Skipping ${symbol} - dead coin (ATR=0)`);
-            continue;
-          }
-
-          const patterns = patternDetector.detectAllPatterns(candles, timeframe);
-
-          for (const pattern of patterns) {
-            // Validate pattern has all required fields (including candleClosePrice)
-            if (!pattern.detected || !pattern.type || !pattern.direction || !pattern.candleClosePrice) {
-              continue;
-            }
+      // Обрабатываем батчами для контроля rate limit
+      for (let i = 0; i < pairs.length; i += BATCH_SIZE) {
+        const batch = pairs.slice(i, i + BATCH_SIZE);
+        const batchStartTime = Date.now();
+        
+        // Параллельная обработка батча
+        await Promise.all(batch.map(async (symbol) => {
+          try {
+            const candles = await binanceClient.getKlines(symbol, timeframe, 350);
             
-            // Optional: Validate last candle is fully closed (5s buffer)
-            const lastCandle = candles[candles.length - 1];
-            const buffer = 5000;
-            if (lastCandle.closeTime > Date.now() - buffer) {
-              console.log(`⏭️ [Scanner] Skipping ${symbol} - last candle not fully closed yet`);
-              continue;
+            if (candles.length < 300) {
+              console.log(`⚠️ [Scanner] Insufficient candles for ${symbol} (need 300, got ${candles.length}), skipping`);
+              return;
             }
 
-            // Проверяем, есть ли уже открытый сигнал на эту монету
-            const hasOpenSignal = await signalDB.hasOpenSignal(symbol);
-            if (hasOpenSignal) {
-              console.log(`⏭️ [Scanner] Skipping ${symbol} - already has an open signal`);
-              continue;
+            // Skip dead coins (ATR = 0) BEFORE pattern detection for performance
+            const atr = calculateATR(candles);
+            if (atr === 0) {
+              console.log(`⏭️ [Scanner] Skipping ${symbol} - dead coin (ATR=0)`);
+              return;
             }
-            
-            // 🔥 КЛАСТЕРИЗАЦИЯ: проверяем лимит семейства (лидер:сектор)
-            const cluster = getCoinCluster(symbol);
-            const familyId = getFamilyId(cluster);
-            const familyCoins = getCoinsByFamily(cluster.leader, cluster.sector);
-            const familySymbols = familyCoins.map(c => c.symbol);
-            const openFamilySignals = await signalDB.countOpenSignalsByFamily(familySymbols);
-            
-            const MAX_SIGNALS_PER_FAMILY = 3; // Максимум 2-3 сигнала из одного семейства
-            
-            if (openFamilySignals >= MAX_SIGNALS_PER_FAMILY) {
-              console.log(`⏭️ [Scanner] Skipping ${symbol} (${familyId}) - family limit reached (${openFamilySignals}/${MAX_SIGNALS_PER_FAMILY} signals)`);
-              continue;
-            }
-            
-            console.log(`✅ [Scanner] Family check passed: ${symbol} (${familyId}) - ${openFamilySignals}/${MAX_SIGNALS_PER_FAMILY} signals`);
 
-            // DUAL-PRICE STRATEGY:
-            // 1. Get current market price for Entry (actual trading price)
-            const currentPrice = await binanceClient.getCurrentPrice(symbol);
-            
-            // 2. Calculate SL based on pattern candle (candleClosePrice)
-            const slPrice = riskCalculator.calculateStopLoss(
-              pattern.type,
-              pattern.direction,
-              candles,
-              0.0035
-            );
-            
-            // 3. Calculate TP levels using candleClosePrice (for accurate R calculation)
-            const levels = riskCalculator.calculateLevels(
-              pattern.type,
-              pattern.direction,
-              pattern.candleClosePrice, // Use pattern candle close for SL/TP math
-              slPrice
-            );
+            const patterns = patternDetector.detectAllPatterns(candles, timeframe);
 
-            const signal = await signalDB.createSignal({
-              symbol,
-              timeframe,
-              patternType: pattern.type,
-              entryPrice: currentPrice.toString(), // Entry = CURRENT MARKET PRICE
-              slPrice: levels.sl.toString(),
-              tp1Price: levels.tp1.toString(),
-              tp2Price: levels.tp2.toString(),
-              currentSl: levels.sl.toString(),
-              direction: pattern.direction,
-              status: 'OPEN',
-            });
+            for (const pattern of patterns) {
+              // Validate pattern has all required fields (including candleClosePrice)
+              if (!pattern.detected || !pattern.type || !pattern.direction || !pattern.candleClosePrice) {
+                continue;
+              }
+              
+              // Optional: Validate last candle is fully closed (5s buffer)
+              const lastCandle = candles[candles.length - 1];
+              const buffer = 5000;
+              if (lastCandle.closeTime > Date.now() - buffer) {
+                console.log(`⏭️ [Scanner] Skipping ${symbol} - last candle not fully closed yet`);
+                continue;
+              }
 
-            const directionText = pattern.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
-            const patternName = pattern.type.replace('_', ' ').toUpperCase();
-            
-            // Форматирование S/R зон (показываем диапазон)
-            const supportZoneText = pattern.srAnalysis?.nearestSupport 
-              ? `${pattern.srAnalysis.nearestSupport.lower.toFixed(8)} - ${pattern.srAnalysis.nearestSupport.upper.toFixed(8)} (${pattern.srAnalysis.nearestSupport.touches} касаний)`
-              : 'Не обнаружена';
-            
-            const resistanceZoneText = pattern.srAnalysis?.nearestResistance
-              ? `${pattern.srAnalysis.nearestResistance.lower.toFixed(8)} - ${pattern.srAnalysis.nearestResistance.upper.toFixed(8)} (${pattern.srAnalysis.nearestResistance.touches} касаний)`
-              : 'Не обнаружена';
-            
-            // Рейтинг сигнала
-            const scoreEmoji = pattern.score && pattern.score >= 150 ? '⭐⭐⭐' : '⭐⭐';
-            const scoreText = pattern.score ? ` | Score: ${pattern.score}` : '';
+              // Проверяем, есть ли уже открытый сигнал на эту монету
+              const hasOpenSignal = await signalDB.hasOpenSignal(symbol);
+              if (hasOpenSignal) {
+                console.log(`⏭️ [Scanner] Skipping ${symbol} - already has an open signal`);
+                continue;
+              }
+              
+              // 🔥 КЛАСТЕРИЗАЦИЯ: проверяем лимит семейства (лидер:сектор)
+              const cluster = getCoinCluster(symbol);
+              const familyId = getFamilyId(cluster);
+              const familyCoins = getCoinsByFamily(cluster.leader, cluster.sector);
+              const familySymbols = familyCoins.map(c => c.symbol);
+              const openFamilySignals = await signalDB.countOpenSignalsByFamily(familySymbols);
+              
+              const MAX_SIGNALS_PER_FAMILY = 3; // Максимум 2-3 сигнала из одного семейства
+              
+              if (openFamilySignals >= MAX_SIGNALS_PER_FAMILY) {
+                console.log(`⏭️ [Scanner] Skipping ${symbol} (${familyId}) - family limit reached (${openFamilySignals}/${MAX_SIGNALS_PER_FAMILY} signals)`);
+                continue;
+              }
+              
+              console.log(`✅ [Scanner] Family check passed: ${symbol} (${familyId}) - ${openFamilySignals}/${MAX_SIGNALS_PER_FAMILY} signals`);
 
-            const message = `
+              // DUAL-PRICE STRATEGY:
+              // 1. Get current market price for Entry (actual trading price)
+              const currentPrice = await binanceClient.getCurrentPrice(symbol);
+              
+              // 2. Calculate SL based on pattern candle (candleClosePrice)
+              const slPrice = riskCalculator.calculateStopLoss(
+                pattern.type,
+                pattern.direction,
+                candles,
+                0.0035
+              );
+              
+              // 3. Calculate TP levels using candleClosePrice (for accurate R calculation)
+              const levels = riskCalculator.calculateLevels(
+                pattern.type,
+                pattern.direction,
+                pattern.candleClosePrice, // Use pattern candle close for SL/TP math
+                slPrice
+              );
+
+              const signal = await signalDB.createSignal({
+                symbol,
+                timeframe,
+                patternType: pattern.type,
+                entryPrice: currentPrice.toString(), // Entry = CURRENT MARKET PRICE
+                slPrice: levels.sl.toString(),
+                tp1Price: levels.tp1.toString(),
+                tp2Price: levels.tp2.toString(),
+                currentSl: levels.sl.toString(),
+                direction: pattern.direction,
+                status: 'OPEN',
+              });
+
+              signalsFound++;
+              const elapsedSinceClose = ((Date.now() - startTime) / 1000).toFixed(1);
+              const directionText = pattern.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
+              const patternName = pattern.type.replace('_', ' ').toUpperCase();
+              
+              // Форматирование S/R зон (показываем диапазон)
+              const supportZoneText = pattern.srAnalysis?.nearestSupport 
+                ? `${pattern.srAnalysis.nearestSupport.lower.toFixed(8)} - ${pattern.srAnalysis.nearestSupport.upper.toFixed(8)} (${pattern.srAnalysis.nearestSupport.touches} касаний)`
+                : 'Не обнаружена';
+              
+              const resistanceZoneText = pattern.srAnalysis?.nearestResistance
+                ? `${pattern.srAnalysis.nearestResistance.lower.toFixed(8)} - ${pattern.srAnalysis.nearestResistance.upper.toFixed(8)} (${pattern.srAnalysis.nearestResistance.touches} касаний)`
+                : 'Не обнаружена';
+              
+              // Рейтинг сигнала
+              const scoreEmoji = pattern.score && pattern.score >= 150 ? '⭐⭐⭐' : '⭐⭐';
+              const scoreText = pattern.score ? ` | Score: ${pattern.score}` : '';
+
+              const message = `
 🚨 <b>НОВЫЙ СИГНАЛ ${scoreEmoji}</b> 🚨
 
 💎 <b>Монета:</b> ${symbol}
@@ -163,21 +176,28 @@ export class Scanner {
 📊 <b>Зона сопротивления:</b> ${resistanceZoneText}
 
 🆔 Signal ID: ${signal.id}${scoreText}
-            `.trim();
+⚡ <b>Delay:</b> ${elapsedSinceClose}s after candle close
+              `.trim();
 
-            const messageId = await this.sendTelegramMessage(message);
-            if (messageId) {
-              await signalDB.updateTelegramMessageId(signal.id, messageId);
-              console.log(`✅ [Scanner] Saved Telegram message_id ${messageId} for signal ${signal.id}`);
+              const messageId = await this.sendTelegramMessage(message);
+              if (messageId) {
+                await signalDB.updateTelegramMessageId(signal.id, messageId);
+                console.log(`✅ [Scanner] Saved Telegram message_id ${messageId} for signal ${signal.id}`);
+              }
+              console.log(`🚀 [Scanner] Signal #${signalsFound} sent: ${symbol} ${pattern.type} (${elapsedSinceClose}s after candle close)`);
             }
-            console.log(`✅ [Scanner] Signal created and sent: ${symbol} ${pattern.type}`);
+          } catch (error: any) {
+            console.error(`❌ [Scanner] Error scanning ${symbol}:`, error.message);
           }
-        } catch (error: any) {
-          console.error(`❌ [Scanner] Error scanning ${symbol}:`, error.message);
-        }
+        }));
+
+        processedCount += batch.length;
+        const batchElapsed = ((Date.now() - batchStartTime) / 1000).toFixed(1);
+        console.log(`⚡ [Scanner] Batch ${Math.floor(i / BATCH_SIZE) + 1} completed: ${batch.length} coins in ${batchElapsed}s (total: ${processedCount}/${pairs.length})`);
       }
 
-      console.log(`✅ [Scanner] Completed scan for ${timeframe}`);
+      const totalElapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      console.log(`✅ [Scanner] Completed scan for ${timeframe} in ${totalElapsed}s (${signalsFound} signals found, ~${(pairs.length / parseFloat(totalElapsed)).toFixed(0)} coins/sec)`);
     } catch (error: any) {
       console.error(`❌ [Scanner] Fatal error during ${timeframe} scan:`, error.message);
     }
