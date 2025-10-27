@@ -33,7 +33,7 @@ export class Scheduler {
     );
 
     this.tasks.push(
-      cron.schedule('*/5 * * * *', async () => {
+      cron.schedule('* * * * *', async () => {
         await signalTracker.trackSignals();
       })
     );
@@ -43,7 +43,7 @@ export class Scheduler {
     console.log('  - 15m scan: Every 15 minutes (00, 15, 30, 45) + 10s delay');
     console.log('  - 1h scan:  Every hour at :00 + 10s delay');
     console.log('  - 4h scan:  Every 4 hours (00, 04, 08, 12, 16, 20) + 10s delay');
-    console.log('  - Tracker:  Every 5 minutes');
+    console.log('  - Tracker:  Every 1 minute (improved accuracy)');
   }
 
   stop(): void {

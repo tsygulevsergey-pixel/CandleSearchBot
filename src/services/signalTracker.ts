@@ -46,9 +46,28 @@ export class SignalTracker {
 
       for (const signal of openSignals) {
         try {
+          // Get last 2 x 1m candles INCLUDING current open candle
+          // This ensures we catch TP/SL hits that happen INSIDE the current minute
+          const candles = await binanceClient.getKlines(signal.symbol, '1m', 2, true);
+          
+          if (candles.length === 0) {
+            console.warn(`⚠️ [SignalTracker] No 1m candles for ${signal.symbol}, skipping`);
+            continue;
+          }
+
           const currentPrice = await binanceClient.getCurrentPrice(signal.symbol);
           
-          const { newStatus, newSl } = riskCalculator.checkSignalStatus(
+          console.log(`🔍 [SignalTracker] Checking ${signal.symbol} (ID: ${signal.id}):`, {
+            currentPrice: currentPrice.toFixed(8),
+            high1m: Number(candles[candles.length - 1].high).toFixed(8),
+            low1m: Number(candles[candles.length - 1].low).toFixed(8),
+            tp1: parseFloat(signal.tp1Price).toFixed(8),
+            tp2: parseFloat(signal.tp2Price).toFixed(8),
+            sl: parseFloat(signal.currentSl).toFixed(8),
+          });
+          
+          const { newStatus, newSl } = riskCalculator.checkSignalStatusWithCandles(
+            candles,
             currentPrice,
             parseFloat(signal.entryPrice),
             parseFloat(signal.currentSl),
