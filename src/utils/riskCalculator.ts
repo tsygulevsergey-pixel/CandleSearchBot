@@ -364,35 +364,43 @@ export class RiskCalculator {
       }
     }
 
-    // TP2: min(2R, H1-zone) - but ONLY if zone is on profitable side of entry!
+    // TP2: min(2R, H1-zone) - but ONLY if zone is on profitable side AND farther than TP1!
     let tp2 = tp2_R;
     if (opposingZone1h) {
       const zonePrice = direction === 'LONG' ? opposingZone1h.lower : opposingZone1h.upper;
       // CRITICAL: TP must be on profitable side of entry
       const isProfitableSide = direction === 'LONG' ? zonePrice > entryPrice : zonePrice < entryPrice;
       const isCloserThan2R = (direction === 'LONG' && zonePrice < tp2_R) || (direction === 'SHORT' && zonePrice > tp2_R);
+      // NEW: TP2 must be farther than TP1
+      const isFartherThanTP1 = direction === 'LONG' ? zonePrice > tp1 : zonePrice < tp1;
       
-      if (isProfitableSide && isCloserThan2R) {
+      if (isProfitableSide && isCloserThan2R && isFartherThanTP1) {
         tp2 = zonePrice;
         console.log(`🎯 [TP2] Using 1h zone ${zonePrice.toFixed(8)} instead of 2R ${tp2_R.toFixed(8)}`);
       } else if (!isProfitableSide) {
         console.log(`⚠️ [TP2] Zone ${zonePrice.toFixed(8)} is on WRONG side of entry ${entryPrice.toFixed(8)}, using 2R ${tp2_R.toFixed(8)}`);
+      } else if (!isFartherThanTP1) {
+        console.log(`⚠️ [TP2] Zone ${zonePrice.toFixed(8)} is too close (not farther than TP1 ${tp1.toFixed(8)}), using 2R ${tp2_R.toFixed(8)}`);
       }
     }
 
-    // TP3: min(3R, H4-zone) - but ONLY if zone is on profitable side of entry!
+    // TP3: min(3R, H4-zone) - but ONLY if zone is on profitable side AND farther than TP2!
     let tp3 = tp3_R;
     if (opposingZone4h) {
       const zonePrice = direction === 'LONG' ? opposingZone4h.lower : opposingZone4h.upper;
       // CRITICAL: TP must be on profitable side of entry
       const isProfitableSide = direction === 'LONG' ? zonePrice > entryPrice : zonePrice < entryPrice;
       const isCloserThan3R = (direction === 'LONG' && zonePrice < tp3_R) || (direction === 'SHORT' && zonePrice > tp3_R);
+      // NEW: TP3 must be farther than TP2
+      const isFartherThanTP2 = direction === 'LONG' ? zonePrice > tp2 : zonePrice < tp2;
       
-      if (isProfitableSide && isCloserThan3R) {
+      if (isProfitableSide && isCloserThan3R && isFartherThanTP2) {
         tp3 = zonePrice;
         console.log(`🎯 [TP3] Using 4h zone ${zonePrice.toFixed(8)} instead of 3R ${tp3_R.toFixed(8)}`);
       } else if (!isProfitableSide) {
         console.log(`⚠️ [TP3] Zone ${zonePrice.toFixed(8)} is on WRONG side of entry ${entryPrice.toFixed(8)}, using 3R ${tp3_R.toFixed(8)}`);
+      } else if (!isFartherThanTP2) {
+        console.log(`⚠️ [TP3] Zone ${zonePrice.toFixed(8)} is too close (not farther than TP2 ${tp2.toFixed(8)}), using 3R ${tp3_R.toFixed(8)}`);
       }
     }
 
