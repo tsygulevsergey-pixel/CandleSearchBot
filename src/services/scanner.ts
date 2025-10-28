@@ -60,6 +60,13 @@ export class Scanner {
               console.log(`⚠️ [Scanner] Insufficient candles for ${symbol} (need 300, got ${candles.length}), skipping`);
               return;
             }
+            
+            // LOG: Проверка полученных данных
+            const firstCandle = candles[0];
+            const lastCandle = candles[candles.length - 1];
+            console.log(`📊 [Scanner] ${symbol} ${timeframe}: Got ${candles.length} candles`);
+            console.log(`   First: ${new Date(firstCandle.openTime).toISOString()} | OHLC: ${firstCandle.open}/${firstCandle.high}/${firstCandle.low}/${firstCandle.close}`);
+            console.log(`   Last:  ${new Date(lastCandle.openTime).toISOString()} | OHLC: ${lastCandle.open}/${lastCandle.high}/${lastCandle.low}/${lastCandle.close}`);
 
             // Skip dead coins (ATR = 0) BEFORE pattern detection for performance
             const atr = calculateATR(candles);
@@ -111,6 +118,13 @@ export class Scanner {
               // Entry = pattern candle close price (the moment pattern completes)
               // This ensures entry price matches the actual pattern formation point
               const entryPrice = pattern.candleClosePrice;
+              
+              // LOG: Детальная информация о паттерне
+              console.log(`\n🎯 [Scanner] PATTERN DETECTED on ${symbol} ${timeframe}:`);
+              console.log(`   Pattern Type: ${pattern.type}`);
+              console.log(`   Direction: ${pattern.direction}`);
+              console.log(`   Entry (candleClosePrice): ${entryPrice}`);
+              console.log(`   Last candle close time: ${new Date(lastCandle.closeTime).toISOString()}`);
               
               // Calculate SL based on pattern candle
               const slPrice = riskCalculator.calculateStopLoss(
