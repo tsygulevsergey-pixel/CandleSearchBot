@@ -1,0 +1,42 @@
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# npx drizzle-kit push
+No config path provided, using default 'drizzle.config.ts'
+Reading config file '/root/CandleSearchBot/drizzle.config.ts'
+[dotenv@17.2.1] injecting env (0) from .env -- tip: 📡 version env with Radar: https://dotenvx.com/radar
+Using 'pg' driver for database querying
+[✓] Pulling schema from database...
+
+ Warning  You are about to execute current statements:
+
+ALTER TYPE "public"."signal_status" ADD VALUE 'TP1_HIT' BEFORE 'TP2_HIT';
+ALTER TYPE "public"."signal_status" ADD VALUE 'TP3_HIT' BEFORE 'SL_HIT';
+ALTER TYPE "public"."signal_status" ADD VALUE 'BE_HIT';
+ALTER TYPE "public"."signal_status" ADD VALUE 'FAIL_SAFE';
+DROP TABLE "mastra_evals" CASCADE;
+DROP TABLE "mastra_traces" CASCADE;
+DROP TABLE "mastra_messages" CASCADE;
+DROP TABLE "mastra_scorers" CASCADE;
+DROP TABLE "mastra_threads" CASCADE;
+DROP TABLE "mastra_ai_spans" CASCADE;
+DROP TABLE "mastra_workflow_snapshot" CASCADE;
+DROP TABLE "mastra_resources" CASCADE;
+ALTER TABLE "signals" ADD COLUMN "tp1_price" numeric(18, 8);
+ALTER TABLE "signals" ADD COLUMN "tp3_price" numeric(18, 8);
+ALTER TABLE "signals" ADD COLUMN "initial_sl" numeric(18, 8);
+ALTER TABLE "signals" ADD COLUMN "position_size" numeric(5, 2) DEFAULT '100.00';
+ALTER TABLE "signals" ADD COLUMN "partial_closed" numeric(5, 2) DEFAULT '0.00';
+ALTER TABLE "signals" ADD COLUMN "be_activated" boolean DEFAULT false;
+ALTER TABLE "signals" ADD COLUMN "trailing_activated" boolean DEFAULT false;
+ALTER TABLE "signals" ADD COLUMN "exit_type" text;
+ALTER TABLE "signals" ADD COLUMN "pnl_r" numeric(10, 4);
+ALTER TABLE "signals" ADD COLUMN "pnl_percent" numeric(10, 4);
+ALTER TABLE "signals" ADD COLUMN "atr_15m" numeric(18, 8);
+ALTER TABLE "signals" ADD COLUMN "atr_h4" numeric(18, 8);
+
+ Warning  Found data-loss statements:
+· You're about to delete mastra_traces table with 25304 items
+
+THIS ACTION WILL CAUSE DATA LOSS AND CANNOT BE REVERTED
+
+Do you still want to push changes?
+  No, abort
+❯ Yes, I want to remove 1 table, 
