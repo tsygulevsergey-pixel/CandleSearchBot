@@ -555,7 +555,14 @@ export class PatternDetector {
     if (candles.length < 6) return { detected: false };
 
     // Анализируем последнюю ЗАКРЫТУЮ свечу (Binance API уже исключает формирующуюся свечу)
-    const C0 = analyzeCand(candles[candles.length - 1]);
+    const lastCandleRaw = candles[candles.length - 1];
+    const C0 = analyzeCand(lastCandleRaw);
+    
+    // LOG: ДЕТАЛЬНАЯ ИНФОРМАЦИЯ О СВЕЧЕ
+    console.log(`\n🔍 [Pinbar] Analyzing LAST candle (index ${candles.length - 1}):`);
+    console.log(`   Time: ${new Date(lastCandleRaw.openTime).toISOString()} - ${new Date(lastCandleRaw.closeTime).toISOString()}`);
+    console.log(`   RAW OHLC: O=${lastCandleRaw.open}, H=${lastCandleRaw.high}, L=${lastCandleRaw.low}, C=${lastCandleRaw.close}`);
+    console.log(`   Entry will be: ${C0.close}`);
     
     // Базовые обозначения
     const R = C0.range; // H - L
@@ -605,6 +612,7 @@ export class PatternDetector {
       
       if (tailProtrusion) {
         console.log(`   ✅✅ [Pattern] Pin Bar BUY detected (цвет НЕ важен, хвост выступает)`);
+        console.log(`   🎯 RETURNING Entry=${C0.close}, CandleClose=${C0.close}`);
         return {
           detected: true,
           type: 'pinbar_buy',
@@ -636,6 +644,7 @@ export class PatternDetector {
       
       if (tailProtrusion) {
         console.log(`   ✅✅ [Pattern] Pin Bar SELL detected (цвет НЕ важен, хвост выступает)`);
+        console.log(`   🎯 RETURNING Entry=${C0.close}, CandleClose=${C0.close}`);
         return {
           detected: true,
           type: 'pinbar_sell',
