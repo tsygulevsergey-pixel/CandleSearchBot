@@ -1,0 +1,17 @@
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# pm2 logs crypto-bot
+[TAILING] Tailing last 15 lines for [crypto-bot] process (change the value with --lines option)
+/root/.pm2/logs/crypto-bot-error.log last 15 lines:
+0|crypto-b |  "status", "direction", "telegram_message_id", "created_at", "updated_at" from "signals" where "signals"."status" = $1
+0|crypto-b | params: OPEN
+0|crypto-b | ❌ [SignalTracker] Fatal error during signal tracking: Failed query: select "id", "symbol", "timeframe", "pattern_type", "entry_price", "sl_price", "tp1_price", "tp2_price", "tp3_price", "current_sl", "initial_sl", "position_size", "partial_closed", "be_activated", "trailing_activated", "exit_type", "pnl_r", "pnl_percent", "atr_15m", "atr_h4", "status", "direction", "telegram_message_id", "created_at", "updated_at" from "signals" where "signals"."status" = $1
+0|crypto-b | params: OPEN
+0|crypto-b | ❌ [SignalTracker] Fatal error during signal tracking: Failed query: select "id", "symbol", "timeframe", "pattern_type", "entry_price", "sl_price", "tp1_price", "tp2_price", "tp3_price", "current_sl", "initial_sl", "position_size", "partial_closed", "be_activated", "trailing_activated", "exit_type", "pnl_r", "pnl_percent", "atr_15m", "atr_h4", "status", "direction", "telegram_message_id", "created_at", "updated_at" from "signals" where "signals"."status" = $1
+0|crypto-b | params: OPEN
+0|crypto-b | ❌ [SignalTracker] Fatal error during signal tracking: Failed query: select "id", "symbol", "timeframe", "pattern_type", "entry_price", "sl_price", "tp1_price", "tp2_price", "tp3_price", "current_sl", "initial_sl", "position_size", "partial_closed", "be_activated", "trailing_activated", "exit_type", "pnl_r", "pnl_percent", "atr_15m", "atr_h4", "status", "direction", "telegram_message_id", "created_at", "updated_at" from "signals" where "signals"."status" = $1
+0|crypto-b | params: OPEN
+0|crypto-b | ❌ [SignalTracker] Fatal error during signal tracking: Failed query: select "id", "symbol", "timeframe", "pattern_type", "entry_price", "sl_price", "tp1_price", "tp2_price", "tp3_price", "current_sl", "initial_sl", "position_size", "partial_closed", "be_activated", "trailing_activated", "exit_type", "pnl_r", "pnl_percent", "atr_15m", "atr_h4", "status", "direction", "telegram_message_id", "created_at", "updated_at" from "signals" where "signals"."status" = $1
+0|crypto-b | params: OPEN
+0|crypto-b | ❌ [SignalTracker] Fatal error during signal tracking: Failed query: select "id", "symbol", "timeframe", "pattern_type", "entry_price", "sl_price", "tp1_price", "tp2_price", "tp3_price", "current_sl", "initial_sl", "position_size", "partial_closed", "be_activated", "trailing_activated", "exit_type", "pnl_r", "pnl_percent", "atr_15m", "atr_h4", "status", "direction", "telegram_message_id", "created_at", "updated_at" from "signals" where "signals"."status" = $1
+0|crypto-b | params: OPEN
+0|crypto-b | ❌ [SignalTracker] Fatal error during signal tracking: Failed query: select "id", "symbol", "timeframe", "pattern_type", "entry_price", "sl_price", "tp1_price", "tp2_price", "tp3_price", "current_sl", "initial_sl", "position_size", "partial_closed", "be_activated", "trailing_activated", "exit_type", "pnl_r", "pnl_percent", "atr_15m", "atr_h4", "status", "direction", "telegram_message_id", "created_at", "updated_at" from "signals" where "signals"."status" = $1
+0|crypto-b | params: OPEN
