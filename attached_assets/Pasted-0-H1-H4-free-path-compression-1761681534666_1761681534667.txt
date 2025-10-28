@@ -1,0 +1,163 @@
+0) Объём и цель
+
+Цель: доказательно калибровать запреты и пороги (H1/H4-гейт, free-path, compression, размер свечи и т.п.), не раздувая хранение.
+
+Логируем:
+
+Near-miss SKIP: «паттерн есть, вход запрещён фильтром».
+
+Entered TRADE: как сейчас (сыгранные), но с 3 доп. полями контекста.
+
+1) Поток “Near-miss SKIP”
+
+Запись создаётся всегда, когда найден Паттерн (Pinbar / PPR / Fakey / Engulfing), но решение = skip из-за фильтров.
+
+Обязательные поля (коротко)
+
+Идентификация: signal_id, symbol, entry_tf (обычно 15m), side (long/short), ts (ISO).
+
+Паттерн: pattern_type (pinbar/ppr/fakey/engulfing).
+
+ATR/вола: atr_15m, atr_1h, atr_4h.
+
+Тренд-контекст: ema200_1h_pos (above/below/crossing), vwap_1h_pos (above/below), trend_bias (long/short/neutral), btc_trend_state (up/down/neutral).
+
+Зоны (снимок на момент сигнала): для 15m/H1/H4 — ближайшие support и resistance:
+
+для каждой: zone_tf, zone_type, z_low, z_high, z_width, z_touch_count_72h.
+
+позиционирование: in_h4_zone (true/false), near_h4_support/near_h4_resistance (порог см. ниже).
+
+Дистанции до ключевых зон (в ATR и пунктах):
+
+по направлению сделки: dist_to_dir_H1_zone_ATR, dist_to_dir_H4_zone_ATR.
+
+до противоположной 15m-зоны (free path): free_path_pts, free_path_ATR15, free_path_R*.
+
+Подход к зоне: arrival_pattern (impulse / compression / chop).
+
+Качество зоны: zone_touch_count_bucket (0/1/2/≥3), zone_thickness_ATR15.
+
+Сигнальная свеча: signal_bar_size_ATR15 (числом) и бакет (<0.15, 0.15–0.6, 0.6–1.2, >1.2).
+
+Подтверждение: confirm_type (bos_1m / bos_5m / rejection_15m / fakey_reentry / none), confirm_wait_bars_15m.
+
+Решение: decision = skip.
+
+Причины запрета (массив кодов): см. Справочник ниже.
+
+Версия правил: ruleset_version.
+
+* free_path_R считается при стандартизованном «кандидат-SL» (см. §3).
+
+Справочник reason-codes (единые коды)
+
+near_H1_res_for_long / near_H1_sup_for_short (≤ 0.35×ATR15 по направлению).
+
+near_H4_res_for_long / near_H4_sup_for_short (≤ 0.20×ATR(H4) до края).
+
+free_path_lt_1_2R.
+
+compression_into_zone.
+
+zone_fatigue_ge_3_touches (за 48–72ч).
+
+midrange_15m (сигнал в середине коридора между 15m-зонами).
+
+overextended_bar_gt_1_2_ATR15.
+
+underpowered_bar_lt_0_15_ATR15.
+
+countertrend_without_confirm.
+
+(опционально) liquidity_spread_issue, news_blackout, session_blackout.
+
+2) Поток “Entered TRADE” (сыгранные)
+
+Оставляешь текущий формат. Добавь 3 поля:
+
+dist_to_dir_H1_zone_ATR.
+
+dist_to_dir_H4_zone_ATR.
+
+free_path_R_to_nearest_15m_contra.
+И ещё одно: arrival_pattern (impulse/compression/chop).
+Этого хватает, чтобы сопоставлять исход с контекстом.
+
+3) Стандартизованный «кандидат-план» для оценки free_path_R у SKIP
+
+Нужен единый эталон, чтобы честно мерить, «хватало бы хода»:
+
+Если внутри/на перекрытии HTF-зоны (H1/H4): кандидат-SL = htf_anchor = край HTF-зоны ± 0.35×ATR15 (0.50× при высокой воле).
+
+Иначе: swing_priority = локальный свинг ± 0.30×ATR15.
+
+TP1: ближайшая противоположная 15m-зона или 1R (что ближе).
+
+TP2: ближайшая H1-зона или 2R (что ближе).
+
+При одновременности — приоритет TP2 над SL (как у тебя).
+
+4) «Shadow-оценка» для части SKIP (минимальная нагрузка)
+
+Чтобы измерять «стоимость» запретов:
+
+Сэмплирование: по каждой причине skip — не более 10–20% записей в день (или до N=20 на причину/сутки).
+
+Для отобранных SKIP сохраняем 1m HL только от гипотетического входа до выхода (или максимум 12 ч) и фиксируем, кто бы сработал первым по эталонному плану (§3): shadow_outcome (tp1/tp2/sl/timeout), shadow_mfe_R, shadow_mae_R, shadow_time_to_first_touch_min.
+
+Гипотетический вход: по умолчанию «close сигнальной 15m-свечи». (Опционально позже — режим «limit-retest» вторым треком.)
+
+5) Пороги и константы (V1)
+
+H4-гейт (жёсткий): зона-близость = 0.20×ATR(H4).
+
+H1-гейт (жёсткий для входа, мягкий для оценки): 0.35×ATR15.
+
+Free-path минимум: 1.2R до ближайшей противоположной 15m-зоны.
+
+Zone-fatigue: ≥3 касаний за 48–72 часа.
+
+Сигнальная свеча: слабая <0.15×ATR15; перегретая >1.2×ATR15.
+
+Arrival: детекция упрощённая (impulse/compression/chop) — как флаг.
+
+6) Хранение и регламент
+
+Формат записи в рантайме: JSONL (append-only).
+
+Консолидация: Parquet (Snappy) по раздельным директориям:
+near_miss/date=YYYY-MM-DD/… и trades/date=YYYY-MM-DD/….
+
+Ключи уникальности: (signal_id) для near-miss, (trade_id) для trades.
+
+Схема версионируется: ruleset_version, schema_version.
+
+Контроль качества: ≥99% записей с непустыми reason_codes, atr_15m, free_path_R.
+
+7) Что и как я буду считать на этой базе
+
+Польза каждого фильтра:
+prevented-losers% (сколько явных сливов спасли), missed-winners% (сколько прибыльных случайно отрезали), net-benefit и ожидаемость.
+
+Тюнинг порогов:
+оптимум для H4/H1-близости (0.15/0.20/0.25…), free-path (1.0/1.2/1.5R), размера свечи, zone-fatigue.
+
+Контекстные эффекты:
+compression vs impulse, внутри/вблизи H4-зоны, уставшие зоны, BTC-режим.
+
+Тип стопа: выживаемость SL-режимов (htf_anchor / swing_priority) по контекстам.
+
+Entry-режим: close vs (будущий) retest — когда retest реально лучше.
+
+Выводы возвращаю в виде: «фильтр X — оставить/ужесточить/смягчить», «порог Y сдвинуть с 0.20 до 0.25 ATR(H4)», «free-path ≥ 1.2R подтвердился» и т.д.
+
+8) Acceptance Criteria (что должно работать, чтобы я мог анализировать)
+
+Near-miss создаётся при каждом найденном паттерне с решением skip и содержит: причины, дистанции, free-path, arrival, ATR и контекст тренда.
+
+Сэмпл shadow-оценки по каждому reason-коду формируется ежедневно (10–20% или до лимита).
+
+Сыгранные сделки содержат 4 доп. поля: dist-к H1/H4 по направлению, free-path-R, arrival.
+
+Ежедневно появляются Parquet-папки near_miss и trades за прошедшие сутки.
