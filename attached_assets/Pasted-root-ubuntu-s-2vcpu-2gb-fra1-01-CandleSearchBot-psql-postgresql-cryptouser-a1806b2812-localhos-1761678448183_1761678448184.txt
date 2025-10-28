@@ -1,0 +1,31 @@
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# psql "postgresql://cryptouser:a1806b2812@localhost:5432/cryptobot" -c "\d signals"
+                                             Table "public.signals"
+       Column        |            Type             | Collation | Nullable |               Default               
+---------------------+-----------------------------+-----------+----------+-------------------------------------
+ id                  | integer                     |           | not null | nextval('signals_id_seq'::regclass)
+ symbol              | text                        |           | not null | 
+ timeframe           | text                        |           | not null | 
+ pattern_type        | text                        |           | not null | 
+ entry_price         | numeric(18,8)               |           | not null | 
+ sl_price            | numeric(18,8)               |           | not null | 
+ tp2_price           | numeric(18,8)               |           | not null | 
+ current_sl          | numeric(18,8)               |           | not null | 
+ status              | signal_status               |           | not null | 'OPEN'::signal_status
+ direction           | signal_direction            |           | not null | 
+ created_at          | timestamp without time zone |           | not null | now()
+ updated_at          | timestamp without time zone |           | not null | now()
+ telegram_message_id | integer                     |           |          | 
+ tp1_price           | numeric(18,8)               |           |          | 
+ tp3_price           | numeric(18,8)               |           |          | 
+ initial_sl          | numeric(18,8)               |           |          | 
+ position_size       | numeric(5,2)                |           |          | 100.00
+ partial_closed      | numeric(5,2)                |           |          | 0.00
+ be_activated        | boolean                     |           |          | false
+ trailing_activated  | boolean                     |           |          | false
+ exit_type           | text                        |           |          | 
+ pnl_r               | numeric(10,4)               |           |          | 
+ pnl_percent         | numeric(10,4)               |           |          | 
+ atr_15m             | numeric(18,8)               |           |          | 
+ atr_h4              | numeric(18,8)               |           |          | 
+Indexes:
+    "signals_pkey" PRIMARY KEY, btree (id)
