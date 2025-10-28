@@ -1,0 +1,19 @@
+✅ [TelegramBot] Menu commands set successfully
+✅ [TelegramBot] Message sent successfully
+🔄 [TelegramBot] Starting polling...
+✅ [TelegramBot] Webhook deleted, polling enabled
+✅ [TelegramBot] Polling started successfully
+❌ [TelegramBot] Polling error: Request failed with status code 409
+❌ [TelegramBot] Polling error: Request failed with status code 409
+❌ [TelegramBot] Polling error: Request failed with status code 409
+❌ [TelegramBot] Polling error: Request failed with status code 409
+
+👀 [SignalTracker] Checking open signals...
+❌ [SignalTracker] Fatal error during signal tracking: Failed query: select "id", "symbol", "timeframe", "pattern_type", "entry_price", "sl_price", "tp1_price", "tp2_price", "tp3_price", "current_sl", "initial_sl", "position_size", "partial_closed", "be_activated", "trailing_activated", "exit_type", "pnl_r", "pnl_percent", "atr_15m", "atr_h4", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_r", "arrival_pattern", "mfe_r", "mae_r", "time_to_tp1_min", "time_to_tp2_min", "time_to_tp3_min", "time_to_sl_min", "time_to_be_min", "first_touch", "status", "direction", "telegram_message_id", "created_at", "updated_at" from "signals" where "signals"."status" = $1
+params: OPEN
+
+👀 [SignalTracker] Checking open signals...
+❌ [SignalTracker] Fatal error during signal tracking: Failed query: select "id", "symbol", "timeframe", "pattern_type", "entry_price", "sl_price", "tp1_price", "tp2_price", "tp3_price", "current_sl", "initial_sl", "position_size", "partial_closed", "be_activated", "trailing_activated", "exit_type", "pnl_r", "pnl_percent", "atr_15m", "atr_h4", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_r", "arrival_pattern", "mfe_r", "mae_r", "time_to_tp1_min", "time_to_tp2_min", "time_to_tp3_min", "time_to_sl_min", "time_to_be_min", "first_touch", "status", "direction", "telegram_message_id", "created_at", "updated_at" from "signals" where "signals"."status" = $1
+params: OPEN
+❌ [TelegramBot] Polling error: Request failed with status code 409
+❌ [TelegramBot] Polling error: Request failed with status code 409
