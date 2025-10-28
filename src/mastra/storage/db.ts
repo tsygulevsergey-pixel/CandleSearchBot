@@ -268,7 +268,7 @@ export class ShadowEvaluationDB {
 
   async updateShadowEvaluation(
     id: number,
-    updates: { currentMfe?: string; currentMae?: string }
+    updates: Partial<ShadowEvaluation>
   ): Promise<void> {
     await db.update(shadowEvaluations)
       .set(updates)
