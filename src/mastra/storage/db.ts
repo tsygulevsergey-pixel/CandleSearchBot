@@ -1,7 +1,23 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import { Pool } from 'pg';
-import { signals, type Signal, type NewSignal } from './schema';
+import { 
+  signals, 
+  nearMissSkips,
+  shadowEvaluations,
+  tracking1mShadow,
+  parquetExports,
+  type Signal, 
+  type NewSignal,
+  type NearMissSkip,
+  type NewNearMissSkip,
+  type ShadowEvaluation,
+  type NewShadowEvaluation,
+  type Tracking1mShadow,
+  type NewTracking1mShadow,
+  type ParquetExport,
+  type NewParquetExport,
+} from './schema';
 import { calculateTradeOutcome } from '../../utils/tradeOutcomes';
 
 const pool = new Pool({
@@ -194,3 +210,152 @@ export class SignalDB {
 }
 
 export const signalDB = new SignalDB();
+
+// ==================== ML LOGGING CLASSES ====================
+
+/**
+ * Database operations for Near-Miss SKIP signals
+ */
+export class NearMissSkipDB {
+  async createNearMissSkip(skip: NewNearMissSkip): Promise<NearMissSkip> {
+    const [newSkip] = await db.insert(nearMissSkips).values(skip).returning();
+    return newSkip;
+  }
+
+  async getNearMissSkipsByDate(date: string): Promise<NearMissSkip[]> {
+    return await db.select().from(nearMissSkips)
+      .where(sql`DATE(${nearMissSkips.ts}) = ${date}`);
+  }
+
+  async getNearMissSkipsByReasonCode(reasonCode: string, date?: string): Promise<NearMissSkip[]> {
+    if (date) {
+      return await db.select().from(nearMissSkips)
+        .where(and(
+          sql`${reasonCode} = ANY(${nearMissSkips.skipReasons})`,
+          sql`DATE(${nearMissSkips.ts}) = ${date}`
+        ));
+    }
+    return await db.select().from(nearMissSkips)
+      .where(sql`${reasonCode} = ANY(${nearMissSkips.skipReasons})`);
+  }
+
+  async countNearMissSkipsByReasonToday(reasonCode: string): Promise<number> {
+    const today = new Date().toISOString().split('T')[0];
+    const skips = await this.getNearMissSkipsByReasonCode(reasonCode, today);
+    return skips.length;
+  }
+}
+
+/**
+ * Database operations for Shadow Evaluations
+ */
+export class ShadowEvaluationDB {
+  async createShadowEvaluation(evaluation: NewShadowEvaluation): Promise<ShadowEvaluation> {
+    const [newEval] = await db.insert(shadowEvaluations).values(evaluation).returning();
+    return newEval;
+  }
+
+  async getActiveShadowEvaluations(): Promise<ShadowEvaluation[]> {
+    return await db.select().from(shadowEvaluations)
+      .where(eq(shadowEvaluations.isActive, true));
+  }
+
+  async completeShadowEvaluation(
+    id: number, 
+    outcome: 'tp1' | 'tp2' | 'sl' | 'timeout',
+    mfeR: number,
+    maeR: number,
+    timeToFirstTouchMin: number
+  ): Promise<void> {
+    await db.update(shadowEvaluations)
+      .set({
+        shadowOutcome: outcome,
+        shadowMfeR: mfeR.toFixed(4),
+        shadowMaeR: maeR.toFixed(4),
+        shadowTimeToFirstTouchMin: timeToFirstTouchMin,
+        isActive: false,
+        completedAt: new Date(),
+      })
+      .where(eq(shadowEvaluations.id, id));
+  }
+
+  async getShadowEvaluationsByDate(date: string): Promise<ShadowEvaluation[]> {
+    return await db.select().from(shadowEvaluations)
+      .where(sql`DATE(${shadowEvaluations.createdAt}) = ${date}`);
+  }
+
+  // Tracking 1m data
+  async addTracking1m(tracking: NewTracking1mShadow): Promise<void> {
+    await db.insert(tracking1mShadow).values(tracking);
+  }
+
+  async getTracking1m(shadowEvalId: number): Promise<Tracking1mShadow[]> {
+    return await db.select().from(tracking1mShadow)
+      .where(eq(tracking1mShadow.shadowEvalId, shadowEvalId))
+      .orderBy(tracking1mShadow.bar1mTs);
+  }
+
+  async deleteTracking1m(shadowEvalId: number): Promise<void> {
+    await db.delete(tracking1mShadow)
+      .where(eq(tracking1mShadow.shadowEvalId, shadowEvalId));
+  }
+
+  async calculateMFEMAE(shadowEvalId: number, entryPrice: number, direction: 'LONG' | 'SHORT'): Promise<{ mfe: number; mae: number }> {
+    const tracking = await this.getTracking1m(shadowEvalId);
+    
+    let mfe = 0; // Maximum Favorable Excursion
+    let mae = 0; // Maximum Adverse Excursion
+    
+    tracking.forEach((bar) => {
+      const high = parseFloat(bar.high as any);
+      const low = parseFloat(bar.low as any);
+      
+      if (direction === 'LONG') {
+        // For LONG: MFE = max profit (high - entry), MAE = max loss (low - entry)
+        const profit = (high - entryPrice) / entryPrice;
+        const loss = (low - entryPrice) / entryPrice;
+        
+        mfe = Math.max(mfe, profit);
+        mae = Math.min(mae, loss);
+      } else {
+        // For SHORT: MFE = max profit (entry - low), MAE = max loss (entry - high)
+        const profit = (entryPrice - low) / entryPrice;
+        const loss = (entryPrice - high) / entryPrice;
+        
+        mfe = Math.max(mfe, profit);
+        mae = Math.min(mae, loss);
+      }
+    });
+    
+    return { mfe, mae };
+  }
+}
+
+/**
+ * Database operations for Parquet Exports tracking
+ */
+export class ParquetExportDB {
+  async recordExport(exportRecord: NewParquetExport): Promise<ParquetExport> {
+    const [record] = await db.insert(parquetExports).values(exportRecord).returning();
+    return record;
+  }
+
+  async getExportsByDate(date: string): Promise<ParquetExport[]> {
+    return await db.select().from(parquetExports)
+      .where(eq(parquetExports.exportDate, date));
+  }
+
+  async hasExportForDate(date: string, exportType: string): Promise<boolean> {
+    const exports = await db.select().from(parquetExports)
+      .where(and(
+        eq(parquetExports.exportDate, date),
+        eq(parquetExports.exportType, exportType)
+      ));
+    return exports.length > 0;
+  }
+}
+
+// Export instances
+export const nearMissSkipDB = new NearMissSkipDB();
+export const shadowEvaluationDB = new ShadowEvaluationDB();
+export const parquetExportDB = new ParquetExportDB();
