@@ -1,0 +1,63 @@
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# pm2 restart crypto-bot
+Use --update-env to update environment variables
+[PM2] Applying action restartProcessId on app [crypto-bot](ids: [ 0 ])
+[PM2] [crypto-bot](0) ✓
+┌────┬───────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name          │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ crypto-bot    │ default     │ N/A     │ cluster │ 90161    │ 0s     │ 0    │ online    │ 0%       │ 40.3mb   │ root     │ disabled │
+└────┴───────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# pm2 status
+┌────┬───────────────┬─────────────┬─────────┬─────────┬──────────┬────────┬──────┬───────────┬──────────┬──────────┬──────────┬──────────┐
+│ id │ name          │ namespace   │ version │ mode    │ pid      │ uptime │ ↺    │ status    │ cpu      │ mem      │ user     │ watching │
+├────┼───────────────┼─────────────┼─────────┼─────────┼──────────┼────────┼──────┼───────────┼──────────┼──────────┼──────────┼──────────┤
+│ 0  │ crypto-bot    │ default     │ N/A     │ cluster │ 90161    │ 7s     │ 0    │ online    │ 0%       │ 76.3mb   │ root     │ disabled │
+└────┴───────────────┴─────────────┴─────────┴─────────┴──────────┴────────┴──────┴───────────┴──────────┴──────────┴──────────┴──────────┘
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# pm2 save
+[PM2] Saving current process list...
+[PM2] Successfully saved in /root/.pm2/dump.pm2
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# pm2 startup
+[PM2] Init System found: systemd
+Platform systemd
+Template
+[Unit]
+Description=PM2 process manager
+Documentation=https://pm2.keymetrics.io/
+After=network.target
+
+[Service]
+Type=forking
+User=root
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitCORE=infinity
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+Environment=PM2_HOME=/root/.pm2
+PIDFile=/root/.pm2/pm2.pid
+Restart=on-failure
+
+ExecStart=/usr/lib/node_modules/pm2/bin/pm2 resurrect
+ExecReload=/usr/lib/node_modules/pm2/bin/pm2 reload all
+ExecStop=/usr/lib/node_modules/pm2/bin/pm2 kill
+
+[Install]
+WantedBy=multi-user.target
+
+Target path
+/etc/systemd/system/pm2-root.service
+Command list
+[ 'systemctl enable pm2-root' ]
+[PM2] Writing init configuration in /etc/systemd/system/pm2-root.service
+[PM2] Making script booting at startup...
+[PM2] [-] Executing: systemctl enable pm2-root...
+[PM2] [v] Command successfully executed.
++---------------------------------------+
+[PM2] Freeze a process list on reboot via:
+$ pm2 save
+
+[PM2] Remove init script via:
+$ pm2 unstartup systemd
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# pm2 logs crypto-bot
+[TAILING] Tailing last 15 lines for [crypto-bot] process (change the value with --lines option)
+/root/.pm2/logs/crypto-bot-out-0.log last 15 lines:
+/root/.pm2/logs/crypto-bot-error-0.log last 15 lines:
