@@ -3,6 +3,7 @@ import { patternDetector, calculateATR, analyzeSRZonesTV } from '../utils/candle
 import { riskCalculator } from '../utils/riskCalculator';
 import { signalDB } from '../mastra/storage/db';
 import { getCoinCluster, getCoinsByFamily, getFamilyId } from '../utils/marketClusters';
+import { processMLIntegration, extractMLContextFields } from './mlIntegration';
 import axios from 'axios';
 
 export class Scanner {
@@ -138,6 +139,26 @@ export class Scanner {
                 continue;
               }
               
+              // 📊 ML INTEGRATION: Collect context (PURELY ADDITIVE - does NOT block trading)
+              console.log(`📊 [Scanner] Collecting ML context for ${symbol}...`);
+              const mlResult = await processMLIntegration({
+                symbol,
+                timeframe,
+                patternType: pattern.type,
+                direction: pattern.direction,
+                entryPrice,
+                candles15m: candles,
+                candles1h,
+                candles4h,
+              });
+              
+              // Log what filters would say (for ML analysis) - but DO NOT BLOCK the signal
+              if (!mlResult.shouldEnter) {
+                console.log(`📝 [Scanner] ML Note: ${symbol} would be skipped by filters (${mlResult.skipReasons.join(', ')}) - but signal proceeds for data collection`);
+              } else {
+                console.log(`✅ [Scanner] ML Note: ${symbol} passes all ML filters`);
+              }
+              
               // Calculate comprehensive risk profile with ATR-based SL and multi-level TPs
               const riskProfile = riskCalculator.calculateRiskProfile(
                 pattern.type,
@@ -165,6 +186,8 @@ export class Scanner {
                 atrH4: riskProfile.atr4h.toString(),
                 direction: pattern.direction,
                 status: 'OPEN',
+                // ML context fields
+                ...extractMLContextFields(mlResult.mlContext),
               });
 
               signalsFound++;

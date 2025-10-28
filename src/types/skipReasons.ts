@@ -16,9 +16,20 @@ export const SKIP_REASONS = {
   
   // Arrival pattern
   COMPRESSION_INTO_ZONE: 'compression_into_zone',
+  CHOP_IN_ZONE: 'chop_in_zone',
+  IMPULSE_DOWN_FOR_LONG: 'impulse_down_for_long',
+  IMPULSE_UP_FOR_SHORT: 'impulse_up_for_short',
   
   // Zone fatigue
   ZONE_FATIGUE_GE_3_TOUCHES: 'zone_fatigue_ge_3_touches',
+  
+  // BTC trend alignment
+  BTC_DOWN_FOR_LONG: 'btc_down_for_long',
+  BTC_UP_FOR_SHORT: 'btc_up_for_short',
+  
+  // EMA200 alignment
+  BELOW_EMA200_FOR_LONG: 'below_ema200_for_long',
+  ABOVE_EMA200_FOR_SHORT: 'above_ema200_for_short',
   
   // Position in 15m range
   MIDRANGE_15M: 'midrange_15m',
