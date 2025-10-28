@@ -107,11 +107,12 @@ export class Scanner {
               
               console.log(`✅ [Scanner] Family check passed: ${symbol} (${familyId}) - ${openFamilySignals}/${MAX_SIGNALS_PER_FAMILY} signals`);
 
-              // DUAL-PRICE STRATEGY:
-              // 1. Get current market price for Entry (actual trading price)
-              const currentPrice = await binanceClient.getCurrentPrice(symbol);
+              // PATTERN-BASED ENTRY STRATEGY:
+              // Entry = pattern candle close price (the moment pattern completes)
+              // This ensures entry price matches the actual pattern formation point
+              const entryPrice = pattern.candleClosePrice;
               
-              // 2. Calculate SL based on pattern candle (candleClosePrice)
+              // Calculate SL based on pattern candle
               const slPrice = riskCalculator.calculateStopLoss(
                 pattern.type,
                 pattern.direction,
@@ -119,11 +120,11 @@ export class Scanner {
                 0.0035
               );
               
-              // 3. Calculate TP levels using candleClosePrice (for accurate R calculation)
+              // Calculate TP levels using candleClosePrice (for accurate R calculation)
               const levels = riskCalculator.calculateLevels(
                 pattern.type,
                 pattern.direction,
-                pattern.candleClosePrice, // Use pattern candle close for SL/TP math
+                entryPrice, // Entry = pattern candle close price
                 slPrice
               );
 
@@ -131,7 +132,7 @@ export class Scanner {
                 symbol,
                 timeframe,
                 patternType: pattern.type,
-                entryPrice: currentPrice.toString(), // Entry = CURRENT MARKET PRICE
+                entryPrice: entryPrice.toString(), // Entry = PATTERN CANDLE CLOSE PRICE
                 slPrice: levels.sl.toString(),
                 tp2Price: levels.tp2.toString(),
                 currentSl: levels.sl.toString(),
@@ -182,7 +183,7 @@ export class Scanner {
 📈 <b>Паттерн:</b> ${patternName}
 🏷️ <b>Кластер:</b> ${cluster.leader} | ${cluster.sector}
 
-💰 <b>Entry:</b> ${currentPrice.toFixed(8)}
+💰 <b>Entry:</b> ${entryPrice.toFixed(8)}
 🛑 <b>Stop Loss:</b> ${levels.sl.toFixed(8)}
 🎯 <b>Take Profit:</b> ${levels.tp2.toFixed(8)}
 
