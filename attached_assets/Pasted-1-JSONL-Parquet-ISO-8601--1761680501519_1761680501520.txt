@@ -1,0 +1,251 @@
+1) Основа: единый формат записей
+
+Формат: JSONL (по строке на событие) или Parquet.
+Время: ISO-8601 UTC (например, 2025-10-28T06:45:00Z).
+ID: trade_id (UUID), signal_id (если сделка = несколько сигналов/добавлений — связываем).
+
+2) Таблица/поток «Signals» (кандидаты и принятые)
+
+Минимальный набор полей для КАЖДОГО найденного паттерна (даже если СКИП):
+
+signal_id, symbol, exchange, contract_type (perp), quote: строка
+
+entry_tf: "15m" (или иной)
+
+pattern_type: "pinbar" | "ppr" | "fakey" | "engulfing"
+
+pattern_bar_ts: время закрытия сигнальной свечи на TF входа
+
+pattern_ohlc: {o, h, l, c} сигнальной свечи
+
+Контекст-снимок на момент сигнала
+
+atr_15m, atr_1h, atr_4h (в цене)
+
+ema200_1h_pos: "above"|"below"|"crossing" (цена vs EMA200(H1))
+
+vwap_1h_pos: "above"|"below"
+
+trend_bias: "long"|"short"|"neutral" (по твоему правилу)
+
+Зоны (ближайшие к цене на момент сигнала)
+
+Для каждого ТФ (15m, 1h, 4h) — две записи: ближайшая support и ближайшая resistance
+
+zone_id, zone_tf, zone_type: "support"|"resistance"
+
+z_low, z_high, z_width
+
+z_strength: твой скор/сила (если есть)
+
+z_touch_count_72h: число касаний за последние 48–72ч
+
+метрики расстояний от цены/входа:
+
+dist_to_support_atr_h4, dist_to_resistance_atr_h4 (в ATR(H4))
+
+dist_to_support_pts, dist_to_resistance_pts (в пунктах)
+
+Позиционирование относительно зон
+
+in_h4_zone: bool, near_h4_support: bool (≤0.20·ATR(H4)), near_h4_resistance: bool
+
+in_15m_midrange: bool (между 15m-зонами ±20% коридора)
+
+Свободный ход (до ближайшей противоположной зоны 15m):
+
+free_path_pts, free_path_atr15m, free_path_R (будет R после расчёта SL)
+
+Подтверждение сигнала
+
+confirm_type: "bos_1m"|"bos_5m"|"rejection_15m"|"fakey_reentry"|null
+
+confirm_wait_bars_15m: сколько 15m свечей ждали «С»
+
+Решение по сигналу
+
+decision: "enter"|"skip"
+
+skip_reasons: массив кодов (например: "near_h4_support_for_short", "free_path_too_small", "overextended_bar", "wide_zone", "midrange", "too_many_touches", "trend_filter_fail")
+
+Почему важно логировать скипы: без них картина искажена, мы не узнаем, какие фильтры «съедают» лучший edge.
+
+3) Таблица/поток «Orders & Fills» (вход)
+
+trade_id, signal_id, side: "long"|"short"
+
+entry_mode: "market_close"|"limit_retest"|"stop"
+
+request_time, requested_entry_price
+
+fill_time, fill_price, slippage_bps (расчёт)
+
+qty, leverage, risk_fraction (например, 0.01 = 1% риска)
+
+Биржевые параметры на момент входа: tick_size, step_size, min_qty, maker_fee_bps, taker_fee_bps
+
+4) Таблица/поток «Risk Plan» (для каждой сделки)
+
+initial_sl_price, sl_buffer_type: "atr_0.25"|"atr_0.35"|"fixed_pct_1.5" и т.п.
+
+risk_R_pts (в пунктах)
+
+tp1_price, tp1_basis: "1R"|"nearest_15m_zone"
+
+tp2_price, tp2_basis: "2R"|"nearest_1h_zone"
+
+tp3_price (если есть)
+
+be_rule: "after_tp1"|"after_0.8R_close"
+
+trail_rule: "off"|"struct_1m"|"atr_1m_1.0"
+
+timeout_bars_15m: например, 6 (закрыть/BE, если <0.5R)
+
+5) Таблица/поток «1m Tracking» (для HL-проверок и MFE/MAE)
+
+Хранить только минимум, чтобы не раздувать БД:
+
+trade_id, bar_1m_ts, high, low — с момента fill до выхода (можно писать в сжатом Parquet).
+
+Этого достаточно, чтобы я посчитал MFE/MAE в R, кто был «первым» (TP/SL), и любые «микро-паттерны» после входа.
+
+6) Таблица/поток «Trade Outcome»
+
+exit_time, exit_reason: "tp1"|"tp2"|"tp3"|"sl"|"be"|"timeout"|"manual"|"trail"
+
+gross_pnl_quote, fees_quote, funding_quote, net_pnl_quote
+
+pnl_R (в R), pnl_pct
+
+mfe_R, mae_R (по 1m HL)
+
+time_to_0_3R_min, time_to_tp1_min, time_to_tp2_min, time_to_sl_min
+
+be_set_time (если был), события трейла (можно массивом {ts, sl_price})
+
+7) Таблица/поток «Market Regime» (опционально, но очень полезно)
+
+По BTC и по самой монете на момент входа:
+
+btc_trend_1h ("up"|"down"|"flat" по EMA200/ADX)
+
+btc_vol_regime: atr_1h_pct_of_price
+
+corr_to_btc_1h_lookback (например, 3–7 дней)
+
+symbol_liquidity_bucket: "low"|"mid"|"high" (по среднему объёму/спреду)
+
+session/часовые окна (UTC): Азия/Европа/US — полезно для «тайм-оф-дей» анализа
+
+funding_rate, oi_change_24h (если есть)
+
+8) Чек-лист полей для твоих требований «логов шагов»
+
+Время старта анализа / время формирования кандидата
+
+Время подтверждения «C» и confirm_wait_bars_15m
+
+Время постановки ордера / fill
+
+Сколько свечей позиция была открыта (минуты/шт.)
+
+Кто сработал первым: first_touch: "tp1"|"tp2"|"sl"|"..."
+
+Список причин скипа (если decision=skip)
+
+Версия набора правил (важно при A/B тестах параметров)
+
+9) Бакеты/флаги, которые я буду строить автоматически (но можешь писать сразу)
+
+Чтобы быстро искать закономерности, удобно иметь готовые категории:
+
+dist_to_h4_zone_bucket: "inside"|"edge_<=0.1ATR"|"near_<=0.2ATR"|"mid_0.2-0.5ATR"|"far_>0.5ATR"
+
+free_path_bucket_R: "<0.8"|"0.8-1.2"|"1.2-2.0"|">=2.0"
+
+zone_touch_bucket: "0"|"1"|"2"|">=3"
+
+signal_bar_size_bucket_atr15m: "<0.15"|"0.15-0.6"|"0.6-1.2"|">1.2"
+
+entry_mode_bucket: "close"|"retest"
+
+trend_alignment: "with"|"counter_at_h4_zone"|"counter_no_zone"
+
+10) Пример минимальной записи (JSON)
+
+Signals (кандидат):
+
+{
+  "signal_id": "a3f...e1",
+  "symbol": "SUIUSDT.P",
+  "entry_tf": "15m",
+  "pattern_type": "engulfing",
+  "pattern_bar_ts": "2025-10-28T06:45:00Z",
+  "pattern_ohlc": {"o":2.612,"h":2.626,"l":2.580,"c":2.599},
+  "atr_15m": 0.022, "atr_1h": 0.061, "atr_4h": 0.145,
+  "ema200_1h_pos": "below", "vwap_1h_pos": "below", "trend_bias": "short",
+  "zones":[
+    {"zone_id":"h4_sup_01","zone_tf":"4h","zone_type":"support","z_low":2.53,"z_high":2.59,"z_width":0.06,"z_touch_count_72h":1},
+    {"zone_id":"15m_res_12","zone_tf":"15m","zone_type":"resistance","z_low":2.64,"z_high":2.66,"z_width":0.02,"z_touch_count_72h":3}
+  ],
+  "dist_to_support_atr_h4": 0.3,
+  "dist_to_resistance_atr_h4": 0.5,
+  "in_h4_zone": false, "near_h4_support": true, "near_h4_resistance": false,
+  "free_path_R": 1.35,
+  "confirm_type": "bos_1m",
+  "confirm_wait_bars_15m": 2,
+  "decision": "enter",
+  "skip_reasons": []
+}
+
+
+Risk Plan / Entry / Outcome (укорочено):
+
+{
+  "trade_id":"t_987...",
+  "signal_id":"a3f...e1",
+  "side":"long",
+  "entry_mode":"limit_retest",
+  "requested_entry_price":2.585,
+  "fill_time":"2025-10-28T07:01:00Z",
+  "fill_price":2.586,
+  "initial_sl_price":2.565,
+  "sl_buffer_type":"atr_0.25",
+  "tp1_price":2.610, "tp1_basis":"1R",
+  "tp2_price":2.660, "tp2_basis":"2R",
+  "be_rule":"after_tp1",
+  "trail_rule":"struct_1m",
+  "timeout_bars_15m":6,
+  "exit_time":"2025-10-28T08:32:00Z",
+  "exit_reason":"tp2",
+  "pnl_R": 2.05,
+  "mfe_R": 2.40, "mae_R": -0.35,
+  "time_to_tp1_min": 28, "time_to_tp2_min": 91
+}
+
+11) Что я смогу анализировать по этим данным (примеры отчётов)
+
+WR/Expectancy по паттернам, ТФ-зонам, позиции относительно H4-зоны (inside/near/mid/far).
+
+Влияние free_path_R на результат — где ставить порог (1.0R vs 1.2R и т.п.).
+
+Эффективность entry_mode: market-close vs limit-retest.
+
+Как часто убытки приходят внутри H4 поддержки/сопротивления (проверим твою гипотезу и подберём порог в ATR).
+
+Лучшие/худшие размеры сигнальной свечи (в ATR).
+
+Стоимость фильтра too_many_touches: что даёт, а что «съедает».
+
+Тайм-оф-дей и сессии (Азия/Европа/US).
+
+Эффект BE/трейла/тайм-аута.
+
+Исключение «явно ошибочных» сделок (сформулируем правила на базе реальной статистики).
+
+12) Где хранить и как подавать
+
+Хранить: Parquet по папкам /year=/month=/day= для signals/, orders/, risk_plan/, tracking_1m/, outcomes/, regime/.
+
+Кидать мне: один или несколько файлов Parquet/CSV/JSONL — я смогу всё посчитать и отдать рекомендационную «карту правок» (пороги ATR, запреты, BE, трейл, retest vs close и т.д.).
