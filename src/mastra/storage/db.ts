@@ -244,6 +244,12 @@ export class NearMissSkipDB {
     const skips = await this.getNearMissSkipsByReasonCode(reasonCode, today);
     return skips.length;
   }
+
+  async getNearMissSkipBySignalId(signalId: string): Promise<NearMissSkip | null> {
+    const [skip] = await db.select().from(nearMissSkips)
+      .where(eq(nearMissSkips.signalId, signalId));
+    return skip || null;
+  }
 }
 
 /**
@@ -258,6 +264,37 @@ export class ShadowEvaluationDB {
   async getActiveShadowEvaluations(): Promise<ShadowEvaluation[]> {
     return await db.select().from(shadowEvaluations)
       .where(eq(shadowEvaluations.isActive, true));
+  }
+
+  async updateShadowEvaluation(
+    id: number,
+    updates: { currentMfe?: string; currentMae?: string }
+  ): Promise<void> {
+    await db.update(shadowEvaluations)
+      .set(updates)
+      .where(eq(shadowEvaluations.id, id));
+  }
+
+  async closeShadowEvaluation(
+    id: number,
+    closure: {
+      finalPnlR: string;
+      finalMfe: string;
+      finalMae: string;
+      firstTouch: string;
+      timeToFirstTouchMin: number;
+    }
+  ): Promise<void> {
+    await db.update(shadowEvaluations)
+      .set({
+        shadowOutcome: closure.firstTouch as any,
+        shadowMfeR: closure.finalMfe,
+        shadowMaeR: closure.finalMae,
+        shadowTimeToFirstTouchMin: closure.timeToFirstTouchMin,
+        isActive: false,
+        completedAt: new Date(),
+      })
+      .where(eq(shadowEvaluations.id, id));
   }
 
   async completeShadowEvaluation(
@@ -285,8 +322,12 @@ export class ShadowEvaluationDB {
   }
 
   // Tracking 1m data
-  async addTracking1m(tracking: NewTracking1mShadow): Promise<void> {
+  async createTracking1mShadow(tracking: NewTracking1mShadow): Promise<void> {
     await db.insert(tracking1mShadow).values(tracking);
+  }
+
+  async addTracking1m(tracking: NewTracking1mShadow): Promise<void> {
+    await this.createTracking1mShadow(tracking);
   }
 
   async getTracking1m(shadowEvalId: number): Promise<Tracking1mShadow[]> {
@@ -355,7 +396,23 @@ export class ParquetExportDB {
   }
 }
 
+/**
+ * Database operations for Tracking 1m Shadow
+ */
+export class Tracking1mShadowDB {
+  async createTracking1mShadow(tracking: NewTracking1mShadow): Promise<void> {
+    await db.insert(tracking1mShadow).values(tracking);
+  }
+
+  async getTracking1mByShadowEvalId(shadowEvalId: number): Promise<Tracking1mShadow[]> {
+    return await db.select().from(tracking1mShadow)
+      .where(eq(tracking1mShadow.shadowEvalId, shadowEvalId))
+      .orderBy(tracking1mShadow.bar1mTs);
+  }
+}
+
 // Export instances
 export const nearMissSkipDB = new NearMissSkipDB();
 export const shadowEvaluationDB = new ShadowEvaluationDB();
 export const parquetExportDB = new ParquetExportDB();
+export const tracking1mShadowDB = new Tracking1mShadowDB();
