@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { Mastra } from "@mastra/core";
 import { MastraError } from "@mastra/core/error";
 import { PinoLogger } from "@mastra/loggers";
