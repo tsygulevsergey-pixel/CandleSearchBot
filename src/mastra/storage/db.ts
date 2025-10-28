@@ -83,7 +83,10 @@ export class SignalDB {
     const stats: any = {
       total: allSignals.length,
       open: 0,
+      tp1Hit: 0,
       tp2Hit: 0,
+      tp3Hit: 0,
+      breakevenHit: 0,
       slHit: 0,
       pnlPositive: 0,
       pnlNegative: 0,
@@ -91,8 +94,8 @@ export class SignalDB {
       byPattern: {} as any,
       byTimeframe: {} as any,
       byDirection: { 
-        LONG: { total: 0, tp2: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 }, 
-        SHORT: { total: 0, tp2: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 } 
+        LONG: { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 }, 
+        SHORT: { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 } 
       },
     };
 
@@ -112,8 +115,14 @@ export class SignalDB {
       // Обновляем счетчики статусов
       if (signal.status === 'OPEN') {
         stats.open++;
+      } else if (signal.status === 'TP1_HIT') {
+        stats.tp1Hit++;
       } else if (signal.status === 'TP2_HIT') {
         stats.tp2Hit++;
+      } else if (signal.status === 'TP3_HIT') {
+        stats.tp3Hit++;
+      } else if (signal.status === 'BE_HIT') {
+        stats.breakevenHit++;
       } else if (signal.status === 'SL_HIT') {
         stats.slHit++;
       }
@@ -128,10 +137,13 @@ export class SignalDB {
 
       // По паттернам
       if (!stats.byPattern[signal.patternType]) {
-        stats.byPattern[signal.patternType] = { total: 0, tp2: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 };
+        stats.byPattern[signal.patternType] = { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 };
       }
       stats.byPattern[signal.patternType].total++;
+      if (signal.status === 'TP1_HIT') stats.byPattern[signal.patternType].tp1++;
       if (signal.status === 'TP2_HIT') stats.byPattern[signal.patternType].tp2++;
+      if (signal.status === 'TP3_HIT') stats.byPattern[signal.patternType].tp3++;
+      if (signal.status === 'BE_HIT') stats.byPattern[signal.patternType].breakeven++;
       if (signal.status === 'SL_HIT') stats.byPattern[signal.patternType].sl++;
       if (signal.status === 'OPEN') stats.byPattern[signal.patternType].open++;
       
@@ -144,10 +156,13 @@ export class SignalDB {
 
       // По таймфреймам
       if (!stats.byTimeframe[signal.timeframe]) {
-        stats.byTimeframe[signal.timeframe] = { total: 0, tp2: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 };
+        stats.byTimeframe[signal.timeframe] = { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 };
       }
       stats.byTimeframe[signal.timeframe].total++;
+      if (signal.status === 'TP1_HIT') stats.byTimeframe[signal.timeframe].tp1++;
       if (signal.status === 'TP2_HIT') stats.byTimeframe[signal.timeframe].tp2++;
+      if (signal.status === 'TP3_HIT') stats.byTimeframe[signal.timeframe].tp3++;
+      if (signal.status === 'BE_HIT') stats.byTimeframe[signal.timeframe].breakeven++;
       if (signal.status === 'SL_HIT') stats.byTimeframe[signal.timeframe].sl++;
       if (signal.status === 'OPEN') stats.byTimeframe[signal.timeframe].open++;
       
@@ -160,7 +175,10 @@ export class SignalDB {
 
       // По направлениям
       stats.byDirection[signal.direction].total++;
+      if (signal.status === 'TP1_HIT') stats.byDirection[signal.direction].tp1++;
       if (signal.status === 'TP2_HIT') stats.byDirection[signal.direction].tp2++;
+      if (signal.status === 'TP3_HIT') stats.byDirection[signal.direction].tp3++;
+      if (signal.status === 'BE_HIT') stats.byDirection[signal.direction].breakeven++;
       if (signal.status === 'SL_HIT') stats.byDirection[signal.direction].sl++;
       
       if (pnl > 0) {
