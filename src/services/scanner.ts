@@ -126,30 +126,43 @@ export class Scanner {
               console.log(`   Entry (candleClosePrice): ${entryPrice}`);
               console.log(`   Last candle close time: ${new Date(lastCandle.closeTime).toISOString()}`);
               
-              // Calculate SL based on pattern candle
-              const slPrice = riskCalculator.calculateStopLoss(
+              // 🎯 NEW STRATEGY: Calculate risk profile with ATR + S/R zones
+              console.log(`🎯 [Scanner] Fetching multi-timeframe data for ${symbol}...`);
+              
+              // Fetch candles for all timeframes (for ATR + S/R zone analysis)
+              const candles1h = await binanceClient.getKlines(symbol, '1h', 350);
+              const candles4h = await binanceClient.getKlines(symbol, '4h', 350);
+              
+              if (candles1h.length < 300 || candles4h.length < 300) {
+                console.log(`⚠️ [Scanner] Insufficient multi-TF candles for ${symbol}, skipping`);
+                continue;
+              }
+              
+              // Calculate comprehensive risk profile with ATR-based SL and multi-level TPs
+              const riskProfile = riskCalculator.calculateRiskProfile(
                 pattern.type,
                 pattern.direction,
-                candles,
-                0.0035
+                entryPrice,
+                candles,    // 15m candles
+                candles1h,  // 1h candles
+                candles4h   // 4h candles
               );
               
-              // Calculate TP levels using candleClosePrice (for accurate R calculation)
-              const levels = riskCalculator.calculateLevels(
-                pattern.type,
-                pattern.direction,
-                entryPrice, // Entry = pattern candle close price
-                slPrice
-              );
+              console.log(`✅ [Scanner] Risk profile calculated: SL=${riskProfile.sl.toFixed(8)}, TP1=${riskProfile.tp1.toFixed(8)}, TP2=${riskProfile.tp2.toFixed(8)}, TP3=${riskProfile.tp3.toFixed(8)}`);
 
               const signal = await signalDB.createSignal({
                 symbol,
                 timeframe,
                 patternType: pattern.type,
                 entryPrice: entryPrice.toString(), // Entry = PATTERN CANDLE CLOSE PRICE
-                slPrice: levels.sl.toString(),
-                tp2Price: levels.tp2.toString(),
-                currentSl: levels.sl.toString(),
+                slPrice: riskProfile.sl.toString(),
+                tp1Price: riskProfile.tp1.toString(),
+                tp2Price: riskProfile.tp2.toString(),
+                tp3Price: riskProfile.tp3.toString(),
+                currentSl: riskProfile.sl.toString(),
+                initialSl: riskProfile.initialSl.toString(),
+                atr15m: riskProfile.atr15m.toString(),
+                atrH4: riskProfile.atr4h.toString(),
                 direction: pattern.direction,
                 status: 'OPEN',
               });
@@ -160,16 +173,13 @@ export class Scanner {
               const directionText = pattern.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
               const patternName = pattern.type.replace('_', ' ').toUpperCase();
               
-              // 📊 ВСЕГДА БЕРЕМ S/R ЗОНЫ С 4H ТАЙМФРЕЙМА (для всех сигналов)
-              console.log(`📊 [Scanner] Fetching 4H S/R zones for ${symbol}...`);
+              // 📊 S/R ЗОНЫ С 4H (для legacy отображения) - используем старую функцию
+              console.log(`📊 [Scanner] Fetching legacy 4H S/R zones for ${symbol}...`);
               let sr4hAnalysis = null;
               try {
-                const candles4h = await binanceClient.getKlines(symbol, '4h', 350);
                 if (candles4h.length >= 300) {
                   sr4hAnalysis = analyzeSRZonesTV(candles4h);
                   console.log(`✅ [Scanner] 4H S/R zones retrieved successfully`);
-                } else {
-                  console.log(`⚠️ [Scanner] Not enough 4H candles for S/R analysis (${candles4h.length} < 300)`);
                 }
               } catch (error: any) {
                 console.error(`❌ [Scanner] Failed to fetch 4H S/R zones:`, error.message);
@@ -196,11 +206,15 @@ export class Scanner {
 ⏰ <b>Таймфрейм:</b> ${timeframe}
 📈 <b>Паттерн:</b> ${patternName}
 🏷️ <b>Кластер:</b> ${cluster.leader} | ${cluster.sector}
+🎯 <b>Стратегия:</b> ${riskProfile.scenario === 'htf_reversal' ? 'HTF Разворот' : 'Тренд'}
 
 💰 <b>Entry:</b> ${entryPrice.toFixed(8)}
-🛑 <b>Stop Loss:</b> ${levels.sl.toFixed(8)}
-🎯 <b>Take Profit:</b> ${levels.tp2.toFixed(8)}
+🛑 <b>Stop Loss:</b> ${riskProfile.sl.toFixed(8)}
+🎯 <b>TP1:</b> ${riskProfile.tp1.toFixed(8)} (${riskProfile.meta.tp1R.toFixed(2)}R)
+🎯 <b>TP2:</b> ${riskProfile.tp2.toFixed(8)} (${riskProfile.meta.tp2R.toFixed(2)}R)
+🎯 <b>TP3:</b> ${riskProfile.tp3.toFixed(8)} (${riskProfile.meta.tp3R.toFixed(2)}R)
 
+📊 <b>ATR:</b> 15m=${riskProfile.atr15m.toFixed(8)} | 4h=${riskProfile.atr4h.toFixed(8)}
 📊 <b>S/R Зоны (4H):</b>
 📍 <b>Поддержка:</b> ${supportZoneText}
 📍 <b>Сопротивление:</b> ${resistanceZoneText}
