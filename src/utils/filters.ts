@@ -16,56 +16,74 @@ export interface FilterResult {
 /**
  * Check if pattern candle's wick touches support/resistance zone
  * 
- * CRITICAL RULE: Pattern must form AT zone, not away from it
+ * CRITICAL RULE: Pattern must form AT zone in the CORRECT direction
  * 
  * For LONG:
- *  - Lower wick must touch support zone (15m OR 1h)
- *  - Check: zone.low <= patternCandleLow <= zone.high
+ *  - Lower wick must touch support zone that is BELOW entry price
+ *  - This ensures pattern is bouncing OFF support (not resistance above)
+ *  - Check: zone must be below entry AND wick must touch zone
  * 
  * For SHORT:
- *  - Upper wick must touch resistance zone (15m OR 1h)
- *  - Check: zone.low <= patternCandleHigh <= zone.high
+ *  - Upper wick must touch resistance zone that is ABOVE entry price
+ *  - This ensures pattern is rejecting FROM resistance (not support below)
+ *  - Check: zone must be above entry AND wick must touch zone
  * 
- * @returns true if pattern is AT zone, false otherwise
+ * @param entryPrice - Entry price of the pattern (to determine zone direction)
+ * @returns true if pattern is AT correct zone, false otherwise
  */
 function isPatternAtZone(
   direction: 'LONG' | 'SHORT',
   patternCandleHigh: number,
   patternCandleLow: number,
+  entryPrice: number,
   zones: Zone[]
 ): boolean {
   if (direction === 'LONG') {
-    // LONG: Check if lower wick touches support zone (15m OR 1h)
-    const supportZones = zones.filter(
-      z => z.type === 'support' && (z.tf === '15m' || z.tf === '1h')
+    // LONG: Find support zones BELOW entry price (15m OR 1h only)
+    const supportZonesBelowEntry = zones.filter(
+      z => z.type === 'support' 
+        && (z.tf === '15m' || z.tf === '1h')
+        && z.high < entryPrice  // Zone must be BELOW entry
     );
     
-    for (const zone of supportZones) {
-      // Check if lower wick enters zone
+    if (supportZonesBelowEntry.length === 0) {
+      console.log(`❌ [AT Zone] LONG: No support zones BELOW entry price ${entryPrice.toFixed(8)}`);
+      return false;
+    }
+    
+    // Check if lower wick touches any of these support zones
+    for (const zone of supportZonesBelowEntry) {
       if (patternCandleLow >= zone.low && patternCandleLow <= zone.high) {
-        console.log(`✅ [AT Zone] LONG pattern AT support: wick=${patternCandleLow.toFixed(8)} touches zone [${zone.low.toFixed(8)} - ${zone.high.toFixed(8)}] (${zone.tf})`);
+        console.log(`✅ [AT Zone] LONG pattern AT support BELOW entry: wick=${patternCandleLow.toFixed(8)} touches zone [${zone.low.toFixed(8)} - ${zone.high.toFixed(8)}] (${zone.tf}), entry=${entryPrice.toFixed(8)}`);
         return true;
       }
     }
     
-    console.log(`❌ [AT Zone] LONG pattern NOT AT support: wick=${patternCandleLow.toFixed(8)} doesn't touch any support zone`);
+    console.log(`❌ [AT Zone] LONG: wick=${patternCandleLow.toFixed(8)} doesn't touch any support zone BELOW entry ${entryPrice.toFixed(8)}`);
     return false;
     
   } else {
-    // SHORT: Check if upper wick touches resistance zone (15m OR 1h)
-    const resistanceZones = zones.filter(
-      z => z.type === 'resistance' && (z.tf === '15m' || z.tf === '1h')
+    // SHORT: Find resistance zones ABOVE entry price (15m OR 1h only)
+    const resistanceZonesAboveEntry = zones.filter(
+      z => z.type === 'resistance' 
+        && (z.tf === '15m' || z.tf === '1h')
+        && z.low > entryPrice  // Zone must be ABOVE entry
     );
     
-    for (const zone of resistanceZones) {
-      // Check if upper wick enters zone
+    if (resistanceZonesAboveEntry.length === 0) {
+      console.log(`❌ [AT Zone] SHORT: No resistance zones ABOVE entry price ${entryPrice.toFixed(8)}`);
+      return false;
+    }
+    
+    // Check if upper wick touches any of these resistance zones
+    for (const zone of resistanceZonesAboveEntry) {
       if (patternCandleHigh >= zone.low && patternCandleHigh <= zone.high) {
-        console.log(`✅ [AT Zone] SHORT pattern AT resistance: wick=${patternCandleHigh.toFixed(8)} touches zone [${zone.low.toFixed(8)} - ${zone.high.toFixed(8)}] (${zone.tf})`);
+        console.log(`✅ [AT Zone] SHORT pattern AT resistance ABOVE entry: wick=${patternCandleHigh.toFixed(8)} touches zone [${zone.low.toFixed(8)} - ${zone.high.toFixed(8)}] (${zone.tf}), entry=${entryPrice.toFixed(8)}`);
         return true;
       }
     }
     
-    console.log(`❌ [AT Zone] SHORT pattern NOT AT resistance: wick=${patternCandleHigh.toFixed(8)} doesn't touch any resistance zone`);
+    console.log(`❌ [AT Zone] SHORT: wick=${patternCandleHigh.toFixed(8)} doesn't touch any resistance zone ABOVE entry ${entryPrice.toFixed(8)}`);
     return false;
   }
 }
@@ -80,13 +98,16 @@ export function checkFilters(
   const skipReasons: SkipReason[] = [];
   
   // ========== CRITICAL FILTER: "AT ZONE" VALIDATION ==========
-  // Pattern MUST form AT support/resistance zone (not away from it)
-  // This is the MOST IMPORTANT filter - if pattern is not at zone, skip immediately
+  // Pattern MUST form AT support/resistance zone in the CORRECT direction
+  // LONG: must bounce from support BELOW entry
+  // SHORT: must reject from resistance ABOVE entry
+  // This is the MOST IMPORTANT filter - if pattern is not at correct zone, skip immediately
   
   const patternIsAtZone = isPatternAtZone(
     direction,
     mlContext.patternCandleHigh,
     mlContext.patternCandleLow,
+    mlContext.entryPrice,
     mlContext.zones
   );
   
