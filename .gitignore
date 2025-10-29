@@ -6,3 +6,5 @@ dist
 *.db
 *.db-*
 .DS_Store
+ml_exports/
+ml_data_export/
