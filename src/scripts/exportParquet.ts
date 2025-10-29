@@ -19,14 +19,16 @@ import * as path from 'path';
 interface ExportOptions {
   days?: number;
   outputDir?: string;
+  format?: 'parquet' | 'csv' | 'json' | 'all';
 }
 
 async function exportToParquet(options: ExportOptions = {}) {
-  const { days = 30, outputDir = './ml_exports' } = options;
+  const { days = 30, outputDir = './ml_exports', format = 'all' } = options;
   
-  console.log(`\n🚀 Starting ML data export to Parquet format`);
+  console.log(`\n🚀 Starting ML data export`);
   console.log(`📅 Exporting last ${days} days of data`);
-  console.log(`📂 Output directory: ${outputDir}\n`);
+  console.log(`📂 Output directory: ${outputDir}`);
+  console.log(`📝 Format: ${format}\n`);
 
   // Create output directory
   if (!fs.existsSync(outputDir)) {
@@ -50,7 +52,8 @@ async function exportToParquet(options: ExportOptions = {}) {
       .orderBy(signals.createdAt);
 
     if (signalsData.length > 0) {
-      const signalsTable = arrow.tableFromJSON(signalsData.map(row => ({
+      // Prepare data for export
+      const signalsExportData = signalsData.map(row => ({
         id: row.id,
         symbol: row.symbol,
         timeframe: row.timeframe,
@@ -71,12 +74,10 @@ async function exportToParquet(options: ExportOptions = {}) {
         pnl_percent: row.pnlPercent ? parseFloat(row.pnlPercent) : null,
         atr_15m: row.atr15m ? parseFloat(row.atr15m) : null,
         atr_h4: row.atrH4 ? parseFloat(row.atrH4) : null,
-        // ML context
         dist_to_dir_h1_zone_atr: row.distToDirH1ZoneAtr ? parseFloat(row.distToDirH1ZoneAtr) : null,
         dist_to_dir_h4_zone_atr: row.distToDirH4ZoneAtr ? parseFloat(row.distToDirH4ZoneAtr) : null,
         free_path_r: row.freePathR ? parseFloat(row.freePathR) : null,
         arrival_pattern: row.arrivalPattern,
-        // Outcome metrics
         mfe_r: row.mfeR ? parseFloat(row.mfeR) : null,
         mae_r: row.maeR ? parseFloat(row.maeR) : null,
         time_to_tp1_min: row.timeToTp1Min,
@@ -88,21 +89,43 @@ async function exportToParquet(options: ExportOptions = {}) {
         status: row.status,
         created_at: row.createdAt?.toISOString(),
         updated_at: row.updatedAt?.toISOString(),
-      })));
+      }));
 
-      const signalsPath = path.join(outputDir, `signals_${timestamp}.parquet`);
-      const signalsWriter = await arrow.RecordBatchFileWriter.writeAll(signalsTable);
-      fs.writeFileSync(signalsPath, await signalsWriter.toUint8Array());
-      
-      console.log(`✅ Exported ${signalsData.length} signals to ${signalsPath}`);
-      
-      // Record export (using camelCase from schema)
-      await db.insert(parquetExports).values({
-        exportDate: timestamp,
-        exportType: 'trades',
-        filePath: signalsPath,
-        recordCount: signalsData.length,
-      });
+      // Export based on format
+      if (format === 'parquet' || format === 'all') {
+        const signalsTable = arrow.tableFromJSON(signalsExportData);
+        const signalsPath = path.join(outputDir, `signals_${timestamp}.parquet`);
+        const signalsWriter = await arrow.RecordBatchFileWriter.writeAll(signalsTable);
+        fs.writeFileSync(signalsPath, await signalsWriter.toUint8Array());
+        console.log(`✅ Exported ${signalsData.length} signals to ${signalsPath}`);
+        
+        await db.insert(parquetExports).values({
+          exportDate: timestamp,
+          exportType: 'trades',
+          filePath: signalsPath,
+          recordCount: signalsData.length,
+        });
+      }
+
+      if (format === 'csv' || format === 'all') {
+        const csvPath = path.join(outputDir, `signals_${timestamp}.csv`);
+        const csvHeader = Object.keys(signalsExportData[0]).join(',');
+        const csvRows = signalsExportData.map(row => 
+          Object.values(row).map(v => {
+            if (v === null) return '';
+            if (typeof v === 'string' && v.includes(',')) return `"${v}"`;
+            return v;
+          }).join(',')
+        );
+        fs.writeFileSync(csvPath, [csvHeader, ...csvRows].join('\n'));
+        console.log(`✅ Exported ${signalsData.length} signals to ${csvPath}`);
+      }
+
+      if (format === 'json' || format === 'all') {
+        const jsonPath = path.join(outputDir, `signals_${timestamp}.json`);
+        fs.writeFileSync(jsonPath, JSON.stringify(signalsExportData, null, 2));
+        console.log(`✅ Exported ${signalsData.length} signals to ${jsonPath}`);
+      }
     } else {
       console.log(`⚠️  No signals found in last ${days} days`);
     }
@@ -119,7 +142,8 @@ async function exportToParquet(options: ExportOptions = {}) {
       .orderBy(nearMissSkips.createdAt);
 
     if (skipsData.length > 0) {
-      const skipsTable = arrow.tableFromJSON(skipsData.map(row => ({
+      // Prepare data for export
+      const skipsExportData = skipsData.map(row => ({
         id: row.id,
         signal_id: row.signalId,
         symbol: row.symbol,
@@ -127,55 +151,69 @@ async function exportToParquet(options: ExportOptions = {}) {
         side: row.side,
         pattern_type: row.patternType,
         ts: row.ts?.toISOString(),
-        // ATR
         atr_15m: parseFloat(row.atr15m),
         atr_1h: parseFloat(row.atr1h),
         atr_4h: parseFloat(row.atr4h),
-        // Trend context
         ema200_1h_pos: row.ema200H1Pos,
         vwap_1h_pos: row.vwap1hPos,
         trend_bias: row.trendBias,
         btc_trend_state: row.btcTrendState,
-        // Zones (serialized as JSON string for Parquet)
         zones: JSON.stringify(row.zones),
         in_h4_zone: row.inH4Zone,
         near_h4_support: row.nearH4Support,
         near_h4_resistance: row.nearH4Resistance,
-        // Distances
         dist_to_dir_h1_zone_atr: parseFloat(row.distToDirH1ZoneAtr),
         dist_to_dir_h4_zone_atr: parseFloat(row.distToDirH4ZoneAtr),
         free_path_pts: parseFloat(row.freePathPts),
         free_path_atr15: parseFloat(row.freePathAtr15),
         free_path_r: parseFloat(row.freePathR),
-        // Quality
         arrival_pattern: row.arrivalPattern,
         zone_touch_count_bucket: row.zoneTouchCountBucket,
         zone_thickness_atr15: parseFloat(row.zoneThicknessAtr15),
         signal_bar_size_atr15: parseFloat(row.signalBarSizeAtr15),
         signal_bar_size_bucket: row.signalBarSizeBucket,
-        // Confirmation
         confirm_type: row.confirmType,
         confirm_wait_bars_15m: row.confirmWaitBars15m,
-        // Decision
         decision: row.decision,
-        skip_reasons: row.skipReasons?.join(','), // Array → CSV string
+        skip_reasons: row.skipReasons?.join(','),
         ruleset_version: row.rulesetVersion,
         created_at: row.createdAt?.toISOString(),
-      })));
+      }));
 
-      const skipsPath = path.join(outputDir, `near_miss_skips_${timestamp}.parquet`);
-      const skipsWriter = await arrow.RecordBatchFileWriter.writeAll(skipsTable);
-      fs.writeFileSync(skipsPath, await skipsWriter.toUint8Array());
-      
-      console.log(`✅ Exported ${skipsData.length} near-miss skips to ${skipsPath}`);
-      
-      // Record export (using camelCase from schema)
-      await db.insert(parquetExports).values({
-        exportDate: timestamp,
-        exportType: 'near_miss',
-        filePath: skipsPath,
-        recordCount: skipsData.length,
-      });
+      if (format === 'parquet' || format === 'all') {
+        const skipsTable = arrow.tableFromJSON(skipsExportData);
+        const skipsPath = path.join(outputDir, `near_miss_skips_${timestamp}.parquet`);
+        const skipsWriter = await arrow.RecordBatchFileWriter.writeAll(skipsTable);
+        fs.writeFileSync(skipsPath, await skipsWriter.toUint8Array());
+        console.log(`✅ Exported ${skipsData.length} near-miss skips to ${skipsPath}`);
+        
+        await db.insert(parquetExports).values({
+          exportDate: timestamp,
+          exportType: 'near_miss',
+          filePath: skipsPath,
+          recordCount: skipsData.length,
+        });
+      }
+
+      if (format === 'csv' || format === 'all') {
+        const csvPath = path.join(outputDir, `near_miss_skips_${timestamp}.csv`);
+        const csvHeader = Object.keys(skipsExportData[0]).join(',');
+        const csvRows = skipsExportData.map(row => 
+          Object.values(row).map(v => {
+            if (v === null) return '';
+            if (typeof v === 'string' && v.includes(',')) return `"${v}"`;
+            return v;
+          }).join(',')
+        );
+        fs.writeFileSync(csvPath, [csvHeader, ...csvRows].join('\n'));
+        console.log(`✅ Exported ${skipsData.length} near-miss skips to ${csvPath}`);
+      }
+
+      if (format === 'json' || format === 'all') {
+        const jsonPath = path.join(outputDir, `near_miss_skips_${timestamp}.json`);
+        fs.writeFileSync(jsonPath, JSON.stringify(skipsExportData, null, 2));
+        console.log(`✅ Exported ${skipsData.length} near-miss skips to ${jsonPath}`);
+      }
     } else {
       console.log(`⚠️  No near-miss skips found in last ${days} days`);
     }
@@ -192,7 +230,8 @@ async function exportToParquet(options: ExportOptions = {}) {
       .orderBy(shadowEvaluations.createdAt);
 
     if (shadowData.length > 0) {
-      const shadowTable = arrow.tableFromJSON(shadowData.map(row => ({
+      // Prepare data for export
+      const shadowExportData = shadowData.map(row => ({
         id: row.id,
         signal_id: row.signalId,
         reason_code: row.reasonCode,
@@ -205,21 +244,42 @@ async function exportToParquet(options: ExportOptions = {}) {
         is_active: row.isActive || false,
         completed_at: row.completedAt?.toISOString(),
         created_at: row.createdAt?.toISOString(),
-      })));
+      }));
 
-      const shadowPath = path.join(outputDir, `shadow_evaluations_${timestamp}.parquet`);
-      const shadowWriter = await arrow.RecordBatchFileWriter.writeAll(shadowTable);
-      fs.writeFileSync(shadowPath, await shadowWriter.toUint8Array());
-      
-      console.log(`✅ Exported ${shadowData.length} shadow evaluations to ${shadowPath}`);
-      
-      // Record export (using camelCase from schema)
-      await db.insert(parquetExports).values({
-        exportDate: timestamp,
-        exportType: 'shadow',
-        filePath: shadowPath,
-        recordCount: shadowData.length,
-      });
+      if (format === 'parquet' || format === 'all') {
+        const shadowTable = arrow.tableFromJSON(shadowExportData);
+        const shadowPath = path.join(outputDir, `shadow_evaluations_${timestamp}.parquet`);
+        const shadowWriter = await arrow.RecordBatchFileWriter.writeAll(shadowTable);
+        fs.writeFileSync(shadowPath, await shadowWriter.toUint8Array());
+        console.log(`✅ Exported ${shadowData.length} shadow evaluations to ${shadowPath}`);
+        
+        await db.insert(parquetExports).values({
+          exportDate: timestamp,
+          exportType: 'shadow',
+          filePath: shadowPath,
+          recordCount: shadowData.length,
+        });
+      }
+
+      if (format === 'csv' || format === 'all') {
+        const csvPath = path.join(outputDir, `shadow_evaluations_${timestamp}.csv`);
+        const csvHeader = Object.keys(shadowExportData[0]).join(',');
+        const csvRows = shadowExportData.map(row => 
+          Object.values(row).map(v => {
+            if (v === null) return '';
+            if (typeof v === 'string' && v.includes(',')) return `"${v}"`;
+            return v;
+          }).join(',')
+        );
+        fs.writeFileSync(csvPath, [csvHeader, ...csvRows].join('\n'));
+        console.log(`✅ Exported ${shadowData.length} shadow evaluations to ${csvPath}`);
+      }
+
+      if (format === 'json' || format === 'all') {
+        const jsonPath = path.join(outputDir, `shadow_evaluations_${timestamp}.json`);
+        fs.writeFileSync(jsonPath, JSON.stringify(shadowExportData, null, 2));
+        console.log(`✅ Exported ${shadowData.length} shadow evaluations to ${jsonPath}`);
+      }
     } else {
       console.log(`⚠️  No shadow evaluations found in last ${days} days`);
     }
@@ -234,10 +294,26 @@ async function exportToParquet(options: ExportOptions = {}) {
     console.log('\n📖 How to use these files:');
     console.log('   1. Copy to your local machine:');
     console.log(`      scp -r root@YOUR_VPS_IP:${path.resolve(outputDir)} .`);
-    console.log('   2. Load in Python with pandas:');
-    console.log('      import pandas as pd');
-    console.log(`      df = pd.read_parquet('${outputDir}/signals_${timestamp}.parquet')`);
-    console.log('   3. Analyze with your ML pipeline!');
+    
+    if (format === 'csv' || format === 'all') {
+      console.log('   2. Open CSV files in Excel/Google Sheets or Python:');
+      console.log('      import pandas as pd');
+      console.log(`      df = pd.read_csv('${outputDir}/signals_${timestamp}.csv')`);
+    }
+    
+    if (format === 'json' || format === 'all') {
+      console.log('   3. Load JSON files in any programming language:');
+      console.log('      import json');
+      console.log(`      with open('${outputDir}/signals_${timestamp}.json') as f:`);
+      console.log('          data = json.load(f)');
+    }
+    
+    if (format === 'parquet' || format === 'all') {
+      console.log('   4. Load Parquet in Python (fastest for ML):');
+      console.log('      import pandas as pd');
+      console.log(`      df = pd.read_parquet('${outputDir}/signals_${timestamp}.parquet')`);
+    }
+    
     console.log('='.repeat(60) + '\n');
 
   } catch (error) {
@@ -255,6 +331,14 @@ for (const arg of args) {
     options.days = parseInt(arg.split('=')[1]);
   } else if (arg.startsWith('--output=')) {
     options.outputDir = arg.split('=')[1];
+  } else if (arg.startsWith('--format=')) {
+    const fmt = arg.split('=')[1] as any;
+    if (['parquet', 'csv', 'json', 'all'].includes(fmt)) {
+      options.format = fmt;
+    } else {
+      console.error(`❌ Invalid format: ${fmt}. Use: parquet, csv, json, or all`);
+      process.exit(1);
+    }
   }
 }
 
