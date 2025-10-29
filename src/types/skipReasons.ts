@@ -59,6 +59,10 @@ export const SKIP_REASONS = {
   COMPRESSION_RANGE_LT_0_7_ATR15: 'compression_range_lt_0_7_atr15', // Range of last 12 bars < 0.7·ATR15
   WHIPSAW_ZONE: 'whipsaw_zone', // Both sides < 1.0R (saw pattern)
   POLLUTED_ZONE: 'polluted_zone', // Overlapping microzones > 1.5·ATR15
+  
+  // NEW: "AT zone" validation (Critical: Pattern must form AT zone, not away from it)
+  NOT_AT_SUPPORT_ZONE_FOR_LONG: 'not_at_support_zone_for_long', // LONG pattern wick doesn't touch support zone
+  NOT_AT_RESISTANCE_ZONE_FOR_SHORT: 'not_at_resistance_zone_for_short', // SHORT pattern wick doesn't touch resistance zone
 } as const;
 
 export type SkipReason = typeof SKIP_REASONS[keyof typeof SKIP_REASONS];
