@@ -57,6 +57,11 @@ export interface MLContext {
   signalBarSizeAtr15: number;
   signalBarSizeBucket: '<0.15' | '0.15-0.6' | '0.6-1.2' | '>1.2';
   
+  // NEW: Pattern candle info (for "AT zone" check)
+  patternCandleHigh: number;  // High of pattern candle (C0)
+  patternCandleLow: number;   // Low of pattern candle (C0)
+  entryPrice: number;         // Entry price (pattern candle close)
+  
   // Standard plan
   standardPlan: {
     candidateSL: number;
@@ -269,6 +274,10 @@ export async function collectMLContext(
   const compressionRange = compressionHigh - compressionLow;
   const compressionRangeAtr15 = compressionRange / atr15m;
   
+  // Extract pattern candle info (C0 = last closed candle)
+  const patternCandleHigh = parseFloat(lastCandle.high);
+  const patternCandleLow = parseFloat(lastCandle.low);
+  
   return {
     btcTrendState: btcTrend.trend,
     ema200H1Pos,
@@ -299,6 +308,10 @@ export async function collectMLContext(
     zoneThicknessAtr15: zoneThickness,
     signalBarSizeAtr15,
     signalBarSizeBucket,
+    // NEW: Pattern candle info (for "AT zone" check)
+    patternCandleHigh,
+    patternCandleLow,
+    entryPrice,
     standardPlan: {
       candidateSL: standardPlan.candidateSL,
       freePathR: standardPlan.freePathR,
