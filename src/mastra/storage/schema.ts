@@ -25,6 +25,8 @@ export const zoneTouchBucketEnum = pgEnum('zone_touch_bucket', ['0', '1', '2', '
 export const signalBarSizeBucketEnum = pgEnum('signal_bar_size_bucket', ['<0.15', '0.15-0.6', '0.6-1.2', '>1.2']);
 export const shadowOutcomeEnum = pgEnum('shadow_outcome', ['tp1', 'tp2', 'sl', 'timeout']);
 export const vetoReasonEnum = pgEnum('veto_reason', ['h4_res_too_close', 'h4_sup_too_close', 'h1_res_too_close', 'h1_sup_too_close', 'none']);
+export const trendAlignmentEnum = pgEnum('trend_alignment', ['with', 'against', 'neutral']);
+export const atrVolatilityEnum = pgEnum('atr_volatility', ['low', 'normal', 'high']);
 
 // Main signals table (existing + new fields for ENTER trades)
 export const signals = pgTable('signals', {
@@ -74,6 +76,35 @@ export const signals = pgTable('signals', {
   zoneTestCount24h: integer('zone_test_count_24h'),
   vetoReason: vetoReasonEnum('veto_reason'),
   slBufferAtr15: decimal('sl_buffer_atr15', { precision: 10, scale: 4 }),
+  
+  // Pattern Quality Metrics
+  patternScore: decimal('pattern_score', { precision: 4, scale: 2 }), // 0-10
+  patternScoreFactors: jsonb('pattern_score_factors'), // {tailBodyRatio, motherBarSize, etc}
+  
+  // Stop Loss Metrics
+  swingExtremePrice: decimal('swing_extreme_price', { precision: 18, scale: 8 }),
+  slBufferAtr: decimal('sl_buffer_atr', { precision: 4, scale: 2 }), // 0.3-0.5
+  roundNumberAdjusted: boolean('round_number_adjusted'),
+  minDistanceFromZone: decimal('min_distance_from_zone', { precision: 10, scale: 4 }),
+  
+  // Take Profit Metrics
+  tp1LimitedByZone: boolean('tp1_limited_by_zone'),
+  tp2LimitedByZone: boolean('tp2_limited_by_zone'),
+  tp3LimitedByZone: boolean('tp3_limited_by_zone'),
+  nearestResistanceDistanceR: decimal('nearest_resistance_distance_r', { precision: 10, scale: 2 }),
+  
+  // Risk:Reward Metrics
+  actualRrTp1: decimal('actual_rr_tp1', { precision: 10, scale: 2 }),
+  actualRrTp2: decimal('actual_rr_tp2', { precision: 10, scale: 2 }),
+  actualRrTp3: decimal('actual_rr_tp3', { precision: 10, scale: 2 }),
+  dynamicMinRr: decimal('dynamic_min_rr', { precision: 4, scale: 2 }),
+  dynamicMinRrAdjustments: jsonb('dynamic_min_rr_adjustments'), // {pattern_score, zone_freshness, etc}
+  dynamicMinRrReasoning: text('dynamic_min_rr_reasoning'),
+  trendAlignment: trendAlignmentEnum('trend_alignment'),
+  multiTfAlignment: boolean('multi_tf_alignment'),
+  atrVolatility: atrVolatilityEnum('atr_volatility'),
+  rrValidationPassed: boolean('rr_validation_passed'),
+  rrValidationMessage: text('rr_validation_message'),
   
   // NEW: Outcome timing metrics
   mfeR: decimal('mfe_r', { precision: 10, scale: 4 }), // Maximum Favorable Excursion
@@ -149,6 +180,35 @@ export const nearMissSkips = pgTable('near_miss_skips', {
   zoneTestCount24h: integer('zone_test_count_24h'),
   vetoReason: vetoReasonEnum('veto_reason'),
   slBufferAtr15: decimal('sl_buffer_atr15', { precision: 10, scale: 4 }),
+  
+  // Pattern Quality Metrics
+  patternScore: decimal('pattern_score', { precision: 4, scale: 2 }), // 0-10
+  patternScoreFactors: jsonb('pattern_score_factors'), // {tailBodyRatio, motherBarSize, etc}
+  
+  // Stop Loss Metrics
+  swingExtremePrice: decimal('swing_extreme_price', { precision: 18, scale: 8 }),
+  slBufferAtr: decimal('sl_buffer_atr', { precision: 4, scale: 2 }), // 0.3-0.5
+  roundNumberAdjusted: boolean('round_number_adjusted'),
+  minDistanceFromZone: decimal('min_distance_from_zone', { precision: 10, scale: 4 }),
+  
+  // Take Profit Metrics
+  tp1LimitedByZone: boolean('tp1_limited_by_zone'),
+  tp2LimitedByZone: boolean('tp2_limited_by_zone'),
+  tp3LimitedByZone: boolean('tp3_limited_by_zone'),
+  nearestResistanceDistanceR: decimal('nearest_resistance_distance_r', { precision: 10, scale: 2 }),
+  
+  // Risk:Reward Metrics
+  actualRrTp1: decimal('actual_rr_tp1', { precision: 10, scale: 2 }),
+  actualRrTp2: decimal('actual_rr_tp2', { precision: 10, scale: 2 }),
+  actualRrTp3: decimal('actual_rr_tp3', { precision: 10, scale: 2 }),
+  dynamicMinRr: decimal('dynamic_min_rr', { precision: 4, scale: 2 }),
+  dynamicMinRrAdjustments: jsonb('dynamic_min_rr_adjustments'), // {pattern_score, zone_freshness, etc}
+  dynamicMinRrReasoning: text('dynamic_min_rr_reasoning'),
+  trendAlignment: trendAlignmentEnum('trend_alignment'),
+  multiTfAlignment: boolean('multi_tf_alignment'),
+  atrVolatility: atrVolatilityEnum('atr_volatility'),
+  rrValidationPassed: boolean('rr_validation_passed'),
+  rrValidationMessage: text('rr_validation_message'),
   
   // Decision
   decision: decisionEnum('decision').notNull().default('skip'),

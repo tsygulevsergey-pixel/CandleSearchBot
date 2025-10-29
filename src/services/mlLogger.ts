@@ -13,6 +13,7 @@ import { detectArrivalPattern } from '../utils/indicators/arrivalPattern';
 import { calculateStandardPlan, Zone } from '../utils/indicators/standardPlan';
 import { SKIP_REASONS, RULESET_VERSION, SkipReason } from '../types/skipReasons';
 import { analyzeSRZonesTV, calculateATR } from '../utils/candleAnalyzer';
+import type { DynamicRiskProfile } from '../utils/dynamicRiskCalculator';
 
 export interface MLContext {
   // BTC & market regime
@@ -67,6 +68,97 @@ export interface MLContext {
     candidateSL: number;
     freePathR: number;
     slMode: 'htf_anchor' | 'swing_priority';
+  };
+  
+  // Pattern Quality Metrics
+  pattern_score?: number;              // 0-10 confidence score
+  pattern_score_factors?: {            // Breakdown of scoring factors
+    tailBodyRatio?: number;            // For Pin Bar
+    motherBarSize?: number;            // For Fakey
+    penetrationDepth?: number;         // For PPR
+    engulfmentStrength?: number;       // For Engulfing
+  };
+  
+  // Stop Loss Metrics
+  swing_extreme_price?: number;        // The swing low/high used for SL
+  sl_buffer_atr?: number;              // Actual buffer used (0.3-0.5)
+  round_number_adjusted?: boolean;     // Was SL adjusted for round number?
+  min_distance_from_zone?: number;     // Distance from zone boundary
+  
+  // Take Profit Metrics
+  tp1_limited_by_zone?: boolean;       // Was TP1 limited by resistance?
+  tp2_limited_by_zone?: boolean;       // Was TP2 limited by resistance?
+  tp3_limited_by_zone?: boolean;       // Was TP3 limited by resistance?
+  nearest_resistance_distance_r?: number;  // Distance to nearest zone in R units
+  
+  // Risk:Reward Metrics
+  actual_rr_tp1?: number;              // Actual R:R for TP1
+  actual_rr_tp2?: number | null;       // Actual R:R for TP2
+  actual_rr_tp3?: number | null;       // Actual R:R for TP3
+  dynamic_min_rr?: number;             // Required minimum R:R
+  dynamic_min_rr_adjustments?: {       // Breakdown of R:R adjustments
+    pattern_score: number;
+    zone_freshness: number;
+    trend: number;
+    multi_tf: number;
+    volatility: number;
+  };
+  dynamic_min_rr_reasoning?: string;   // Human-readable explanation
+  trend_alignment?: 'with' | 'against' | 'neutral';  // Trend direction
+  multi_tf_alignment?: boolean;        // Are zones aligned across TFs?
+  atr_volatility?: 'low' | 'normal' | 'high';  // Volatility classification
+  rr_validation_passed?: boolean;      // Did signal pass R:R validation?
+  rr_validation_message?: string;      // Validation result message
+}
+
+/**
+ * Enrich MLContext with DynamicRiskProfile data
+ * Maps all new professional SL/TP metrics from riskProfile to MLContext
+ */
+export function enrichMLContextWithRiskProfile(
+  mlContext: MLContext,
+  riskProfile: DynamicRiskProfile,
+  patternScore?: number
+): MLContext {
+  return {
+    ...mlContext,
+    
+    // Pattern Quality Metrics
+    pattern_score: patternScore,
+    // pattern_score_factors not available in DynamicRiskProfile yet
+    
+    // Stop Loss Metrics
+    swing_extreme_price: riskProfile.swingExtreme,
+    sl_buffer_atr: riskProfile.buffer,
+    round_number_adjusted: riskProfile.roundNumberAdjusted,
+    // min_distance_from_zone not available in DynamicRiskProfile yet
+    
+    // Take Profit Metrics
+    tp1_limited_by_zone: riskProfile.tp1LimitedByZone,
+    tp2_limited_by_zone: riskProfile.tp2LimitedByZone,
+    tp3_limited_by_zone: riskProfile.tp3LimitedByZone,
+    nearest_resistance_distance_r: riskProfile.nearestResistanceDistance,
+    
+    // Risk:Reward Metrics
+    actual_rr_tp1: riskProfile.actualRR.tp1,
+    actual_rr_tp2: riskProfile.actualRR.tp2,
+    actual_rr_tp3: riskProfile.actualRR.tp3,
+    dynamic_min_rr: riskProfile.dynamicMinRR,
+    dynamic_min_rr_adjustments: riskProfile.dynamicMinRRAdjustments,
+    dynamic_min_rr_reasoning: riskProfile.dynamicMinRRReasoning,
+    trend_alignment: riskProfile.trendAlignment,
+    multi_tf_alignment: riskProfile.multiTFAlignment,
+    atr_volatility: riskProfile.atrVolatility,
+    rr_validation_passed: riskProfile.rrValidation.isValid,
+    rr_validation_message: riskProfile.rrValidation.message,
+    
+    // Update existing fields that may have been calculated by DynamicRiskProfile
+    clearance15m: riskProfile.clearance15m,
+    clearance1h: riskProfile.clearance1h,
+    rAvailable: riskProfile.rAvailable,
+    zoneTestCount24h: riskProfile.zoneTestCount24h,
+    vetoReason: riskProfile.vetoReason,
+    slBufferAtr15: riskProfile.slBufferAtr15,
   };
 }
 
@@ -371,6 +463,36 @@ export async function logNearMissSkip(
     zoneTestCount24h: mlContext.zoneTestCount24h,
     vetoReason: mlContext.vetoReason,
     slBufferAtr15: mlContext.slBufferAtr15.toFixed(4),
+    
+    // Pattern Quality Metrics
+    patternScore: mlContext.pattern_score ? mlContext.pattern_score.toFixed(2) : null,
+    patternScoreFactors: mlContext.pattern_score_factors as any,
+    
+    // Stop Loss Metrics
+    swingExtremePrice: mlContext.swing_extreme_price?.toString() || null,
+    slBufferAtr: mlContext.sl_buffer_atr?.toFixed(2) || null,
+    roundNumberAdjusted: mlContext.round_number_adjusted || null,
+    minDistanceFromZone: mlContext.min_distance_from_zone?.toFixed(4) || null,
+    
+    // Take Profit Metrics
+    tp1LimitedByZone: mlContext.tp1_limited_by_zone || null,
+    tp2LimitedByZone: mlContext.tp2_limited_by_zone || null,
+    tp3LimitedByZone: mlContext.tp3_limited_by_zone || null,
+    nearestResistanceDistanceR: mlContext.nearest_resistance_distance_r?.toFixed(2) || null,
+    
+    // Risk:Reward Metrics
+    actualRrTp1: mlContext.actual_rr_tp1?.toFixed(2) || null,
+    actualRrTp2: mlContext.actual_rr_tp2?.toFixed(2) || null,
+    actualRrTp3: mlContext.actual_rr_tp3?.toFixed(2) || null,
+    dynamicMinRr: mlContext.dynamic_min_rr?.toFixed(2) || null,
+    dynamicMinRrAdjustments: mlContext.dynamic_min_rr_adjustments as any,
+    dynamicMinRrReasoning: mlContext.dynamic_min_rr_reasoning || null,
+    trendAlignment: mlContext.trend_alignment || null,
+    multiTfAlignment: mlContext.multi_tf_alignment || null,
+    atrVolatility: mlContext.atr_volatility || null,
+    rrValidationPassed: mlContext.rr_validation_passed || null,
+    rrValidationMessage: mlContext.rr_validation_message || null,
+    
     decision: 'skip',
     skipReasons,
     rulesetVersion: RULESET_VERSION,
@@ -380,6 +502,61 @@ export async function logNearMissSkip(
   
   // Shadow evaluation sampling (10-20% or max 20 per reason/day)
   await sampleForShadowEvaluation(signalId, symbol, direction, entryPrice, mlContext, skipReasons);
+}
+
+/**
+ * Log an executed signal with full ML context
+ * Helper function to format ML context fields for signal insertion
+ */
+export function formatExecutedSignalMLContext(mlContext: MLContext) {
+  return {
+    // ATR context
+    atr15m: mlContext.atr15m.toString(),
+    atrH4: mlContext.atr4h.toString(),
+    
+    // ML context fields
+    distToDirH1ZoneAtr: mlContext.distToDirH1ZoneAtr.toFixed(4),
+    distToDirH4ZoneAtr: mlContext.distToDirH4ZoneAtr.toFixed(4),
+    freePathR: mlContext.freePathR.toFixed(4),
+    arrivalPattern: mlContext.arrivalPattern,
+    
+    // Dynamic S/R fields
+    clearance15m: mlContext.clearance15m.toString(),
+    clearance1h: mlContext.clearance1h.toString(),
+    rAvailable: mlContext.rAvailable.toFixed(2),
+    zoneTestCount24h: mlContext.zoneTestCount24h,
+    vetoReason: mlContext.vetoReason,
+    slBufferAtr15: mlContext.slBufferAtr15.toFixed(4),
+    
+    // Pattern Quality Metrics
+    patternScore: mlContext.pattern_score?.toFixed(2) || null,
+    patternScoreFactors: mlContext.pattern_score_factors as any,
+    
+    // Stop Loss Metrics
+    swingExtremePrice: mlContext.swing_extreme_price?.toString() || null,
+    slBufferAtr: mlContext.sl_buffer_atr?.toFixed(2) || null,
+    roundNumberAdjusted: mlContext.round_number_adjusted || null,
+    minDistanceFromZone: mlContext.min_distance_from_zone?.toFixed(4) || null,
+    
+    // Take Profit Metrics
+    tp1LimitedByZone: mlContext.tp1_limited_by_zone || null,
+    tp2LimitedByZone: mlContext.tp2_limited_by_zone || null,
+    tp3LimitedByZone: mlContext.tp3_limited_by_zone || null,
+    nearestResistanceDistanceR: mlContext.nearest_resistance_distance_r?.toFixed(2) || null,
+    
+    // Risk:Reward Metrics
+    actualRrTp1: mlContext.actual_rr_tp1?.toFixed(2) || null,
+    actualRrTp2: mlContext.actual_rr_tp2?.toFixed(2) || null,
+    actualRrTp3: mlContext.actual_rr_tp3?.toFixed(2) || null,
+    dynamicMinRr: mlContext.dynamic_min_rr?.toFixed(2) || null,
+    dynamicMinRrAdjustments: mlContext.dynamic_min_rr_adjustments as any,
+    dynamicMinRrReasoning: mlContext.dynamic_min_rr_reasoning || null,
+    trendAlignment: mlContext.trend_alignment || null,
+    multiTfAlignment: mlContext.multi_tf_alignment || null,
+    atrVolatility: mlContext.atr_volatility || null,
+    rrValidationPassed: mlContext.rr_validation_passed || null,
+    rrValidationMessage: mlContext.rr_validation_message || null,
+  };
 }
 
 /**

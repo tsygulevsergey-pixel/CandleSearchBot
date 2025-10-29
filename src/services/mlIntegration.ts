@@ -121,5 +121,34 @@ export function extractMLContextFields(mlContext: MLContext) {
     zoneTestCount24h: mlContext.zoneTestCount24h || 0, // Keep as number
     vetoReason: mlContext.vetoReason || 'none',
     slBufferAtr15: mlContext.slBufferAtr15?.toFixed(4) || '0',
+    
+    // Pattern Quality Metrics
+    patternScore: mlContext.pattern_score?.toFixed(2) || null,
+    patternScoreFactors: mlContext.pattern_score_factors || null,
+    
+    // Stop Loss Metrics
+    swingExtremePrice: mlContext.swing_extreme_price?.toString() || null,
+    slBufferAtr: mlContext.sl_buffer_atr?.toFixed(2) || null,
+    roundNumberAdjusted: mlContext.round_number_adjusted || null,
+    minDistanceFromZone: mlContext.min_distance_from_zone?.toFixed(4) || null,
+    
+    // Take Profit Metrics
+    tp1LimitedByZone: mlContext.tp1_limited_by_zone || null,
+    tp2LimitedByZone: mlContext.tp2_limited_by_zone || null,
+    tp3LimitedByZone: mlContext.tp3_limited_by_zone || null,
+    nearestResistanceDistanceR: mlContext.nearest_resistance_distance_r?.toFixed(2) || null,
+    
+    // Risk:Reward Metrics
+    actualRrTp1: mlContext.actual_rr_tp1?.toFixed(2) || null,
+    actualRrTp2: mlContext.actual_rr_tp2?.toFixed(2) || null,
+    actualRrTp3: mlContext.actual_rr_tp3?.toFixed(2) || null,
+    dynamicMinRr: mlContext.dynamic_min_rr?.toFixed(2) || null,
+    dynamicMinRrAdjustments: mlContext.dynamic_min_rr_adjustments || null,
+    dynamicMinRrReasoning: mlContext.dynamic_min_rr_reasoning || null,
+    trendAlignment: mlContext.trend_alignment || null,
+    multiTfAlignment: mlContext.multi_tf_alignment || null,
+    atrVolatility: mlContext.atr_volatility || null,
+    rrValidationPassed: mlContext.rr_validation_passed || null,
+    rrValidationMessage: mlContext.rr_validation_message || null,
   };
 }
