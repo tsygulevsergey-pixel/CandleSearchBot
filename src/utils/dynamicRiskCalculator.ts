@@ -49,6 +49,20 @@ export interface DynamicRiskProfile {
   
   // For ML logging
   scenario: 'scalp_1R' | 'swing_2R' | 'trend_3R' | 'skip_no_space';
+  
+  // Dynamic Min R:R fields
+  dynamicMinRR: number;
+  dynamicMinRRAdjustments: {
+    patternScore: number;
+    zoneFreshness: number;
+    trend: number;
+    multiTF: number;
+    volatility: number;
+  };
+  dynamicMinRRReasoning: string;
+  trendAlignment: 'with' | 'against' | 'neutral';
+  multiTFAlignment: boolean;
+  atrVolatility: 'low' | 'normal' | 'high';
 }
 
 export interface DynamicRiskInput {
@@ -61,6 +75,20 @@ export interface DynamicRiskInput {
   atr4h: number;
   zoneTestCount24h: number; // How many times active zone was tested
   candles15m: Candle[]; // For detecting long tails
+  candles1h?: Candle[]; // For trend analysis
+  candles4h?: Candle[]; // For trend analysis
+  patternScore?: number; // 0-10 from pattern detection
+}
+
+/**
+ * Context for calculating dynamic minimum R:R
+ */
+export interface DynamicMinRRContext {
+  patternScore: number;       // 0-10 from pattern detection
+  zoneTestCount: number;      // How many times zone has been tested
+  trend: 'with' | 'against' | 'neutral';  // Trend alignment
+  multiTFAlignment: boolean;  // Are zones aligned across timeframes?
+  atrVolatility: 'low' | 'normal' | 'high';  // Relative volatility
 }
 
 /**
@@ -105,6 +133,20 @@ export function calculateDynamicRiskProfile(input: DynamicRiskInput): DynamicRis
       tp3LimitedByZone: false,
       nearestResistanceDistance: 0,
       scenario: 'skip_no_space',
+      
+      // Dynamic min R:R fields (defaults for veto case)
+      dynamicMinRR: 2.5, // Maximum penalty for vetoed setups
+      dynamicMinRRAdjustments: {
+        patternScore: 0,
+        zoneFreshness: 0,
+        trend: 0,
+        multiTF: 0,
+        volatility: 0,
+      },
+      dynamicMinRRReasoning: 'Vetoed by proximity filters',
+      trendAlignment: 'neutral',
+      multiTFAlignment: false,
+      atrVolatility: 'normal',
     };
   }
 
@@ -179,6 +221,27 @@ export function calculateDynamicRiskProfile(input: DynamicRiskInput): DynamicRis
     atr4h
   );
 
+  // 8. Calculate dynamic minimum R:R
+  console.log(`\n📊 [DynamicRisk] Calculating dynamic minimum R:R...`);
+  
+  // Determine trend alignment (use 15m candles for trend analysis)
+  const trendAlignment = determineTrendAlignment(candles15m, direction);
+  
+  // Check multi-TF alignment
+  const multiTFAlignment = checkMultiTFAlignment(zones, activeZone, direction);
+  
+  // Classify ATR volatility
+  const atrVolatility = classifyAtrVolatility(atr15m, avgAtr);
+  
+  // Calculate dynamic min R:R
+  const dynamicMinRRResult = calculateDynamicMinRR({
+    patternScore: input.patternScore ?? 7, // Default to 7 if not provided
+    zoneTestCount: zoneTestCount24h,
+    trend: trendAlignment,
+    multiTFAlignment,
+    atrVolatility,
+  });
+
   return {
     sl,
     tp1: tps.tp1,
@@ -199,6 +262,14 @@ export function calculateDynamicRiskProfile(input: DynamicRiskInput): DynamicRis
     tp3LimitedByZone: tps.tp3LimitedByZone,
     nearestResistanceDistance: tps.nearestResistanceDistance,
     scenario: tps.scenario,
+    
+    // Dynamic min R:R fields
+    dynamicMinRR: dynamicMinRRResult.minRR,
+    dynamicMinRRAdjustments: dynamicMinRRResult.adjustments,
+    dynamicMinRRReasoning: dynamicMinRRResult.reasoning,
+    trendAlignment,
+    multiTFAlignment,
+    atrVolatility,
   };
 }
 
@@ -752,4 +823,275 @@ function validateMinDistanceFromZone(
 
   console.log(`✅ [ZoneValidation] SL is at safe distance from zone`);
   return sl;
+}
+
+/**
+ * =========================================
+ * DYNAMIC MINIMUM R:R CALCULATOR
+ * =========================================
+ */
+
+/**
+ * Format adjustments for logging
+ */
+function formatAdjustments(adjustments: Record<string, number>): string {
+  const parts: string[] = [];
+  
+  if (adjustments.patternScore !== 0) {
+    const sign = adjustments.patternScore > 0 ? '+' : '';
+    parts.push(`${sign}${adjustments.patternScore.toFixed(1)} pattern`);
+  }
+  
+  if (adjustments.zoneFreshness !== 0) {
+    const sign = adjustments.zoneFreshness > 0 ? '+' : '';
+    parts.push(`${sign}${adjustments.zoneFreshness.toFixed(1)} fresh`);
+  }
+  
+  if (adjustments.trend !== 0) {
+    const sign = adjustments.trend > 0 ? '+' : '';
+    parts.push(`${sign}${adjustments.trend.toFixed(1)} trend`);
+  }
+  
+  if (adjustments.multiTF !== 0) {
+    const sign = adjustments.multiTF > 0 ? '+' : '';
+    parts.push(`${sign}${adjustments.multiTF.toFixed(1)} multiTF`);
+  }
+  
+  if (adjustments.volatility !== 0) {
+    const sign = adjustments.volatility > 0 ? '+' : '';
+    parts.push(`${sign}${adjustments.volatility.toFixed(1)} vol`);
+  }
+  
+  return parts.length > 0 ? `(${parts.join(', ')})` : '';
+}
+
+/**
+ * Classify ATR volatility relative to average
+ */
+function classifyAtrVolatility(
+  atr: number,
+  avgAtr: number
+): 'low' | 'normal' | 'high' {
+  const ratio = atr / avgAtr;
+  
+  if (ratio < 0.8) {
+    console.log(`📊 [AtrVolatility] Low (${ratio.toFixed(2)}x avg)`);
+    return 'low';
+  } else if (ratio <= 1.5) {
+    console.log(`📊 [AtrVolatility] Normal (${ratio.toFixed(2)}x avg)`);
+    return 'normal';
+  } else {
+    console.log(`📊 [AtrVolatility] High (${ratio.toFixed(2)}x avg)`);
+    return 'high';
+  }
+}
+
+/**
+ * Determine trend alignment based on EMA analysis
+ * Uses EMA50 vs EMA200 logic from candleAnalyzer
+ */
+function determineTrendAlignment(
+  candles: Candle[],
+  direction: 'LONG' | 'SHORT'
+): 'with' | 'against' | 'neutral' {
+  // Need at least 200 candles for EMA200
+  if (candles.length < 200) {
+    console.log(`📊 [TrendAlignment] Insufficient candles (${candles.length} < 200) → neutral`);
+    return 'neutral';
+  }
+  
+  // Calculate EMAs
+  const closes = candles.map(c => Number(c.close));
+  const currentPrice = closes[closes.length - 1];
+  
+  // EMA50
+  const multiplier50 = 2 / (50 + 1);
+  let ema50 = closes.slice(0, 50).reduce((sum, val) => sum + val, 0) / 50;
+  for (let i = 50; i < closes.length; i++) {
+    ema50 = (closes[i] - ema50) * multiplier50 + ema50;
+  }
+  
+  // EMA200
+  const multiplier200 = 2 / (200 + 1);
+  let ema200 = closes.slice(0, 200).reduce((sum, val) => sum + val, 0) / 200;
+  for (let i = 200; i < closes.length; i++) {
+    ema200 = (closes[i] - ema200) * multiplier200 + ema200;
+  }
+  
+  // Check trend based on direction
+  if (direction === 'LONG') {
+    // For LONG: with trend = price > EMA50 > EMA200
+    const withTrend = currentPrice > ema50 && ema50 > ema200;
+    const againstTrend = currentPrice < ema50 && ema50 < ema200;
+    
+    if (withTrend) {
+      console.log(`📊 [TrendAlignment] LONG with trend: price=${currentPrice.toFixed(2)} > ema50=${ema50.toFixed(2)} > ema200=${ema200.toFixed(2)}`);
+      return 'with';
+    } else if (againstTrend) {
+      console.log(`📊 [TrendAlignment] LONG against trend: price=${currentPrice.toFixed(2)} < ema50=${ema50.toFixed(2)} < ema200=${ema200.toFixed(2)}`);
+      return 'against';
+    } else {
+      console.log(`📊 [TrendAlignment] LONG neutral/mixed: price=${currentPrice.toFixed(2)}, ema50=${ema50.toFixed(2)}, ema200=${ema200.toFixed(2)}`);
+      return 'neutral';
+    }
+  } else {
+    // For SHORT: with trend = price < EMA50 < EMA200
+    const withTrend = currentPrice < ema50 && ema50 < ema200;
+    const againstTrend = currentPrice > ema50 && ema50 > ema200;
+    
+    if (withTrend) {
+      console.log(`📊 [TrendAlignment] SHORT with trend: price=${currentPrice.toFixed(2)} < ema50=${ema50.toFixed(2)} < ema200=${ema200.toFixed(2)}`);
+      return 'with';
+    } else if (againstTrend) {
+      console.log(`📊 [TrendAlignment] SHORT against trend: price=${currentPrice.toFixed(2)} > ema50=${ema50.toFixed(2)} > ema200=${ema200.toFixed(2)}`);
+      return 'against';
+    } else {
+      console.log(`📊 [TrendAlignment] SHORT neutral/mixed: price=${currentPrice.toFixed(2)}, ema50=${ema50.toFixed(2)}, ema200=${ema200.toFixed(2)}`);
+      return 'neutral';
+    }
+  }
+}
+
+/**
+ * Check if zones from multiple timeframes are aligned
+ * Returns true if zones from 2+ timeframes are within ±2% of the touched zone
+ */
+function checkMultiTFAlignment(
+  zones: Zone[],
+  touchedZone: Zone,
+  direction: 'LONG' | 'SHORT'
+): boolean {
+  // Get the price of the touched zone (center)
+  const touchedPrice = (touchedZone.low + touchedZone.high) / 2;
+  const tolerance = touchedPrice * 0.02; // ±2%
+  
+  // Find zones of the same type (support or resistance) from other timeframes
+  const sameTypeZones = zones.filter(z => 
+    z.type === touchedZone.type && 
+    z.tf !== touchedZone.tf // Different timeframe
+  );
+  
+  // Check how many zones are within tolerance
+  const alignedZones = sameTypeZones.filter(z => {
+    const zonePrice = (z.low + z.high) / 2;
+    const distance = Math.abs(zonePrice - touchedPrice);
+    return distance <= tolerance;
+  });
+  
+  // Get unique timeframes from aligned zones
+  const uniqueTFs = new Set(alignedZones.map(z => z.tf));
+  const tfCount = uniqueTFs.size + 1; // +1 for touched zone's TF
+  
+  const isAligned = tfCount >= 2;
+  
+  console.log(`📊 [MultiTFAlignment] Touched zone: ${touchedZone.tf} ${touchedZone.type} @ ${touchedPrice.toFixed(8)}`);
+  console.log(`📊 [MultiTFAlignment] Found ${alignedZones.length} aligned zones from ${uniqueTFs.size} other timeframes`);
+  console.log(`📊 [MultiTFAlignment] Total aligned TFs: ${tfCount} → ${isAligned ? 'ALIGNED' : 'NOT ALIGNED'}`);
+  
+  return isAligned;
+}
+
+/**
+ * Calculate dynamic minimum R:R based on setup quality
+ */
+export function calculateDynamicMinRR(context: DynamicMinRRContext): {
+  minRR: number;
+  adjustments: {
+    patternScore: number;
+    zoneFreshness: number;
+    trend: number;
+    multiTF: number;
+    volatility: number;
+  };
+  reasoning: string;
+} {
+  console.log(`\n📊 [Dynamic R:R] === CALCULATING DYNAMIC MIN R:R ===`);
+  
+  let minRR = 1.2; // Base minimum R:R
+  const adjustments = {
+    patternScore: 0,
+    zoneFreshness: 0,
+    trend: 0,
+    multiTF: 0,
+    volatility: 0,
+  };
+  
+  // 1. Pattern Score adjustment (-0.1 to +0.2)
+  console.log(`📊 [Dynamic R:R] Pattern score: ${context.patternScore}/10`);
+  if (context.patternScore >= 8) {
+    minRR -= 0.1;
+    adjustments.patternScore = -0.1;
+    console.log(`   ✅ Strong pattern (≥8) → -0.1`);
+  } else if (context.patternScore <= 5) {
+    minRR += 0.2;
+    adjustments.patternScore = +0.2;
+    console.log(`   ⚠️ Weak pattern (≤5) → +0.2`);
+  } else {
+    console.log(`   ➡️ Average pattern (6-7) → no adjustment`);
+  }
+  
+  // 2. Zone Freshness adjustment (-0.2 to +0.3)
+  console.log(`📊 [Dynamic R:R] Zone test count: ${context.zoneTestCount}`);
+  if (context.zoneTestCount === 0) {
+    minRR -= 0.2;
+    adjustments.zoneFreshness = -0.2;
+    console.log(`   ✅ Fresh zone (0 tests) → -0.2`);
+  } else if (context.zoneTestCount >= 3) {
+    minRR += 0.3;
+    adjustments.zoneFreshness = +0.3;
+    console.log(`   ⚠️ Tested zone (≥3 tests) → +0.3`);
+  } else {
+    console.log(`   ➡️ Some tests (1-2) → no adjustment`);
+  }
+  
+  // 3. Trend alignment adjustment (-0.1 to +0.3)
+  console.log(`📊 [Dynamic R:R] Trend: ${context.trend}`);
+  if (context.trend === 'with') {
+    minRR -= 0.1;
+    adjustments.trend = -0.1;
+    console.log(`   ✅ With trend → -0.1`);
+  } else if (context.trend === 'against') {
+    minRR += 0.3;
+    adjustments.trend = +0.3;
+    console.log(`   ⚠️ Against trend → +0.3`);
+  } else {
+    console.log(`   ➡️ Neutral trend → no adjustment`);
+  }
+  
+  // 4. Multi-TF alignment adjustment (-0.1)
+  console.log(`📊 [Dynamic R:R] Multi-TF aligned: ${context.multiTFAlignment}`);
+  if (context.multiTFAlignment) {
+    minRR -= 0.1;
+    adjustments.multiTF = -0.1;
+    console.log(`   ✅ Multiple TF zones aligned → -0.1`);
+  } else {
+    console.log(`   ➡️ No multi-TF alignment → no adjustment`);
+  }
+  
+  // 5. Volatility adjustment (+0.2)
+  console.log(`📊 [Dynamic R:R] Volatility: ${context.atrVolatility}`);
+  if (context.atrVolatility === 'high') {
+    minRR += 0.2;
+    adjustments.volatility = +0.2;
+    console.log(`   ⚠️ High volatility → +0.2`);
+  } else {
+    console.log(`   ➡️ ${context.atrVolatility} volatility → no adjustment`);
+  }
+  
+  // Cap at 0.8 - 2.5
+  const uncappedRR = minRR;
+  minRR = Math.max(0.8, Math.min(2.5, minRR));
+  
+  if (uncappedRR !== minRR) {
+    console.log(`📊 [Dynamic R:R] Capped ${uncappedRR.toFixed(2)} → ${minRR.toFixed(2)}`);
+  }
+  
+  // Generate reasoning string
+  const reasoning = `Base 1.2 ${formatAdjustments(adjustments)} = ${minRR.toFixed(2)}`;
+  
+  console.log(`📊 [Dynamic R:R] Final min R:R: ${minRR.toFixed(2)}`);
+  console.log(`📊 [Dynamic R:R] Reasoning: ${reasoning}`);
+  console.log(`📊 [Dynamic R:R] === END DYNAMIC MIN R:R ===\n`);
+  
+  return { minRR, adjustments, reasoning };
 }

@@ -195,11 +195,16 @@ export class Scanner {
                 atr4h,
                 zoneTestCount24h,
                 candles15m: candles,
+                candles1h, // For trend analysis
+                candles4h, // For trend analysis
+                patternScore: pattern.score, // Pattern quality score (0-10)
               });
               
               console.log(`✅ [Scanner] Dynamic risk profile: scenario=${dynamicProfile.scenario}, SL=${dynamicProfile.sl.toFixed(8)}, TP1=${dynamicProfile.tp1?.toFixed(8) || 'null'}, TP2=${dynamicProfile.tp2?.toFixed(8) || 'null'}, TP3=${dynamicProfile.tp3?.toFixed(8) || 'null'}`);
               console.log(`   📊 Metadata: R=${dynamicProfile.riskR.toFixed(8)}, R_avail=${dynamicProfile.rAvailable.toFixed(1)}, clearance15m=${dynamicProfile.clearance15m.toFixed(8)}, clearance1h=${dynamicProfile.clearance1h.toFixed(8)}`);
               console.log(`   🛡️ Veto: ${dynamicProfile.vetoReason}, SL buffer: ${dynamicProfile.slBufferAtr15.toFixed(2)} ATR15`);
+              console.log(`   📊 Dynamic Min R:R: ${dynamicProfile.dynamicMinRR.toFixed(2)} (${dynamicProfile.dynamicMinRRReasoning})`);
+              console.log(`   📊 Trend: ${dynamicProfile.trendAlignment}, Multi-TF: ${dynamicProfile.multiTFAlignment}, Volatility: ${dynamicProfile.atrVolatility}`);
               
               // Fallback to legacy calculator if dynamic profile has veto or no TPs
               let riskProfile: any;
