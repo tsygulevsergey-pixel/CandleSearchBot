@@ -39,11 +39,12 @@ function isPatternAtZone(
   zones: Zone[]
 ): boolean {
   if (direction === 'LONG') {
-    // LONG: Find support zones BELOW entry price (15m OR 1h only)
+    // LONG: Find support zones that are positioned below entry (15m OR 1h only)
+    // Zone can touch/overlap entry, but must originate from below (zone.low <= entryPrice)
     const supportZonesBelowEntry = zones.filter(
       z => z.type === 'support' 
         && (z.tf === '15m' || z.tf === '1h')
-        && z.high < entryPrice  // Zone must be BELOW entry
+        && z.low <= entryPrice  // Zone starts at or below entry (allows overlap)
     );
     
     if (supportZonesBelowEntry.length === 0) {
@@ -63,11 +64,12 @@ function isPatternAtZone(
     return false;
     
   } else {
-    // SHORT: Find resistance zones ABOVE entry price (15m OR 1h only)
+    // SHORT: Find resistance zones that are positioned above entry (15m OR 1h only)
+    // Zone can touch/overlap entry, but must originate from above (zone.high >= entryPrice)
     const resistanceZonesAboveEntry = zones.filter(
       z => z.type === 'resistance' 
         && (z.tf === '15m' || z.tf === '1h')
-        && z.low > entryPrice  // Zone must be ABOVE entry
+        && z.high >= entryPrice  // Zone ends at or above entry (allows overlap)
     );
     
     if (resistanceZonesAboveEntry.length === 0) {
