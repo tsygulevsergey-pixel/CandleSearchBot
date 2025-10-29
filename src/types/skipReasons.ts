@@ -63,6 +63,9 @@ export const SKIP_REASONS = {
   // NEW: "AT zone" validation (Critical: Pattern must form AT zone, not away from it)
   NOT_AT_SUPPORT_ZONE_FOR_LONG: 'not_at_support_zone_for_long', // LONG pattern wick doesn't touch support zone
   NOT_AT_RESISTANCE_ZONE_FOR_SHORT: 'not_at_resistance_zone_for_short', // SHORT pattern wick doesn't touch resistance zone
+  
+  // NEW: R:R validation (Dynamic minimum R:R requirement)
+  RR_BELOW_DYNAMIC_MIN: 'rr_below_dynamic_min', // Actual TP1 R:R < dynamically calculated minimum R:R
 } as const;
 
 export type SkipReason = typeof SKIP_REASONS[keyof typeof SKIP_REASONS];

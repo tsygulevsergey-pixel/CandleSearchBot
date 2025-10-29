@@ -6,6 +6,8 @@ import { signalDB } from '../mastra/storage/db';
 import { getCoinCluster, getCoinsByFamily, getFamilyId } from '../utils/marketClusters';
 import { processMLIntegration, extractMLContextFields } from './mlIntegration';
 import { zoneTestTracker } from './zoneTestTracker';
+import { logNearMissSkip } from './mlLogger';
+import { SKIP_REASONS } from '../types/skipReasons';
 import axios from 'axios';
 
 export class Scanner {
@@ -205,6 +207,29 @@ export class Scanner {
               console.log(`   🛡️ Veto: ${dynamicProfile.vetoReason}, SL buffer: ${dynamicProfile.slBufferAtr15.toFixed(2)} ATR15`);
               console.log(`   📊 Dynamic Min R:R: ${dynamicProfile.dynamicMinRR.toFixed(2)} (${dynamicProfile.dynamicMinRRReasoning})`);
               console.log(`   📊 Trend: ${dynamicProfile.trendAlignment}, Multi-TF: ${dynamicProfile.multiTFAlignment}, Volatility: ${dynamicProfile.atrVolatility}`);
+              console.log(`   📊 R:R Validation: ${dynamicProfile.rrValidation.message}`);
+              
+              // Check R:R validation - skip signal if R:R is below dynamic minimum
+              if (!dynamicProfile.rrValidation.isValid) {
+                console.log(`⚠️ [Scanner] Signal rejected due to insufficient R:R: ${symbol} ${pattern.type}`);
+                console.log(`   ❌ TP1 R:R ${dynamicProfile.actualRR.tp1.toFixed(2)} < ${dynamicProfile.dynamicMinRR.toFixed(2)} (required)`);
+                
+                // Log as near-miss skip for ML analysis
+                await logNearMissSkip(
+                  symbol,
+                  timeframe,
+                  pattern.type,
+                  pattern.direction,
+                  entryPrice,
+                  mlResult.mlContext,
+                  [SKIP_REASONS.RR_BELOW_DYNAMIC_MIN]
+                );
+                
+                // Skip this signal and continue to next pattern
+                continue;
+              }
+              
+              console.log(`✅ [Scanner] Signal passed R:R validation, proceeding with trade execution...`);
               
               // Fallback to legacy calculator if dynamic profile has veto or no TPs
               let riskProfile: any;

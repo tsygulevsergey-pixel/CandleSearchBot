@@ -63,6 +63,22 @@ export interface DynamicRiskProfile {
   trendAlignment: 'with' | 'against' | 'neutral';
   multiTFAlignment: boolean;
   atrVolatility: 'low' | 'normal' | 'high';
+  
+  // R:R Validation fields
+  actualRR: {
+    tp1: number;
+    tp2: number | null;
+    tp3: number | null;
+  };
+  rrValidation: {
+    isValid: boolean;
+    meetsRequirement: {
+      tp1: boolean;
+      tp2: boolean;
+      tp3: boolean;
+    };
+    message: string;
+  };
 }
 
 export interface DynamicRiskInput {
@@ -147,6 +163,22 @@ export function calculateDynamicRiskProfile(input: DynamicRiskInput): DynamicRis
       trendAlignment: 'neutral',
       multiTFAlignment: false,
       atrVolatility: 'normal',
+      
+      // R:R Validation fields (defaults for veto case)
+      actualRR: {
+        tp1: 0,
+        tp2: null,
+        tp3: null,
+      },
+      rrValidation: {
+        isValid: false,
+        meetsRequirement: {
+          tp1: false,
+          tp2: false,
+          tp3: false,
+        },
+        message: 'Vetoed by proximity filters - no R:R validation performed',
+      },
     };
   }
 
@@ -242,6 +274,22 @@ export function calculateDynamicRiskProfile(input: DynamicRiskInput): DynamicRis
     atrVolatility,
   });
 
+  // 9. Validate R:R requirement
+  const rrValidation = validateRRRequirement(
+    entryPrice,
+    sl,
+    tps.tp1,
+    tps.tp2,
+    tps.tp3,
+    dynamicMinRRResult.minRR,
+    direction
+  );
+
+  console.log('✅ [R:R Validation]', rrValidation.message);
+  if (!rrValidation.isValid) {
+    console.log('❌ [R:R Validation] Trade rejected:', rrValidation.skipReason);
+  }
+
   return {
     sl,
     tp1: tps.tp1,
@@ -270,6 +318,14 @@ export function calculateDynamicRiskProfile(input: DynamicRiskInput): DynamicRis
     trendAlignment,
     multiTFAlignment,
     atrVolatility,
+    
+    // R:R Validation fields
+    actualRR: rrValidation.actualRR,
+    rrValidation: {
+      isValid: rrValidation.isValid,
+      meetsRequirement: rrValidation.meetsRequirement,
+      message: rrValidation.message,
+    },
   };
 }
 
@@ -989,6 +1045,136 @@ function checkMultiTFAlignment(
   console.log(`📊 [MultiTFAlignment] Total aligned TFs: ${tfCount} → ${isAligned ? 'ALIGNED' : 'NOT ALIGNED'}`);
   
   return isAligned;
+}
+
+/**
+ * R:R Validation Result
+ */
+export interface RRValidationResult {
+  isValid: boolean;
+  actualRR: {
+    tp1: number;
+    tp2: number | null;
+    tp3: number | null;
+  };
+  dynamicMinRR: number;
+  meetsRequirement: {
+    tp1: boolean;
+    tp2: boolean;
+    tp3: boolean;
+  };
+  skipReason?: string;
+  message: string;
+}
+
+/**
+ * Calculate actual R:R ratio for a given TP
+ */
+export function calculateActualRR(
+  entry: number,
+  stopLoss: number,
+  takeProfit: number,
+  direction: 'LONG' | 'SHORT'
+): number {
+  // Calculate actual R:R ratio
+  // R = |entry - stopLoss|
+  // Reward = |takeProfit - entry|
+  // R:R = Reward / R
+  
+  const risk = Math.abs(entry - stopLoss);
+  const reward = Math.abs(takeProfit - entry);
+  
+  if (risk === 0) return 0; // Avoid division by zero
+  
+  return reward / risk;
+}
+
+/**
+ * Validate that actual R:R meets the dynamically calculated minimum requirement
+ */
+export function validateRRRequirement(
+  entry: number,
+  stopLoss: number,
+  tp1: number | null,
+  tp2: number | null,
+  tp3: number | null,
+  dynamicMinRR: number,
+  direction: 'LONG' | 'SHORT'
+): RRValidationResult {
+  console.log(`\n📊 [R:R Validation] === VALIDATING R:R REQUIREMENT ===`);
+  console.log(`📊 [R:R Validation] Entry: ${entry.toFixed(8)}, SL: ${stopLoss.toFixed(8)}`);
+  console.log(`📊 [R:R Validation] TP1: ${tp1?.toFixed(8) || 'null'}, TP2: ${tp2?.toFixed(8) || 'null'}, TP3: ${tp3?.toFixed(8) || 'null'}`);
+  console.log(`📊 [R:R Validation] Dynamic Min R:R: ${dynamicMinRR.toFixed(2)}`);
+  
+  // If TP1 is null, trade is invalid
+  if (!tp1) {
+    console.log(`❌ [R:R Validation] TP1 is null - trade invalid`);
+    return {
+      isValid: false,
+      actualRR: {
+        tp1: 0,
+        tp2: null,
+        tp3: null,
+      },
+      dynamicMinRR,
+      meetsRequirement: {
+        tp1: false,
+        tp2: false,
+        tp3: false,
+      },
+      skipReason: 'rr_below_dynamic_min',
+      message: 'TP1 is null - insufficient space',
+    };
+  }
+  
+  // Calculate actual R:R for each TP
+  const actualRR_TP1 = calculateActualRR(entry, stopLoss, tp1, direction);
+  const actualRR_TP2 = tp2 ? calculateActualRR(entry, stopLoss, tp2, direction) : null;
+  const actualRR_TP3 = tp3 ? calculateActualRR(entry, stopLoss, tp3, direction) : null;
+  
+  console.log(`📊 [R:R] Actual TP1: ${actualRR_TP1.toFixed(2)}`);
+  console.log(`📊 [R:R] Actual TP2: ${actualRR_TP2?.toFixed(2) || 'N/A'}`);
+  console.log(`📊 [R:R] Actual TP3: ${actualRR_TP3?.toFixed(2) || 'N/A'}`);
+  console.log(`📊 [R:R] Required min: ${dynamicMinRR.toFixed(2)}`);
+  
+  // Check if TP1 meets minimum requirement
+  const tp1Meets = actualRR_TP1 >= dynamicMinRR;
+  const tp2Meets = actualRR_TP2 ? actualRR_TP2 >= dynamicMinRR : true;
+  const tp3Meets = actualRR_TP3 ? actualRR_TP3 >= dynamicMinRR : true;
+  
+  console.log(`📊 [R:R] TP1 meets requirement: ${tp1Meets ? '✅' : '❌'}`);
+  console.log(`📊 [R:R] TP2 meets requirement: ${tp2Meets ? '✅' : '❌ (or N/A)'}`);
+  console.log(`📊 [R:R] TP3 meets requirement: ${tp3Meets ? '✅' : '❌ (or N/A)'}`);
+  
+  // Trade is valid if TP1 meets requirement
+  const isValid = tp1Meets;
+  
+  let message = '';
+  if (!isValid) {
+    message = `TP1 R:R ${actualRR_TP1.toFixed(2)} < ${dynamicMinRR.toFixed(2)} (required)`;
+  } else {
+    message = `TP1 R:R ${actualRR_TP1.toFixed(2)} >= ${dynamicMinRR.toFixed(2)} ✅`;
+  }
+  
+  console.log(`📊 [R:R] Validation result: ${isValid ? '✅ PASS' : '❌ FAIL'}`);
+  console.log(`📊 [R:R Validation] === END R:R VALIDATION ===\n`);
+  
+  return {
+    isValid,
+    actualRR: {
+      tp1: actualRR_TP1,
+      tp2: actualRR_TP2,
+      tp3: actualRR_TP3,
+    },
+    dynamicMinRR,
+    meetsRequirement: {
+      tp1: tp1Meets,
+      tp2: tp2Meets,
+      tp3: tp3Meets,
+    },
+    skipReason: isValid ? undefined : 'rr_below_dynamic_min',
+    message,
+  };
 }
 
 /**
