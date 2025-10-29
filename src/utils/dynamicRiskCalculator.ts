@@ -2,13 +2,20 @@
  * Dynamic Risk Calculator - Professional SL/TP System
  * 
  * Key Features:
+ * 
+ * SL CALCULATION:
  * 1. Professional SL using swing extremes (last 5 candles) instead of zone boundaries
  * 2. Adaptive buffer (0.3-0.5 ATR) based on volatility (ATR vs average ATR)
  * 3. Round number protection - adjusts SL away from psychological levels
  * 4. Minimum distance validation from zone boundary (0.5 ATR)
- * 5. Clearance calculation to opposing zones
- * 6. R_available = floor((0.9 · clearance) / R, 0.1)
- * 7. Adaptive TPs based on R_available (1R/2R/3R)
+ * 
+ * TP CALCULATION (HYBRID APPROACH):
+ * 5. Fixed R-multiples: 1.5R, 2.5R, 4.0R as baseline targets
+ * 6. Multi-timeframe zone awareness: Finds nearest resistance/support from 15m, 1h, 4h
+ * 7. Zone adjustment: Places TP 5% BEFORE zone (0.95x for resistance, 1.05x for support)
+ * 8. Hybrid min() approach: TP = min(fixed_R_target, zone_adjusted)
+ * 9. Edge case handling: >10R zones ignored, TP ordering validation, min 0.5R distance
+ * 10. Extensive logging for transparency and debugging
  */
 
 import type { Zone } from './indicators/standardPlan';
@@ -33,6 +40,12 @@ export interface DynamicRiskProfile {
   swingExtreme: number;
   buffer: number;
   roundNumberAdjusted: boolean;
+  
+  // Hybrid TP metadata
+  tp1LimitedByZone: boolean; // Was TP1 limited by resistance?
+  tp2LimitedByZone: boolean;
+  tp3LimitedByZone: boolean;
+  nearestResistanceDistance: number; // Distance to nearest zone in R
   
   // For ML logging
   scenario: 'scalp_1R' | 'swing_2R' | 'trend_3R' | 'skip_no_space';
@@ -87,6 +100,10 @@ export function calculateDynamicRiskProfile(input: DynamicRiskInput): DynamicRis
       swingExtreme: entryPrice,
       buffer: 0,
       roundNumberAdjusted: false,
+      tp1LimitedByZone: false,
+      tp2LimitedByZone: false,
+      tp3LimitedByZone: false,
+      nearestResistanceDistance: 0,
       scenario: 'skip_no_space',
     };
   }
@@ -177,6 +194,10 @@ export function calculateDynamicRiskProfile(input: DynamicRiskInput): DynamicRis
     swingExtreme,
     buffer: adaptiveBuffer,
     roundNumberAdjusted,
+    tp1LimitedByZone: tps.tp1LimitedByZone,
+    tp2LimitedByZone: tps.tp2LimitedByZone,
+    tp3LimitedByZone: tps.tp3LimitedByZone,
+    nearestResistanceDistance: tps.nearestResistanceDistance,
     scenario: tps.scenario,
   };
 }
@@ -280,7 +301,124 @@ function calculateClearance(
 }
 
 /**
- * Блок B п.7: Адаптивные TP на основе R_available
+ * Helper: Find N nearest resistance (LONG) or support (SHORT) zones above/below entry
+ */
+function findNearestResistanceZones(
+  entry: number,
+  direction: 'LONG' | 'SHORT',
+  zones: Zone[],
+  count: number = 3
+): number[] {
+  console.log(`🔍 [FindZones] Finding ${count} nearest ${direction === 'LONG' ? 'resistance' : 'support'} zones for entry ${entry.toFixed(8)}`);
+  
+  // Filter zones by type and position relative to entry
+  const relevantZones = zones.filter(z => {
+    if (direction === 'LONG') {
+      // For LONG: find resistance zones ABOVE entry
+      return z.type === 'resistance' && z.low > entry;
+    } else {
+      // For SHORT: find support zones BELOW entry
+      return z.type === 'support' && z.high < entry;
+    }
+  });
+
+  // Sort by distance from entry (closest first)
+  const sortedZones = relevantZones.sort((a, b) => {
+    const distA = direction === 'LONG' 
+      ? a.low - entry
+      : entry - a.high;
+    const distB = direction === 'LONG'
+      ? b.low - entry
+      : entry - b.high;
+    return distA - distB;
+  });
+
+  // Extract zone levels (take up to count zones)
+  const zoneLevels = sortedZones.slice(0, count).map(z => {
+    const level = direction === 'LONG' ? z.low : z.high;
+    const dist = Math.abs(level - entry);
+    console.log(`   📍 Zone: ${level.toFixed(8)} (${z.tf}, distance: ${dist.toFixed(8)})`);
+    return level;
+  });
+
+  console.log(`✅ [FindZones] Found ${zoneLevels.length} zones`);
+  return zoneLevels;
+}
+
+/**
+ * Helper: Adjust zone level to place TP BEFORE the zone (5% buffer)
+ */
+function adjustZoneForTP(zoneLevel: number, direction: 'LONG' | 'SHORT'): number {
+  if (direction === 'LONG') {
+    // For LONG: place TP 5% BEFORE resistance (0.95x)
+    const adjusted = zoneLevel * 0.95;
+    console.log(`📐 [AdjustZone] LONG: ${zoneLevel.toFixed(8)} → ${adjusted.toFixed(8)} (95%)`);
+    return adjusted;
+  } else {
+    // For SHORT: place TP 5% BEFORE support (1.05x)
+    const adjusted = zoneLevel * 1.05;
+    console.log(`📐 [AdjustZone] SHORT: ${zoneLevel.toFixed(8)} → ${adjusted.toFixed(8)} (105%)`);
+    return adjusted;
+  }
+}
+
+/**
+ * Helper: Calculate hybrid TP using min(fixedR, zoneAdjusted)
+ */
+function calculateHybridTP(
+  entry: number,
+  stopLoss: number,
+  fixedRMultiple: number,
+  resistanceLevel: number | null,
+  direction: 'LONG' | 'SHORT'
+): { tp: number; limitedByZone: boolean } {
+  const R = Math.abs(entry - stopLoss);
+  
+  // Calculate fixed R-target
+  const fixedTP = direction === 'LONG'
+    ? entry + (fixedRMultiple * R)
+    : entry - (fixedRMultiple * R);
+  
+  console.log(`🧮 [HybridTP] Entry=${entry.toFixed(8)}, R=${R.toFixed(8)}, ${fixedRMultiple}R target=${fixedTP.toFixed(8)}`);
+  
+  // If no zone, use fixed TP
+  if (resistanceLevel === null) {
+    console.log(`   ✅ No zone found → using fixed ${fixedRMultiple}R: ${fixedTP.toFixed(8)}`);
+    return { tp: fixedTP, limitedByZone: false };
+  }
+  
+  // Check if zone is within reasonable range (≤10R)
+  const distToZone = Math.abs(resistanceLevel - entry);
+  if (distToZone > 10 * R) {
+    console.log(`   ⚠️ Zone too far (${(distToZone / R).toFixed(1)}R) → using fixed ${fixedRMultiple}R: ${fixedTP.toFixed(8)}`);
+    return { tp: fixedTP, limitedByZone: false };
+  }
+  
+  // Take minimum (closest to entry)
+  const hybridTP = direction === 'LONG'
+    ? Math.min(fixedTP, resistanceLevel)
+    : Math.max(fixedTP, resistanceLevel);
+  
+  const wasLimited = hybridTP !== fixedTP;
+  
+  if (wasLimited) {
+    console.log(`   🚧 TP limited by zone: ${fixedTP.toFixed(8)} → ${hybridTP.toFixed(8)}`);
+  } else {
+    console.log(`   ✅ Fixed TP used (zone further): ${hybridTP.toFixed(8)}`);
+  }
+  
+  return { tp: hybridTP, limitedByZone: wasLimited };
+}
+
+/**
+ * Блок B п.7: HYBRID TP CALCULATOR - Combines fixed R-multiples with zone awareness
+ * 
+ * Strategy:
+ * 1. Calculate fixed R-targets (1.5R, 2.5R, 4.0R)
+ * 2. Find nearest resistance zones (15m, 1h, 4h)
+ * 3. Adjust zones by 5% to place TP BEFORE the zone
+ * 4. Use min(fixedR, zoneAdjusted) for each TP
+ * 5. Validate ordering and minimum distance
  */
 function calculateAdaptiveTps(
   direction: 'LONG' | 'SHORT',
@@ -294,78 +432,152 @@ function calculateAdaptiveTps(
   tp1: number | null;
   tp2: number | null;
   tp3: number | null;
+  tp1LimitedByZone: boolean;
+  tp2LimitedByZone: boolean;
+  tp3LimitedByZone: boolean;
+  nearestResistanceDistance: number;
   scenario: DynamicRiskProfile['scenario'];
 } {
   
-  console.log(`🎯 [TPs] R_available=${rAvailable.toFixed(1)}, clearance=${clearance.toFixed(8)}`);
+  console.log(`\n🎯 [TP] === HYBRID TP CALCULATOR ===`);
+  console.log(`🎯 [TP] Direction: ${direction}, Entry: ${entryPrice.toFixed(8)}, R: ${riskR.toFixed(8)}`);
+  console.log(`🎯 [TP] R_available: ${rAvailable.toFixed(1)}, Clearance: ${clearance.toFixed(8)}`);
 
-  // If R_available < 1.0 → skip
-  if (rAvailable < 1.0) {
-    console.log(`❌ [TPs] R_available < 1.0 → skip signal`);
-    return { tp1: null, tp2: null, tp3: null, scenario: 'skip_no_space' };
-  }
+  // Step 1: Calculate fixed R-targets
+  const fixedTP1 = direction === 'LONG' 
+    ? entryPrice + (1.5 * riskR)
+    : entryPrice - (1.5 * riskR);
+  
+  const fixedTP2 = direction === 'LONG'
+    ? entryPrice + (2.5 * riskR)
+    : entryPrice - (2.5 * riskR);
+  
+  const fixedTP3 = direction === 'LONG'
+    ? entryPrice + (4.0 * riskR)
+    : entryPrice - (4.0 * riskR);
 
-  // If 1.0 ≤ R_available < 2.0 → TP = 1.0R (scalp)
-  if (rAvailable >= 1.0 && rAvailable < 2.0) {
-    const tp1 = direction === 'LONG' 
-      ? entryPrice + (1.0 * riskR)
-      : entryPrice - (1.0 * riskR);
-    
-    console.log(`🎯 [TPs] Scalp mode: TP1=${tp1.toFixed(8)}`);
-    return { tp1, tp2: null, tp3: null, scenario: 'scalp_1R' };
-  }
+  console.log(`🎯 [TP] Fixed R-targets: TP1=${fixedTP1.toFixed(8)} (1.5R), TP2=${fixedTP2.toFixed(8)} (2.5R), TP3=${fixedTP3.toFixed(8)} (4.0R)`);
 
-  // If 2.0 ≤ R_available < 3.0 → TP = 2.0R
-  if (rAvailable >= 2.0 && rAvailable < 3.0) {
-    const tp1 = direction === 'LONG'
-      ? entryPrice + (1.0 * riskR)
-      : entryPrice - (1.0 * riskR);
-    
-    const tp2 = direction === 'LONG'
-      ? entryPrice + (2.0 * riskR)
-      : entryPrice - (2.0 * riskR);
+  // Step 2: Find nearest 3 resistance/support zones
+  const nearestZones = findNearestResistanceZones(entryPrice, direction, zones, 3);
+  console.log(`🎯 [TP] Found ${nearestZones.length} nearby zones`);
 
-    console.log(`🎯 [TPs] Swing mode: TP1=${tp1.toFixed(8)}, TP2=${tp2.toFixed(8)}`);
-    return { tp1, tp2, tp3: null, scenario: 'swing_2R' };
-  }
+  // Step 3: Adjust zones to place TP BEFORE the zone (5% buffer)
+  const adjustedZones = nearestZones.map(z => adjustZoneForTP(z, direction));
+  console.log(`🎯 [TP] Adjusted zones (95%/105%):`, adjustedZones.map(z => z.toFixed(8)));
 
-  // If R_available ≥ 3.0 → check for H4 zone interference
-  const h4Zone = zones.find(z =>
-    z.tf === '4h' &&
-    z.type === (direction === 'LONG' ? 'resistance' : 'support') &&
-    (direction === 'LONG' ? z.low > entryPrice : z.high < entryPrice)
+  // Calculate distance to nearest zone in R units
+  const nearestResistanceDistance = nearestZones.length > 0
+    ? Math.abs(nearestZones[0] - entryPrice) / riskR
+    : 999; // No zone = unlimited
+  
+  console.log(`🎯 [TP] Nearest resistance distance: ${nearestResistanceDistance.toFixed(2)}R`);
+
+  // Step 4: Calculate hybrid TPs using min(fixedR, zoneAdjusted)
+  const hybridTP1 = calculateHybridTP(
+    entryPrice,
+    direction === 'LONG' ? entryPrice - riskR : entryPrice + riskR, // SL
+    1.5,
+    adjustedZones[0] ?? null,
+    direction
   );
 
-  let tp3Target = direction === 'LONG'
-    ? entryPrice + (3.0 * riskR)
-    : entryPrice - (3.0 * riskR);
+  const hybridTP2 = calculateHybridTP(
+    entryPrice,
+    direction === 'LONG' ? entryPrice - riskR : entryPrice + riskR,
+    2.5,
+    adjustedZones[1] ?? null,
+    direction
+  );
 
-  // Check if H4 zone is closer than 3.0R
-  if (h4Zone) {
-    const distToH4 = Math.abs((direction === 'LONG' ? h4Zone.low : h4Zone.high) - entryPrice);
-    const distToTP3 = Math.abs(tp3Target - entryPrice);
+  const hybridTP3 = calculateHybridTP(
+    entryPrice,
+    direction === 'LONG' ? entryPrice - riskR : entryPrice + riskR,
+    4.0,
+    adjustedZones[2] ?? null,
+    direction
+  );
 
-    if (distToH4 < distToTP3) {
-      // H4 zone closer → use min(3.0R, 0.9·clearance)
-      tp3Target = direction === 'LONG'
-        ? entryPrice + Math.min(3.0 * riskR, 0.9 * clearance)
-        : entryPrice - Math.min(3.0 * riskR, 0.9 * clearance);
-      
-      console.log(`⚠️ [TP3] H4 zone interference → adjusted to ${tp3Target.toFixed(8)}`);
+  console.log(`🎯 [TP] Hybrid TP1: ${hybridTP1.tp.toFixed(8)} (limited by zone: ${hybridTP1.limitedByZone})`);
+  console.log(`🎯 [TP] Hybrid TP2: ${hybridTP2.tp.toFixed(8)} (limited by zone: ${hybridTP2.limitedByZone})`);
+  console.log(`🎯 [TP] Hybrid TP3: ${hybridTP3.tp.toFixed(8)} (limited by zone: ${hybridTP3.limitedByZone})`);
+
+  // Step 5: Validate ordering and minimum distance (0.5R)
+  let tp1 = hybridTP1.tp;
+  let tp2 = hybridTP2.tp;
+  let tp3 = hybridTP3.tp;
+  let tp1Limited = hybridTP1.limitedByZone;
+  let tp2Limited = hybridTP2.limitedByZone;
+  let tp3Limited = hybridTP3.limitedByZone;
+
+  // Minimum distance check (0.5R from entry)
+  const minDistanceFromEntry = 0.5 * riskR;
+  
+  const checkMinDistance = (tp: number): boolean => {
+    return Math.abs(tp - entryPrice) >= minDistanceFromEntry;
+  };
+
+  // Validate TP1 (must be at least 0.5R from entry)
+  if (!checkMinDistance(tp1)) {
+    console.log(`⚠️ [TP] TP1 too close to entry (<0.5R), adjusting to 0.5R`);
+    tp1 = direction === 'LONG' 
+      ? entryPrice + minDistanceFromEntry
+      : entryPrice - minDistanceFromEntry;
+  }
+
+  // Validate ordering: TP1 < TP2 < TP3 (for LONG) or TP1 > TP2 > TP3 (for SHORT)
+  if (direction === 'LONG') {
+    // For LONG: ensure TP1 < TP2 < TP3
+    if (tp2 <= tp1) {
+      console.log(`⚠️ [TP] TP2 (${tp2.toFixed(8)}) <= TP1 (${tp1.toFixed(8)}), setting TP2 to null`);
+      tp2 = null as any;
+      tp2Limited = false;
+    }
+    if (tp2 && tp3 <= tp2) {
+      console.log(`⚠️ [TP] TP3 (${tp3.toFixed(8)}) <= TP2 (${tp2.toFixed(8)}), setting TP3 to null`);
+      tp3 = null as any;
+      tp3Limited = false;
+    }
+  } else {
+    // For SHORT: ensure TP1 > TP2 > TP3
+    if (tp2 >= tp1) {
+      console.log(`⚠️ [TP] TP2 (${tp2.toFixed(8)}) >= TP1 (${tp1.toFixed(8)}), setting TP2 to null`);
+      tp2 = null as any;
+      tp2Limited = false;
+    }
+    if (tp2 && tp3 >= tp2) {
+      console.log(`⚠️ [TP] TP3 (${tp3.toFixed(8)}) >= TP2 (${tp2.toFixed(8)}), setting TP3 to null`);
+      tp3 = null as any;
+      tp3Limited = false;
     }
   }
 
-  const tp1 = direction === 'LONG'
-    ? entryPrice + (1.0 * riskR)
-    : entryPrice - (1.0 * riskR);
+  // Determine scenario based on how many TPs are valid
+  let scenario: DynamicRiskProfile['scenario'];
+  if (!tp1) {
+    scenario = 'skip_no_space';
+  } else if (!tp2) {
+    scenario = 'scalp_1R';
+  } else if (!tp3) {
+    scenario = 'swing_2R';
+  } else {
+    scenario = 'trend_3R';
+  }
 
-  const tp2 = direction === 'LONG'
-    ? entryPrice + (2.0 * riskR)
-    : entryPrice - (2.0 * riskR);
+  console.log(`🎯 [TP] Final scenario: ${scenario}`);
+  console.log(`🎯 [TP] Final TPs: TP1=${tp1?.toFixed(8) || 'null'}, TP2=${tp2?.toFixed(8) || 'null'}, TP3=${tp3?.toFixed(8) || 'null'}`);
+  console.log(`🎯 [TP] === END HYBRID TP CALCULATOR ===\n`);
 
-  console.log(`🎯 [TPs] Trend mode: TP1=${tp1.toFixed(8)}, TP2=${tp2.toFixed(8)}, TP3=${tp3Target.toFixed(8)}`);
-  
-  return { tp1, tp2, tp3: tp3Target, scenario: 'trend_3R' };
+  return {
+    tp1,
+    tp2,
+    tp3,
+    tp1LimitedByZone: tp1Limited,
+    tp2LimitedByZone: tp2Limited,
+    tp3LimitedByZone: tp3Limited,
+    nearestResistanceDistance,
+    scenario,
+  };
 }
 
 /**
