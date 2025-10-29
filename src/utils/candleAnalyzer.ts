@@ -613,12 +613,52 @@ export class PatternDetector {
       if (tailProtrusion) {
         console.log(`   ✅✅ [Pattern] Pin Bar BUY detected (цвет НЕ важен, хвост выступает)`);
         console.log(`   🎯 RETURNING Entry=${C0.close}, CandleClose=${C0.close}`);
+        
+        // 📊 SCORING (0-10): Pin Bar BUY
+        let score = 5; // Base score
+        
+        // 1. Tail/body ratio
+        const tailBodyRatio = B > 0 ? D / B : 10; // Very small body = high ratio
+        if (tailBodyRatio >= 3.0) {
+          score += 2;
+          console.log(`   📊 [Score] Tail/body ratio ${tailBodyRatio.toFixed(2)}x ≥ 3.0: +2 points`);
+        } else if (tailBodyRatio >= 2.0) {
+          score += 1;
+          console.log(`   📊 [Score] Tail/body ratio ${tailBodyRatio.toFixed(2)}x ≥ 2.0: +1 point`);
+        }
+        
+        // 2. Clean opposite wick (upper wick should be <10% of range)
+        const oppWickPercent = U / R;
+        if (oppWickPercent < 0.10) {
+          score += 1;
+          console.log(`   📊 [Score] Clean opposite wick ${(oppWickPercent*100).toFixed(1)}% < 10%: +1 point`);
+        }
+        
+        // 3. Body <25% of range
+        const bodyPercent = B / R;
+        if (bodyPercent < 0.25) {
+          score += 1;
+          console.log(`   📊 [Score] Small body ${(bodyPercent*100).toFixed(1)}% < 25%: +1 point`);
+        }
+        
+        // 4. Body at edge (upper edge for LONG pinbar)
+        const bodyFromTop = U / R;
+        if (bodyFromTop < 0.25) {
+          score += 1;
+          console.log(`   📊 [Score] Body at edge ${(bodyFromTop*100).toFixed(1)}% from top < 25%: +1 point`);
+        }
+        
+        // Cap at 10
+        score = Math.min(score, 10);
+        console.log(`📊 [Pattern Score] PINBAR_BUY: ${score}/10`);
+        
         return {
           detected: true,
           type: 'pinbar_buy',
           direction: 'LONG',
           entryPrice: C0.close,
           candleClosePrice: C0.close,
+          score,
         };
       } else {
         console.log(`   ❌ REJECT: Tail does NOT protrude below recent lows`);
@@ -645,12 +685,52 @@ export class PatternDetector {
       if (tailProtrusion) {
         console.log(`   ✅✅ [Pattern] Pin Bar SELL detected (цвет НЕ важен, хвост выступает)`);
         console.log(`   🎯 RETURNING Entry=${C0.close}, CandleClose=${C0.close}`);
+        
+        // 📊 SCORING (0-10): Pin Bar SELL
+        let score = 5; // Base score
+        
+        // 1. Tail/body ratio
+        const tailBodyRatio = B > 0 ? U / B : 10; // Very small body = high ratio
+        if (tailBodyRatio >= 3.0) {
+          score += 2;
+          console.log(`   📊 [Score] Tail/body ratio ${tailBodyRatio.toFixed(2)}x ≥ 3.0: +2 points`);
+        } else if (tailBodyRatio >= 2.0) {
+          score += 1;
+          console.log(`   📊 [Score] Tail/body ratio ${tailBodyRatio.toFixed(2)}x ≥ 2.0: +1 point`);
+        }
+        
+        // 2. Clean opposite wick (lower wick should be <10% of range)
+        const oppWickPercent = D / R;
+        if (oppWickPercent < 0.10) {
+          score += 1;
+          console.log(`   📊 [Score] Clean opposite wick ${(oppWickPercent*100).toFixed(1)}% < 10%: +1 point`);
+        }
+        
+        // 3. Body <25% of range
+        const bodyPercent = B / R;
+        if (bodyPercent < 0.25) {
+          score += 1;
+          console.log(`   📊 [Score] Small body ${(bodyPercent*100).toFixed(1)}% < 25%: +1 point`);
+        }
+        
+        // 4. Body at edge (lower edge for SHORT pinbar)
+        const bodyFromBottom = D / R;
+        if (bodyFromBottom < 0.25) {
+          score += 1;
+          console.log(`   📊 [Score] Body at edge ${(bodyFromBottom*100).toFixed(1)}% from bottom < 25%: +1 point`);
+        }
+        
+        // Cap at 10
+        score = Math.min(score, 10);
+        console.log(`📊 [Pattern Score] PINBAR_SELL: ${score}/10`);
+        
         return {
           detected: true,
           type: 'pinbar_sell',
           direction: 'SHORT',
           entryPrice: C0.close,
           candleClosePrice: C0.close,
+          score,
         };
       } else {
         console.log(`   ❌ REJECT: Tail does NOT protrude above recent highs`);
@@ -738,12 +818,49 @@ export class PatternDetector {
         
         if (confirmedLong) {
           console.log(`   ✅✅ [Pattern] Fakey BUY detected (цвет НЕ важен, ${numIB} IB)`);
+          
+          // 📊 SCORING (0-10): Fakey BUY
+          let score = 6; // Base score
+          
+          // 1. Mother bar size relative to ATR (≥1.5 ATR = +1 point)
+          const mbToAtrRatio = MB.range / atr;
+          if (mbToAtrRatio >= 1.5) {
+            score += 1;
+            console.log(`   📊 [Score] MB size ${mbToAtrRatio.toFixed(2)}x ATR ≥ 1.5: +1 point`);
+          }
+          
+          // 2. Inside bar tightness (already guaranteed by detection, but reward tighter IB)
+          const ibTightness = (IBHigh - IBLow) / MB.range;
+          if (ibTightness < 0.5) {
+            score += 1;
+            console.log(`   📊 [Score] IB tightness ${(ibTightness*100).toFixed(1)}% < 50%: +1 point`);
+          }
+          
+          // 3. False break distance (significant move outside MB, check probe depth)
+          const probePercent = fbProbeDepth / (epsilon * atr);
+          if (probePercent >= 1.5) {
+            score += 1;
+            console.log(`   📊 [Score] Strong false break ${probePercent.toFixed(2)}x epsilon: +1 point`);
+          }
+          
+          // 4. Clean rejection (close beyond opposite boundary = strong)
+          const closeAboveIBRange = (FB.close - IBHigh) / (IBHigh - IBLow || 1);
+          if (closeAboveIBRange >= 0.3) {
+            score += 1;
+            console.log(`   📊 [Score] Strong rejection close ${(closeAboveIBRange*100).toFixed(1)}% beyond IB: +1 point`);
+          }
+          
+          // Cap at 10
+          score = Math.min(score, 10);
+          console.log(`📊 [Pattern Score] FAKEY_BUY: ${score}/10`);
+          
           return {
             detected: true,
             type: 'fakey_buy',
             direction: 'LONG',
             entryPrice: FB.close,
             candleClosePrice: FB.close,
+            score,
           };
         }
       }
@@ -763,12 +880,49 @@ export class PatternDetector {
         
         if (confirmedShort) {
           console.log(`   ✅✅ [Pattern] Fakey SELL detected (цвет НЕ важен, ${numIB} IB)`);
+          
+          // 📊 SCORING (0-10): Fakey SELL
+          let score = 6; // Base score
+          
+          // 1. Mother bar size relative to ATR (≥1.5 ATR = +1 point)
+          const mbToAtrRatio = MB.range / atr;
+          if (mbToAtrRatio >= 1.5) {
+            score += 1;
+            console.log(`   📊 [Score] MB size ${mbToAtrRatio.toFixed(2)}x ATR ≥ 1.5: +1 point`);
+          }
+          
+          // 2. Inside bar tightness (already guaranteed by detection, but reward tighter IB)
+          const ibTightness = (IBHigh - IBLow) / MB.range;
+          if (ibTightness < 0.5) {
+            score += 1;
+            console.log(`   📊 [Score] IB tightness ${(ibTightness*100).toFixed(1)}% < 50%: +1 point`);
+          }
+          
+          // 3. False break distance (significant move outside MB, check probe depth)
+          const probePercent = fbProbeDepthShort / (epsilon * atr);
+          if (probePercent >= 1.5) {
+            score += 1;
+            console.log(`   📊 [Score] Strong false break ${probePercent.toFixed(2)}x epsilon: +1 point`);
+          }
+          
+          // 4. Clean rejection (close beyond opposite boundary = strong)
+          const closeBelowIBRange = (IBLow - FB.close) / (IBHigh - IBLow || 1);
+          if (closeBelowIBRange >= 0.3) {
+            score += 1;
+            console.log(`   📊 [Score] Strong rejection close ${(closeBelowIBRange*100).toFixed(1)}% beyond IB: +1 point`);
+          }
+          
+          // Cap at 10
+          score = Math.min(score, 10);
+          console.log(`📊 [Pattern Score] FAKEY_SELL: ${score}/10`);
+          
           return {
             detected: true,
             type: 'fakey_sell',
             direction: 'SHORT',
             entryPrice: FB.close,
             candleClosePrice: FB.close,
+            score,
           };
         }
       }
@@ -838,12 +992,49 @@ export class PatternDetector {
         const penetration = ((Bar2.close - Bar1.close) / Bar1.body) * 100;
         console.log(`   ✅✅ [Pattern] PPR BUY detected (Bullish Piercing Pattern, penetration=${penetration.toFixed(1)}%)`);
         
+        // 📊 SCORING (0-10): PPR BUY
+        let score = 6; // Base score
+        
+        // 1. Penetration depth (>50% already guaranteed, reward deeper penetration)
+        const penetrationPercent = (Bar2.close - Bar1.close) / Bar1.body;
+        if (penetrationPercent > 0.7) {
+          score += 1;
+          console.log(`   📊 [Score] Deep penetration ${(penetrationPercent*100).toFixed(1)}% > 70%: +1 point`);
+        }
+        
+        // 2. Gap size (visible gap already guaranteed by detection)
+        const gapSize = Bar1.close - Bar2.open;
+        const gapToAtrRatio = gapSize / atr;
+        if (gapToAtrRatio > 0.2) {
+          score += 1;
+          console.log(`   📊 [Score] Visible gap ${gapToAtrRatio.toFixed(2)}x ATR > 0.2: +1 point`);
+        }
+        
+        // 3. Bar2 strength (large body)
+        const bar2BodyToAtrRatio = Bar2.body / atr;
+        if (bar2BodyToAtrRatio >= 0.7) {
+          score += 1;
+          console.log(`   📊 [Score] Strong Bar2 body ${bar2BodyToAtrRatio.toFixed(2)}x ATR ≥ 0.7: +1 point`);
+        }
+        
+        // 4. Clean structure (small wicks on Bar2)
+        const bar2TotalWicks = (Bar2.upperWick + Bar2.lowerWick) / Bar2.range;
+        if (bar2TotalWicks < 0.3) {
+          score += 1;
+          console.log(`   📊 [Score] Clean Bar2 wicks ${(bar2TotalWicks*100).toFixed(1)}% < 30%: +1 point`);
+        }
+        
+        // Cap at 10
+        score = Math.min(score, 10);
+        console.log(`📊 [Pattern Score] PPR_BUY: ${score}/10`);
+        
         return {
           detected: true,
           type: 'ppr_buy',
           direction: 'LONG',
           entryPrice: Bar2.close,
           candleClosePrice: Bar2.close,
+          score,
         };
       }
     }
@@ -889,12 +1080,49 @@ export class PatternDetector {
         const penetration = ((Bar1.close - Bar2.close) / Bar1.body) * 100;
         console.log(`   ✅✅ [Pattern] PPR SELL detected (Bearish Dark Cloud Cover, penetration=${penetration.toFixed(1)}%)`);
         
+        // 📊 SCORING (0-10): PPR SELL
+        let score = 6; // Base score
+        
+        // 1. Penetration depth (>50% already guaranteed, reward deeper penetration)
+        const penetrationPercent = (Bar1.close - Bar2.close) / Bar1.body;
+        if (penetrationPercent > 0.7) {
+          score += 1;
+          console.log(`   📊 [Score] Deep penetration ${(penetrationPercent*100).toFixed(1)}% > 70%: +1 point`);
+        }
+        
+        // 2. Gap size (visible gap already guaranteed by detection)
+        const gapSize = Bar2.open - Bar1.close;
+        const gapToAtrRatio = gapSize / atr;
+        if (gapToAtrRatio > 0.2) {
+          score += 1;
+          console.log(`   📊 [Score] Visible gap ${gapToAtrRatio.toFixed(2)}x ATR > 0.2: +1 point`);
+        }
+        
+        // 3. Bar2 strength (large body)
+        const bar2BodyToAtrRatio = Bar2.body / atr;
+        if (bar2BodyToAtrRatio >= 0.7) {
+          score += 1;
+          console.log(`   📊 [Score] Strong Bar2 body ${bar2BodyToAtrRatio.toFixed(2)}x ATR ≥ 0.7: +1 point`);
+        }
+        
+        // 4. Clean structure (small wicks on Bar2)
+        const bar2TotalWicks = (Bar2.upperWick + Bar2.lowerWick) / Bar2.range;
+        if (bar2TotalWicks < 0.3) {
+          score += 1;
+          console.log(`   📊 [Score] Clean Bar2 wicks ${(bar2TotalWicks*100).toFixed(1)}% < 30%: +1 point`);
+        }
+        
+        // Cap at 10
+        score = Math.min(score, 10);
+        console.log(`📊 [Pattern Score] PPR_SELL: ${score}/10`);
+        
         return {
           detected: true,
           type: 'ppr_sell',
           direction: 'SHORT',
           entryPrice: Bar2.close,
           candleClosePrice: Bar2.close,
+          score,
         };
       }
     }
@@ -975,12 +1203,49 @@ export class PatternDetector {
         
         if (closeAtTopOK) {
           console.log(`   ✅✅ [Pattern] Engulfing BUY detected (RED→GREEN с γ-запасом)`);
+          
+          // 📊 SCORING (0-10): Engulfing BUY
+          let score = 5; // Base score
+          
+          // 1. Full engulfment (Bar2 fully covers Bar1 range)
+          const fullEngulfment = Bar2.low <= Bar1.low && Bar2.high >= Bar1.high;
+          if (fullEngulfment) {
+            score += 2;
+            console.log(`   📊 [Score] Full range engulfment (Bar2 covers Bar1 completely): +2 points`);
+          }
+          
+          // 2. Engulfing strength (Bar2 body ≥2x Bar1 body)
+          const bodyRatioActual = Bar1.body > 0 ? Bar2.body / Bar1.body : 10;
+          if (bodyRatioActual >= 2.0) {
+            score += 1;
+            console.log(`   📊 [Score] Strong engulfing ${bodyRatioActual.toFixed(2)}x body ≥ 2.0: +1 point`);
+          }
+          
+          // 3. Clean structure (Bar2 has small wicks)
+          const bar2TotalWicks = (Bar2.upperWick + Bar2.lowerWick) / Bar2.range;
+          if (bar2TotalWicks < 0.3) {
+            score += 1;
+            console.log(`   📊 [Score] Clean structure wicks ${(bar2TotalWicks*100).toFixed(1)}% < 30%: +1 point`);
+          }
+          
+          // 4. Body dominance (Bar2 body ≥80% of range)
+          const bodyDominance = Bar2.body / Bar2.range;
+          if (bodyDominance >= 0.8) {
+            score += 1;
+            console.log(`   📊 [Score] Body dominance ${(bodyDominance*100).toFixed(1)}% ≥ 80%: +1 point`);
+          }
+          
+          // Cap at 10
+          score = Math.min(score, 10);
+          console.log(`📊 [Pattern Score] ENGULFING_BUY: ${score}/10`);
+          
           return {
             detected: true,
             type: 'engulfing_buy',
             direction: 'LONG',
             entryPrice: Bar2.close,
             candleClosePrice: Bar2.close,
+            score,
           };
         }
       }
@@ -1009,12 +1274,49 @@ export class PatternDetector {
         
         if (closeAtBottomOK) {
           console.log(`   ✅✅ [Pattern] Engulfing SELL detected (GREEN→RED с γ-запасом)`);
+          
+          // 📊 SCORING (0-10): Engulfing SELL
+          let score = 5; // Base score
+          
+          // 1. Full engulfment (Bar2 fully covers Bar1 range)
+          const fullEngulfment = Bar2.low <= Bar1.low && Bar2.high >= Bar1.high;
+          if (fullEngulfment) {
+            score += 2;
+            console.log(`   📊 [Score] Full range engulfment (Bar2 covers Bar1 completely): +2 points`);
+          }
+          
+          // 2. Engulfing strength (Bar2 body ≥2x Bar1 body)
+          const bodyRatioActual = Bar1.body > 0 ? Bar2.body / Bar1.body : 10;
+          if (bodyRatioActual >= 2.0) {
+            score += 1;
+            console.log(`   📊 [Score] Strong engulfing ${bodyRatioActual.toFixed(2)}x body ≥ 2.0: +1 point`);
+          }
+          
+          // 3. Clean structure (Bar2 has small wicks)
+          const bar2TotalWicks = (Bar2.upperWick + Bar2.lowerWick) / Bar2.range;
+          if (bar2TotalWicks < 0.3) {
+            score += 1;
+            console.log(`   📊 [Score] Clean structure wicks ${(bar2TotalWicks*100).toFixed(1)}% < 30%: +1 point`);
+          }
+          
+          // 4. Body dominance (Bar2 body ≥80% of range)
+          const bodyDominance = Bar2.body / Bar2.range;
+          if (bodyDominance >= 0.8) {
+            score += 1;
+            console.log(`   📊 [Score] Body dominance ${(bodyDominance*100).toFixed(1)}% ≥ 80%: +1 point`);
+          }
+          
+          // Cap at 10
+          score = Math.min(score, 10);
+          console.log(`📊 [Pattern Score] ENGULFING_SELL: ${score}/10`);
+          
           return {
             detected: true,
             type: 'engulfing_sell',
             direction: 'SHORT',
             entryPrice: Bar2.close,
             candleClosePrice: Bar2.close,
+            score,
           };
         }
       }
