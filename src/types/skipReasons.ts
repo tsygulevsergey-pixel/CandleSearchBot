@@ -45,6 +45,20 @@ export const SKIP_REASONS = {
   LIQUIDITY_SPREAD_ISSUE: 'liquidity_spread_issue',
   NEWS_BLACKOUT: 'news_blackout',
   SESSION_BLACKOUT: 'session_blackout',
+  
+  // NEW: Dynamic S/R veto filters (Блок A)
+  H4_VETO_RES_TOO_CLOSE: 'h4_veto_res_too_close', // H4 resistance < 0.7·ATR1h for LONG
+  H4_VETO_SUP_TOO_CLOSE: 'h4_veto_sup_too_close', // H4 support < 0.7·ATR1h for SHORT
+  H1_VETO_RES_TOO_CLOSE: 'h1_veto_res_too_close', // H1 resistance < 1.0·ATR15 for LONG
+  H1_VETO_SUP_TOO_CLOSE: 'h1_veto_sup_too_close', // H1 support < 1.0·ATR15 for SHORT
+  
+  // NEW: R_available filter (Блок B п.6)
+  R_AVAILABLE_LT_1_0: 'r_available_lt_1_0', // Not enough space for trade
+  
+  // NEW: Bad context filters (Блок B п.9)
+  COMPRESSION_RANGE_LT_0_7_ATR15: 'compression_range_lt_0_7_atr15', // Range of last 12 bars < 0.7·ATR15
+  WHIPSAW_ZONE: 'whipsaw_zone', // Both sides < 1.0R (saw pattern)
+  POLLUTED_ZONE: 'polluted_zone', // Overlapping microzones > 1.5·ATR15
 } as const;
 
 export type SkipReason = typeof SKIP_REASONS[keyof typeof SKIP_REASONS];

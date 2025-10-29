@@ -114,5 +114,12 @@ export function extractMLContextFields(mlContext: MLContext) {
     distToDirH4ZoneAtr: mlContext.distToDirH4ZoneAtr.toFixed(4),
     freePathR: mlContext.freePathR.toFixed(4),
     arrivalPattern: mlContext.arrivalPattern,
+    // NEW: Dynamic S/R fields
+    clearance15m: mlContext.clearance15m?.toFixed(8) || '0',
+    clearance1h: mlContext.clearance1h?.toFixed(8) || '0',
+    rAvailable: mlContext.rAvailable?.toFixed(2) || '0',
+    zoneTestCount24h: mlContext.zoneTestCount24h || 0, // Keep as number
+    vetoReason: mlContext.vetoReason || 'none',
+    slBufferAtr15: mlContext.slBufferAtr15?.toFixed(4) || '0',
   };
 }

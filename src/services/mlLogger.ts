@@ -39,8 +39,17 @@ export interface MLContext {
   freePathAtr15: number;
   freePathR: number;
   
+  // NEW: Dynamic S/R fields
+  clearance15m: number;
+  clearance1h: number;
+  rAvailable: number;
+  zoneTestCount24h: number;
+  vetoReason: 'h4_res_too_close' | 'h4_sup_too_close' | 'h1_res_too_close' | 'h1_sup_too_close' | 'none';
+  slBufferAtr15: number;
+  
   // Arrival & quality
   arrivalPattern: 'impulse_up' | 'impulse_down' | 'compression' | 'chop';
+  compressionRangeAtr15: number; // Range of last 12 bars divided by ATR15
   zoneTouchCountBucket: '0' | '1' | '2' | '>=3';
   zoneThicknessAtr15: number;
   
@@ -245,6 +254,21 @@ export async function collectMLContext(
     ? (zoneToCount.high - zoneToCount.low) / atr15m
     : 0;
   
+  // Compression range: Calculate range of last 12 bars
+  const last12Candles = candles15m.slice(-12);
+  let compressionHigh = -Infinity;
+  let compressionLow = Infinity;
+  
+  for (const candle of last12Candles) {
+    const high = parseFloat(candle.high);
+    const low = parseFloat(candle.low);
+    if (high > compressionHigh) compressionHigh = high;
+    if (low < compressionLow) compressionLow = low;
+  }
+  
+  const compressionRange = compressionHigh - compressionLow;
+  const compressionRangeAtr15 = compressionRange / atr15m;
+  
   return {
     btcTrendState: btcTrend.trend,
     ema200H1Pos,
@@ -262,7 +286,15 @@ export async function collectMLContext(
     freePathPts: standardPlan.freePathPts,
     freePathAtr15: standardPlan.freePathAtr15,
     freePathR: standardPlan.freePathR,
+    // NEW: Dynamic S/R fields (defaults, will be filled by scanner)
+    clearance15m: 0,
+    clearance1h: 0,
+    rAvailable: 0,
+    zoneTestCount24h: 0,
+    vetoReason: 'none',
+    slBufferAtr15: 0,
     arrivalPattern,
+    compressionRangeAtr15,
     zoneTouchCountBucket,
     zoneThicknessAtr15: zoneThickness,
     signalBarSizeAtr15,
@@ -319,6 +351,13 @@ export async function logNearMissSkip(
     signalBarSizeBucket: mlContext.signalBarSizeBucket,
     confirmType: null, // TODO: Add confirmation logic later
     confirmWaitBars15m: null,
+    // NEW: Dynamic S/R fields
+    clearance15m: mlContext.clearance15m.toString(),
+    clearance1h: mlContext.clearance1h.toString(),
+    rAvailable: mlContext.rAvailable.toFixed(2),
+    zoneTestCount24h: mlContext.zoneTestCount24h,
+    vetoReason: mlContext.vetoReason,
+    slBufferAtr15: mlContext.slBufferAtr15.toFixed(4),
     decision: 'skip',
     skipReasons,
     rulesetVersion: RULESET_VERSION,

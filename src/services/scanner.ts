@@ -1,9 +1,11 @@
 import { binanceClient } from '../utils/binanceClient';
 import { patternDetector, calculateATR, analyzeSRZonesTV } from '../utils/candleAnalyzer';
 import { riskCalculator } from '../utils/riskCalculator';
+import { calculateDynamicRiskProfile } from '../utils/dynamicRiskCalculator';
 import { signalDB } from '../mastra/storage/db';
 import { getCoinCluster, getCoinsByFamily, getFamilyId } from '../utils/marketClusters';
 import { processMLIntegration, extractMLContextFields } from './mlIntegration';
+import { zoneTestTracker } from './zoneTestTracker';
 import axios from 'axios';
 
 export class Scanner {
@@ -159,17 +161,89 @@ export class Scanner {
                 console.log(`✅ [Scanner] ML Note: ${symbol} passes all ML filters`);
               }
               
-              // Calculate comprehensive risk profile with ATR-based SL and multi-level TPs
-              const riskProfile = riskCalculator.calculateRiskProfile(
-                pattern.type,
+              // 🎯 DYNAMIC RISK CALCULATOR: Calculate with zone-aware adaptive SL/TP
+              console.log(`🎯 [Scanner] Calculating dynamic risk profile for ${symbol}...`);
+              
+              // Calculate pattern extreme (low for LONG, high for SHORT)
+              const patternExtreme = pattern.direction === 'LONG' 
+                ? Math.min(...candles.slice(-3).map(c => Number(c.low)))
+                : Math.max(...candles.slice(-3).map(c => Number(c.high)));
+              
+              // Calculate ATRs
+              const atr15m = calculateATR(candles);
+              const atr1h = calculateATR(candles1h);
+              const atr4h = calculateATR(candles4h);
+              
+              // Get zone test count from zoneTestTracker
+              const zoneTestCount24h = zoneTestTracker.getActiveZoneTestCount(
+                symbol,
                 pattern.direction,
-                entryPrice,
-                candles,    // 15m candles
-                candles1h,  // 1h candles
-                candles4h   // 4h candles
+                mlResult.mlContext.zones,
+                24
               );
               
-              console.log(`✅ [Scanner] Risk profile calculated: SL=${riskProfile.sl.toFixed(8)}, TP1=${riskProfile.tp1.toFixed(8)}, TP2=${riskProfile.tp2.toFixed(8)}, TP3=${riskProfile.tp3.toFixed(8)}`);
+              console.log(`📊 [Scanner] Dynamic input: patternExtreme=${patternExtreme.toFixed(8)}, zoneTestCount24h=${zoneTestCount24h}`);
+              
+              // Calculate dynamic risk profile
+              const dynamicProfile = calculateDynamicRiskProfile({
+                direction: pattern.direction,
+                entryPrice,
+                patternExtreme,
+                zones: mlResult.mlContext.zones,
+                atr15m,
+                atr1h,
+                atr4h,
+                zoneTestCount24h,
+                candles15m: candles,
+              });
+              
+              console.log(`✅ [Scanner] Dynamic risk profile: scenario=${dynamicProfile.scenario}, SL=${dynamicProfile.sl.toFixed(8)}, TP1=${dynamicProfile.tp1?.toFixed(8) || 'null'}, TP2=${dynamicProfile.tp2?.toFixed(8) || 'null'}, TP3=${dynamicProfile.tp3?.toFixed(8) || 'null'}`);
+              console.log(`   📊 Metadata: R=${dynamicProfile.riskR.toFixed(8)}, R_avail=${dynamicProfile.rAvailable.toFixed(1)}, clearance15m=${dynamicProfile.clearance15m.toFixed(8)}, clearance1h=${dynamicProfile.clearance1h.toFixed(8)}`);
+              console.log(`   🛡️ Veto: ${dynamicProfile.vetoReason}, SL buffer: ${dynamicProfile.slBufferAtr15.toFixed(2)} ATR15`);
+              
+              // Fallback to legacy calculator if dynamic profile has veto or no TPs
+              let riskProfile: any;
+              if (dynamicProfile.vetoReason !== 'none' || !dynamicProfile.tp1) {
+                console.log(`⚠️ [Scanner] Dynamic profile has veto or no space, falling back to legacy calculator`);
+                riskProfile = riskCalculator.calculateRiskProfile(
+                  pattern.type,
+                  pattern.direction,
+                  entryPrice,
+                  candles,
+                  candles1h,
+                  candles4h
+                );
+                console.log(`✅ [Scanner] Legacy risk profile: SL=${riskProfile.sl.toFixed(8)}, TP1=${riskProfile.tp1.toFixed(8)}, TP2=${riskProfile.tp2.toFixed(8)}, TP3=${riskProfile.tp3.toFixed(8)}`);
+              } else {
+                // Convert dynamic profile to legacy format for compatibility
+                riskProfile = {
+                  sl: dynamicProfile.sl,
+                  tp1: dynamicProfile.tp1,
+                  tp2: dynamicProfile.tp2 || dynamicProfile.tp1, // Fallback if tp2 is null
+                  tp3: dynamicProfile.tp3 || dynamicProfile.tp2 || dynamicProfile.tp1, // Fallback chain
+                  initialSl: dynamicProfile.sl,
+                  atr15m: dynamicProfile.riskR, // Use actual risk R as atr15m for consistency
+                  atr4h: atr4h,
+                  scenario: dynamicProfile.scenario === 'scalp_1R' ? 'trend_continuation' : 'htf_reversal',
+                  meta: {
+                    riskR: dynamicProfile.riskR,
+                    tp1R: dynamicProfile.tp1 ? Math.abs(dynamicProfile.tp1 - entryPrice) / dynamicProfile.riskR : 0,
+                    tp2R: dynamicProfile.tp2 ? Math.abs(dynamicProfile.tp2 - entryPrice) / dynamicProfile.riskR : 0,
+                    tp3R: dynamicProfile.tp3 ? Math.abs(dynamicProfile.tp3 - entryPrice) / dynamicProfile.riskR : 0,
+                  },
+                };
+              }
+
+              // Update ML context with dynamic risk profile fields
+              const enrichedMLContext = {
+                ...mlResult.mlContext,
+                clearance15m: dynamicProfile.clearance15m,
+                clearance1h: dynamicProfile.clearance1h,
+                rAvailable: dynamicProfile.rAvailable,
+                zoneTestCount24h: dynamicProfile.zoneTestCount24h,
+                vetoReason: dynamicProfile.vetoReason,
+                slBufferAtr15: dynamicProfile.slBufferAtr15,
+              };
 
               const signal = await signalDB.createSignal({
                 symbol,
@@ -186,8 +260,8 @@ export class Scanner {
                 atrH4: riskProfile.atr4h.toString(),
                 direction: pattern.direction,
                 status: 'OPEN',
-                // ML context fields
-                ...extractMLContextFields(mlResult.mlContext),
+                // ML context fields (enriched with dynamic risk data)
+                ...extractMLContextFields(enrichedMLContext),
               });
 
               signalsFound++;

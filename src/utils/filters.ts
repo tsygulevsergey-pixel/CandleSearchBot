@@ -21,6 +21,73 @@ export function checkFilters(
 ): FilterResult {
   const skipReasons: SkipReason[] = [];
   
+  // ========== VETO FILTERS (Блок A - Dynamic S/R) ==========
+  
+  // VETO FILTER 1: H4 veto - resistance/support too close
+  if (mlContext.vetoReason && mlContext.vetoReason.includes('h4_')) {
+    if (direction === 'LONG' && mlContext.vetoReason === 'h4_res_too_close') {
+      skipReasons.push('h4_veto_res_too_close');
+    }
+    if (direction === 'SHORT' && mlContext.vetoReason === 'h4_sup_too_close') {
+      skipReasons.push('h4_veto_sup_too_close');
+    }
+  }
+  
+  // VETO FILTER 2: H1 veto - resistance/support too close
+  if (mlContext.vetoReason && mlContext.vetoReason.includes('h1_')) {
+    if (direction === 'LONG' && mlContext.vetoReason === 'h1_res_too_close') {
+      skipReasons.push('h1_veto_res_too_close');
+    }
+    if (direction === 'SHORT' && mlContext.vetoReason === 'h1_sup_too_close') {
+      skipReasons.push('h1_veto_sup_too_close');
+    }
+  }
+  
+  // VETO FILTER 3: R_available < 1.0 (not enough space for trade)
+  if (mlContext.rAvailable !== undefined && mlContext.rAvailable < 1.0) {
+    skipReasons.push('r_available_lt_1_0');
+  }
+  
+  // ========== BAD CONTEXT FILTERS (Блок B п.9) ==========
+  
+  // BAD CONTEXT FILTER 1: Whipsaw zone (both clearances < 1.0R)
+  // Calculate clearance in R terms (using riskR from context)
+  const riskR = mlContext.atr15m; // Approximate R size
+  if (
+    mlContext.clearance15m !== undefined &&
+    mlContext.clearance1h !== undefined &&
+    riskR > 0
+  ) {
+    const clearance15mR = mlContext.clearance15m / riskR;
+    const clearance1hR = mlContext.clearance1h / riskR;
+    
+    if (clearance15mR < 1.0 && clearance1hR < 1.0) {
+      skipReasons.push('whipsaw_zone');
+    }
+  }
+  
+  // BAD CONTEXT FILTER 2: Compression range < 0.7·ATR15
+  // If range of last 12 bars is less than 0.7·ATR15, market is too compressed
+  if (mlContext.compressionRangeAtr15 !== undefined && mlContext.compressionRangeAtr15 < 0.7) {
+    skipReasons.push('compression_range_lt_0_7_atr15');
+  }
+  
+  // BAD CONTEXT FILTER 3: Polluted zone (overlapping microzones > 1.5·ATR15)
+  // Calculate sum of 15m zone thicknesses
+  let zoneThicknessSum = 0;
+  const zones15m = mlContext.zones.filter(z => z.tf === '15m');
+  
+  for (const zone of zones15m) {
+    zoneThicknessSum += (zone.high - zone.low);
+  }
+  
+  const pollutionThreshold = 1.5 * mlContext.atr15m;
+  if (zoneThicknessSum > pollutionThreshold) {
+    skipReasons.push('polluted_zone');
+  }
+  
+  // ========== LEGACY FILTERS (Existing) ==========
+  
   // FILTER 1: Near H1 opposing zone
   // LONG: Near H1 resistance (< 0.30 ATR15)
   // SHORT: Near H1 support (< 0.30 ATR15)
