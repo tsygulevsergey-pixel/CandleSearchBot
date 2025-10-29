@@ -6,10 +6,68 @@
 
 import { MLContext } from '../services/mlLogger';
 import { SkipReason } from '../types/skipReasons';
+import { Zone } from './indicators/standardPlan';
 
 export interface FilterResult {
   shouldEnter: boolean;
   skipReasons: SkipReason[];
+}
+
+/**
+ * Check if pattern candle's wick touches support/resistance zone
+ * 
+ * CRITICAL RULE: Pattern must form AT zone, not away from it
+ * 
+ * For LONG:
+ *  - Lower wick must touch support zone (15m OR 1h)
+ *  - Check: zone.low <= patternCandleLow <= zone.high
+ * 
+ * For SHORT:
+ *  - Upper wick must touch resistance zone (15m OR 1h)
+ *  - Check: zone.low <= patternCandleHigh <= zone.high
+ * 
+ * @returns true if pattern is AT zone, false otherwise
+ */
+function isPatternAtZone(
+  direction: 'LONG' | 'SHORT',
+  patternCandleHigh: number,
+  patternCandleLow: number,
+  zones: Zone[]
+): boolean {
+  if (direction === 'LONG') {
+    // LONG: Check if lower wick touches support zone (15m OR 1h)
+    const supportZones = zones.filter(
+      z => z.type === 'support' && (z.tf === '15m' || z.tf === '1h')
+    );
+    
+    for (const zone of supportZones) {
+      // Check if lower wick enters zone
+      if (patternCandleLow >= zone.low && patternCandleLow <= zone.high) {
+        console.log(`✅ [AT Zone] LONG pattern AT support: wick=${patternCandleLow.toFixed(8)} touches zone [${zone.low.toFixed(8)} - ${zone.high.toFixed(8)}] (${zone.tf})`);
+        return true;
+      }
+    }
+    
+    console.log(`❌ [AT Zone] LONG pattern NOT AT support: wick=${patternCandleLow.toFixed(8)} doesn't touch any support zone`);
+    return false;
+    
+  } else {
+    // SHORT: Check if upper wick touches resistance zone (15m OR 1h)
+    const resistanceZones = zones.filter(
+      z => z.type === 'resistance' && (z.tf === '15m' || z.tf === '1h')
+    );
+    
+    for (const zone of resistanceZones) {
+      // Check if upper wick enters zone
+      if (patternCandleHigh >= zone.low && patternCandleHigh <= zone.high) {
+        console.log(`✅ [AT Zone] SHORT pattern AT resistance: wick=${patternCandleHigh.toFixed(8)} touches zone [${zone.low.toFixed(8)} - ${zone.high.toFixed(8)}] (${zone.tf})`);
+        return true;
+      }
+    }
+    
+    console.log(`❌ [AT Zone] SHORT pattern NOT AT resistance: wick=${patternCandleHigh.toFixed(8)} doesn't touch any resistance zone`);
+    return false;
+  }
 }
 
 /**
@@ -20,6 +78,25 @@ export function checkFilters(
   mlContext: MLContext
 ): FilterResult {
   const skipReasons: SkipReason[] = [];
+  
+  // ========== CRITICAL FILTER: "AT ZONE" VALIDATION ==========
+  // Pattern MUST form AT support/resistance zone (not away from it)
+  // This is the MOST IMPORTANT filter - if pattern is not at zone, skip immediately
+  
+  const patternIsAtZone = isPatternAtZone(
+    direction,
+    mlContext.patternCandleHigh,
+    mlContext.patternCandleLow,
+    mlContext.zones
+  );
+  
+  if (!patternIsAtZone) {
+    if (direction === 'LONG') {
+      skipReasons.push('not_at_support_zone_for_long');
+    } else {
+      skipReasons.push('not_at_resistance_zone_for_short');
+    }
+  }
   
   // ========== VETO FILTERS (Блок A - Dynamic S/R) ==========
   
