@@ -24,6 +24,7 @@ export const confirmTypeEnum = pgEnum('confirm_type', ['bos_1m', 'bos_5m', 'reje
 export const zoneTouchBucketEnum = pgEnum('zone_touch_bucket', ['0', '1', '2', '>=3']);
 export const signalBarSizeBucketEnum = pgEnum('signal_bar_size_bucket', ['<0.15', '0.15-0.6', '0.6-1.2', '>1.2']);
 export const shadowOutcomeEnum = pgEnum('shadow_outcome', ['tp1', 'tp2', 'sl', 'timeout']);
+export const vetoReasonEnum = pgEnum('veto_reason', ['h4_res_too_close', 'h4_sup_too_close', 'h1_res_too_close', 'h1_sup_too_close', 'none']);
 
 // Main signals table (existing + new fields for ENTER trades)
 export const signals = pgTable('signals', {
@@ -65,6 +66,14 @@ export const signals = pgTable('signals', {
   distToDirH4ZoneAtr: decimal('dist_to_dir_h4_zone_atr', { precision: 10, scale: 4 }),
   freePathR: decimal('free_path_r', { precision: 10, scale: 4 }),
   arrivalPattern: arrivalPatternEnum('arrival_pattern'),
+  
+  // NEW: Dynamic S/R fields
+  clearance15m: decimal('clearance_15m', { precision: 18, scale: 8 }),
+  clearance1h: decimal('clearance_1h', { precision: 18, scale: 8 }),
+  rAvailable: decimal('r_available', { precision: 10, scale: 2 }),
+  zoneTestCount24h: integer('zone_test_count_24h'),
+  vetoReason: vetoReasonEnum('veto_reason'),
+  slBufferAtr15: decimal('sl_buffer_atr15', { precision: 10, scale: 4 }),
   
   // NEW: Outcome timing metrics
   mfeR: decimal('mfe_r', { precision: 10, scale: 4 }), // Maximum Favorable Excursion
@@ -132,6 +141,14 @@ export const nearMissSkips = pgTable('near_miss_skips', {
   // Confirmation
   confirmType: confirmTypeEnum('confirm_type'),
   confirmWaitBars15m: integer('confirm_wait_bars_15m'),
+  
+  // NEW: Dynamic S/R fields
+  clearance15m: decimal('clearance_15m', { precision: 18, scale: 8 }),
+  clearance1h: decimal('clearance_1h', { precision: 18, scale: 8 }),
+  rAvailable: decimal('r_available', { precision: 10, scale: 2 }),
+  zoneTestCount24h: integer('zone_test_count_24h'),
+  vetoReason: vetoReasonEnum('veto_reason'),
+  slBufferAtr15: decimal('sl_buffer_atr15', { precision: 10, scale: 4 }),
   
   // Decision
   decision: decisionEnum('decision').notNull().default('skip'),
