@@ -57,7 +57,8 @@ export async function processMLIntegration(
     candles15m,
     candles1h,
     candles4h,
-    patternExtreme
+    patternExtreme,
+    patternType
   );
   
   // Check filters

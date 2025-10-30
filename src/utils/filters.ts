@@ -277,6 +277,35 @@ export function checkFilters(
     skipReasons.push('chop_in_zone');
   }
   
+  // ========== PROFESSIONAL COUNTER-TREND FILTERS (Edge Cases) ==========
+  // Based on institutional trading rules: Counter-trend requires rejection confirmation
+  
+  // FILTER 10: LONG below H4 support WITHOUT rejection pattern
+  // Counter-trend LONG (below support) requires rejection patterns (Fakey/PPR)
+  // Block: Engulfing (no rejection confirmation)
+  // Allow: Fakey/PPR (these ARE rejection patterns)
+  if (
+    direction === 'LONG' && 
+    mlContext.hasH4SupportAboveEntry && 
+    mlContext.patternType === 'engulfing_buy'
+  ) {
+    skipReasons.push('counter_trend_long_below_support_without_rejection');
+    console.log(`❌ [Counter-Trend Filter] LONG below H4 support with Engulfing (no rejection) - BLOCKED`);
+  }
+  
+  // FILTER 11: SHORT above H4 resistance WITHOUT rejection pattern
+  // Counter-trend SHORT (above resistance) requires rejection patterns (Fakey/PPR)
+  // Block: Engulfing (no rejection confirmation)
+  // Allow: Fakey/PPR (these ARE rejection patterns)
+  if (
+    direction === 'SHORT' && 
+    mlContext.hasH4ResistanceBelowEntry && 
+    mlContext.patternType === 'engulfing_sell'
+  ) {
+    skipReasons.push('counter_trend_short_above_resistance_without_rejection');
+    console.log(`❌ [Counter-Trend Filter] SHORT above H4 resistance with Engulfing (no rejection) - BLOCKED`);
+  }
+  
   // Decision: Enter if NO skip reasons
   const shouldEnter = skipReasons.length === 0;
   

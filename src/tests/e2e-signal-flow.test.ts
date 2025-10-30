@@ -250,7 +250,8 @@ async function runE2ETest(scenario: TestScenario) {
       mockCandles15m as any,
       mockCandles1h as any,
       mockCandles4h as any,
-      pattern.extreme
+      pattern.extreme,
+      pattern.type
     );
     
     const enrichedMLContext = enrichMLContextWithRiskProfile(

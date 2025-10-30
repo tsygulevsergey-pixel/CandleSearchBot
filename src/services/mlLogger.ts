@@ -64,6 +64,11 @@ export interface MLContext {
   patternCandleLow: number;   // Low of pattern candle (C0)
   entryPrice: number;         // Entry price (pattern candle close)
   
+  // NEW: Counter-trend detection fields (Professional edge cases)
+  patternType: string;                    // Pattern type (fakey_buy, ppr_buy, engulfing_buy, etc.)
+  hasH4SupportAboveEntry: boolean;        // Is there H4 support zone ABOVE entry? (for LONG counter-trend check)
+  hasH4ResistanceBelowEntry: boolean;     // Is there H4 resistance zone BELOW entry? (for SHORT counter-trend check)
+  
   // Standard plan
   standardPlan: {
     candidateSL: number;
@@ -183,7 +188,8 @@ export async function collectMLContext(
   candles15m: any[],
   candles1h: any[],
   candles4h: any[],
-  patternExtreme: number // Pattern high/low
+  patternExtreme: number, // Pattern high/low
+  patternType: string // Pattern type (fakey_buy, ppr_buy, engulfing_buy, etc.)
 ): Promise<MLContext> {
   // ATR calculation
   const atr15m = calculateATR(candles15m);
@@ -410,6 +416,26 @@ export async function collectMLContext(
   const patternCandleHigh = parseFloat(lastCandle.high);
   const patternCandleLow = parseFloat(lastCandle.low);
   
+  // 🎯 COUNTER-TREND DETECTION: Check if there are H4 zones in "wrong" direction
+  // Professional edge cases: LONG below support / SHORT above resistance
+  
+  // Check if there's any H4 support zone ABOVE entry (counter-trend LONG scenario)
+  const hasH4SupportAboveEntry = sr4h.allZones.some(
+    zone => zone.type === 'support' && zone.lower > entryPrice
+  );
+  
+  // Check if there's any H4 resistance zone BELOW entry (counter-trend SHORT scenario)
+  const hasH4ResistanceBelowEntry = sr4h.allZones.some(
+    zone => zone.type === 'resistance' && zone.upper < entryPrice
+  );
+  
+  if (hasH4SupportAboveEntry) {
+    console.log(`⚠️ [Counter-Trend] LONG setup BELOW H4 support zone detected (entry=${entryPrice.toFixed(8)})`);
+  }
+  if (hasH4ResistanceBelowEntry) {
+    console.log(`⚠️ [Counter-Trend] SHORT setup ABOVE H4 resistance zone detected (entry=${entryPrice.toFixed(8)})`);
+  }
+  
   return {
     btcTrendState: btcTrend.trend,
     ema200H1Pos,
@@ -445,6 +471,10 @@ export async function collectMLContext(
     patternCandleHigh,
     patternCandleLow,
     entryPrice,
+    // NEW: Counter-trend detection fields
+    patternType,
+    hasH4SupportAboveEntry,
+    hasH4ResistanceBelowEntry,
     standardPlan: {
       candidateSL: standardPlan.candidateSL,
       freePathR: standardPlan.freePathR,

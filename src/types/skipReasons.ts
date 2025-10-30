@@ -69,6 +69,10 @@ export const SKIP_REASONS = {
   
   // NEW: Confluence scoring (Professional 8-factor confluence requirement)
   CONFLUENCE_TOO_LOW: 'confluence_too_low', // Confluence score below minimum requirement (5/10 for 15m)
+  
+  // NEW: Professional counter-trend edge cases (based on institutional trading rules)
+  COUNTER_TREND_LONG_BELOW_SUPPORT_WITHOUT_REJECTION: 'counter_trend_long_below_support_without_rejection', // LONG below H4 support without rejection pattern (blocks Engulfing, allows Fakey/PPR)
+  COUNTER_TREND_SHORT_ABOVE_RESISTANCE_WITHOUT_REJECTION: 'counter_trend_short_above_resistance_without_rejection', // SHORT above H4 resistance without rejection pattern (blocks Engulfing, allows Fakey/PPR)
 } as const;
 
 export type SkipReason = typeof SKIP_REASONS[keyof typeof SKIP_REASONS];
