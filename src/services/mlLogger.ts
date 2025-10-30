@@ -34,8 +34,9 @@ export interface MLContext {
   nearH4Resistance: boolean;
   
   // Distances
-  distToDirH1ZoneAtr: number;
+  distToDirH1ZoneAtr: number; // Distance to directional zone (resistance for LONG, support for SHORT) - для фильтра "мало места"
   distToDirH4ZoneAtr: number;
+  distToEntryZoneH1Atr: number; // Distance to ENTRY zone (support for LONG, resistance for SHORT) - для confluence "at key zone"
   freePathPts: number;
   freePathAtr15: number;
   freePathR: number;
@@ -318,7 +319,7 @@ export async function collectMLContext(
     h4ZoneEdge,
   });
   
-  // Distances to directional zones
+  // Distances to directional zones (препятствие впереди - для проверки "мало места для TP")
   const h1DirectionalZone = direction === 'LONG'
     ? zones.find(z => z.type === 'resistance' && z.tf === '1h' && z.low > entryPrice)
     : zones.find(z => z.type === 'support' && z.tf === '1h' && z.high < entryPrice);
@@ -334,6 +335,15 @@ export async function collectMLContext(
   const distToDirH4ZoneAtr = h4DirectionalZone
     ? Math.abs((direction === 'LONG' ? h4DirectionalZone.low : h4DirectionalZone.high) - entryPrice) / atr4h
     : 999;
+  
+  // Distance to ENTRY zone (зона входа - для confluence "at key zone")
+  const h1EntryZone = direction === 'LONG'
+    ? zones.find(z => z.type === 'support' && z.tf === '1h' && z.high < entryPrice)
+    : zones.find(z => z.type === 'resistance' && z.tf === '1h' && z.low > entryPrice);
+  
+  const distToEntryZoneH1Atr = h1EntryZone
+    ? Math.abs((direction === 'LONG' ? h1EntryZone.high : h1EntryZone.low) - entryPrice) / atr15m
+    : 999; // No zone found
   
   // Signal bar size
   const lastCandle = candles15m[candles15m.length - 1];
@@ -394,6 +404,7 @@ export async function collectMLContext(
     nearH4Resistance,
     distToDirH1ZoneAtr,
     distToDirH4ZoneAtr,
+    distToEntryZoneH1Atr,
     freePathPts: standardPlan.freePathPts,
     freePathAtr15: standardPlan.freePathAtr15,
     freePathR: standardPlan.freePathR,

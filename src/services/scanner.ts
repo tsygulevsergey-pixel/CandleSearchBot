@@ -238,7 +238,7 @@ export class Scanner {
               
               const confluenceFactors: ConfluenceFactors = {
                 patternQuality: (pattern.score || 0) >= 7,  // Pattern score ≥ 7/10
-                atKeyZone: mlResult.mlContext.inH4Zone || mlResult.mlContext.distToDirH1ZoneAtr < 0.5, // At H4 zone or very close to H1 zone
+                atKeyZone: mlResult.mlContext.inH4Zone || mlResult.mlContext.distToEntryZoneH1Atr < 0.5, // At H4 zone or very close to H1 ENTRY zone (support for LONG, resistance for SHORT)
                 trendAligned: dynamicProfile.trendAlignment === 'with',  // Trend aligned
                 volumeSpike: hasVolumeSpike, // Real volume check: current > 1.2x avg(20)
                 zoneFresh: parseInt(mlResult.mlContext.zoneTouchCountBucket) <= 3, // Zone touches ≤ 3
