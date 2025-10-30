@@ -1,7 +1,13 @@
 import { signalDB } from '../mastra/storage/db';
 import { binanceClient } from '../utils/binanceClient';
 import { riskCalculator } from '../utils/riskCalculator';
-import { calculateTradeOutcome, getStatusEmoji, formatPnL } from '../utils/tradeOutcomes';
+import { 
+  calculateTradeOutcome, 
+  calculatePartialClosedPercent,
+  getStatusEmoji, 
+  formatPnL,
+  formatPnLR 
+} from '../utils/tradeOutcomes';
 import axios from 'axios';
 
 export class SignalTracker {
@@ -61,7 +67,9 @@ export class SignalTracker {
             currentPrice: currentPrice.toFixed(8),
             high1m: Number(candles[candles.length - 1].high).toFixed(8),
             low1m: Number(candles[candles.length - 1].low).toFixed(8),
+            tp1: signal.tp1Price ? parseFloat(signal.tp1Price).toFixed(8) : 'null',
             tp2: parseFloat(signal.tp2Price).toFixed(8),
+            tp3: signal.tp3Price ? parseFloat(signal.tp3Price).toFixed(8) : 'null',
             sl: parseFloat(signal.currentSl).toFixed(8),
           });
           
@@ -70,31 +78,69 @@ export class SignalTracker {
             currentPrice,
             parseFloat(signal.entryPrice),
             parseFloat(signal.currentSl),
+            signal.tp1Price ? parseFloat(signal.tp1Price) : parseFloat(signal.entryPrice), // TP1 fallback to entry
             parseFloat(signal.tp2Price),
+            signal.tp3Price ? parseFloat(signal.tp3Price) : null,
             signal.direction,
             signal.status
           );
 
           if (newStatus !== signal.status) {
-            await signalDB.updateSignalStatus(
-              signal.id,
-              newStatus as any,
-              newSl !== undefined ? newSl.toString() : undefined
-            );
+            console.log(`🔄 [SignalTracker] Status change detected: ${signal.status} → ${newStatus}`);
+
+            // Calculate partial closed percentage
+            const currentPartialClosed = parseFloat(signal.partialClosed || '0');
+            const partialClosed = calculatePartialClosedPercent(newStatus, currentPartialClosed);
+            
+            // Only set beActivated to true when TP1/TP2 hit
+            // Leave it undefined (unchanged) for other statuses like BE_HIT
+            const beActivated = (newStatus === 'TP1_HIT' || newStatus === 'TP2_HIT') ? true : undefined;
+            
+            console.log(`📊 [SignalTracker] Partial close calculation:`, {
+              previousPartialClosed: currentPartialClosed,
+              newPartialClosed: partialClosed,
+              beActivated,
+            });
 
             // Используем централизованную логику расчета PnL
             const outcome = calculateTradeOutcome({
               status: newStatus,
               direction: signal.direction,
               entryPrice: signal.entryPrice,
+              tp1Price: signal.tp1Price || undefined,
               tp2Price: signal.tp2Price,
+              tp3Price: signal.tp3Price || undefined,
               slPrice: signal.slPrice,
               currentSl: newSl !== undefined ? newSl.toString() : signal.currentSl,
+              partialClosed: currentPartialClosed,
+            });
+
+            // Update database with all new fields
+            await signalDB.updateSignalStatus(
+              signal.id,
+              newStatus as any,
+              newSl !== undefined ? newSl.toString() : undefined,
+              partialClosed,
+              beActivated,
+              outcome.pnlR,
+              outcome.pnl
+            );
+
+            console.log(`💰 [SignalTracker] PnL calculated:`, {
+              pnlR: outcome.pnlR.toFixed(4),
+              pnlPercent: outcome.pnl.toFixed(4),
+              partialClosed: `${partialClosed}%`,
+              beActivated,
             });
 
             const statusEmoji = getStatusEmoji(outcome.outcomeType);
             const statusText = outcome.description.toUpperCase();
-            const pnlText = outcome.pnl !== 0 ? `\n💵 <b>PnL:</b> ${formatPnL(outcome.pnl)}` : '';
+            const pnlText = outcome.pnl !== 0 
+              ? `\n💵 <b>PnL:</b> ${formatPnL(outcome.pnl)} (${formatPnLR(outcome.pnlR)})` 
+              : '';
+            const partialClosedText = partialClosed > 0 && partialClosed < 100
+              ? `\n📉 <b>Закрыто:</b> ${partialClosed}%`
+              : '';
 
             const directionText = signal.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
 
@@ -106,7 +152,7 @@ ${statusEmoji} <b>ОБНОВЛЕНИЕ СИГНАЛА</b> ${statusEmoji}
 📊 <b>Направление:</b> ${directionText}
 ⏰ <b>Таймфрейм:</b> ${signal.timeframe}
 
-<b>${statusText}</b>${pnlText}
+<b>${statusText}</b>${pnlText}${partialClosedText}
 
 💰 <b>Текущая цена:</b> ${currentPrice.toFixed(8)}
 ${newSl ? `🔄 <b>Новый SL:</b> ${newSl.toFixed(8)}` : ''}

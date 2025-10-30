@@ -541,11 +541,16 @@ function calculateHybridTP(
  * Блок B п.7: HYBRID TP CALCULATOR - Combines fixed R-multiples with zone awareness
  * 
  * Strategy:
- * 1. Calculate fixed R-targets (1.5R, 2.5R, 4.0R)
+ * 1. Calculate fixed R-targets (1.0R, 2.0R, 3.0R)
  * 2. Find nearest resistance zones (15m, 1h, 4h)
  * 3. Adjust zones by 5% to place TP BEFORE the zone
  * 4. Use min(fixedR, zoneAdjusted) for each TP
  * 5. Validate ordering and minimum distance
+ * 
+ * Partial close strategy (aggressive):
+ * - TP1 (1R): Close 50% → SL to breakeven
+ * - TP2 (2R): Close 30% → SL to TP1 (lock in 1R profit)
+ * - TP3 (3R): Close 20% → Full exit
  */
 function calculateAdaptiveTps(
   direction: 'LONG' | 'SHORT',
@@ -570,20 +575,20 @@ function calculateAdaptiveTps(
   console.log(`🎯 [TP] Direction: ${direction}, Entry: ${entryPrice.toFixed(8)}, R: ${riskR.toFixed(8)}`);
   console.log(`🎯 [TP] R_available: ${rAvailable.toFixed(1)}, Clearance: ${clearance.toFixed(8)}`);
 
-  // Step 1: Calculate fixed R-targets
+  // Step 1: Calculate fixed R-targets (CORRECTED: 1R, 2R, 3R)
   const fixedTP1 = direction === 'LONG' 
-    ? entryPrice + (1.5 * riskR)
-    : entryPrice - (1.5 * riskR);
+    ? entryPrice + (1.0 * riskR)
+    : entryPrice - (1.0 * riskR);
   
   const fixedTP2 = direction === 'LONG'
-    ? entryPrice + (2.5 * riskR)
-    : entryPrice - (2.5 * riskR);
+    ? entryPrice + (2.0 * riskR)
+    : entryPrice - (2.0 * riskR);
   
   const fixedTP3 = direction === 'LONG'
-    ? entryPrice + (4.0 * riskR)
-    : entryPrice - (4.0 * riskR);
+    ? entryPrice + (3.0 * riskR)
+    : entryPrice - (3.0 * riskR);
 
-  console.log(`🎯 [TP] Fixed R-targets: TP1=${fixedTP1.toFixed(8)} (1.5R), TP2=${fixedTP2.toFixed(8)} (2.5R), TP3=${fixedTP3.toFixed(8)} (4.0R)`);
+  console.log(`🎯 [TP] Fixed R-targets: TP1=${fixedTP1.toFixed(8)} (1.0R), TP2=${fixedTP2.toFixed(8)} (2.0R), TP3=${fixedTP3.toFixed(8)} (3.0R)`);
 
   // Step 2: Find nearest 3 resistance/support zones
   const nearestZones = findNearestResistanceZones(entryPrice, direction, zones, 3);
@@ -604,7 +609,7 @@ function calculateAdaptiveTps(
   const hybridTP1 = calculateHybridTP(
     entryPrice,
     direction === 'LONG' ? entryPrice - riskR : entryPrice + riskR, // SL
-    1.5,
+    1.0,
     adjustedZones[0] ?? null,
     direction
   );
@@ -612,7 +617,7 @@ function calculateAdaptiveTps(
   const hybridTP2 = calculateHybridTP(
     entryPrice,
     direction === 'LONG' ? entryPrice - riskR : entryPrice + riskR,
-    2.5,
+    2.0,
     adjustedZones[1] ?? null,
     direction
   );
@@ -620,7 +625,7 @@ function calculateAdaptiveTps(
   const hybridTP3 = calculateHybridTP(
     entryPrice,
     direction === 'LONG' ? entryPrice - riskR : entryPrice + riskR,
-    4.0,
+    3.0,
     adjustedZones[2] ?? null,
     direction
   );

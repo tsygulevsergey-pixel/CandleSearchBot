@@ -76,17 +76,77 @@ export class SignalDB {
     return openSignals.length;
   }
 
-  async updateSignalStatus(id: number, status: 'TP2_HIT' | 'SL_HIT', currentSl?: string): Promise<void> {
+  /**
+   * Update signal status with partial close tracking
+   * 
+   * @param id - Signal ID
+   * @param status - New status (TP1_HIT, TP2_HIT, TP3_HIT, SL_HIT, BE_HIT)
+   * @param currentSl - Optional: Updated stop loss (for BE tracking)
+   * @param partialClosed - Optional: Percentage of position closed (0-100)
+   * @param beActivated - Optional: Flag indicating breakeven is activated
+   * @param pnlR - Optional: PnL in R units (risk units)
+   * @param pnlPercent - Optional: PnL in percentage
+   */
+  async updateSignalStatus(
+    id: number, 
+    status: 'TP1_HIT' | 'TP2_HIT' | 'TP3_HIT' | 'SL_HIT' | 'BE_HIT',
+    currentSl?: string,
+    partialClosed?: number,
+    beActivated?: boolean,
+    pnlR?: number,
+    pnlPercent?: number
+  ): Promise<void> {
+    console.log(`📝 [SignalDB] Updating signal ${id}:`, {
+      status,
+      currentSl,
+      partialClosed,
+      beActivated,
+      pnlR: pnlR?.toFixed(4),
+      pnlPercent: pnlPercent?.toFixed(4),
+    });
+
     const updates: any = {
       status,
       updatedAt: new Date(),
     };
     
+    // Update stop loss if provided
     if (currentSl !== undefined) {
       updates.currentSl = currentSl;
     }
 
+    // Update partial close tracking
+    if (partialClosed !== undefined) {
+      updates.partialClosed = partialClosed.toString();
+      console.log(`📊 [SignalDB] Setting partialClosed: ${partialClosed}%`);
+    }
+
+    // Update breakeven activation flag
+    if (beActivated !== undefined) {
+      updates.beActivated = beActivated;
+      console.log(`⚖️ [SignalDB] Setting beActivated: ${beActivated}`);
+    }
+
+    // Update PnL in R units
+    if (pnlR !== undefined) {
+      updates.pnlR = pnlR.toFixed(4);
+      console.log(`💰 [SignalDB] Setting pnlR: ${pnlR.toFixed(4)}R`);
+    }
+
+    // Update PnL in percentage
+    if (pnlPercent !== undefined) {
+      updates.pnlPercent = pnlPercent.toFixed(4);
+      console.log(`💵 [SignalDB] Setting pnlPercent: ${pnlPercent.toFixed(4)}%`);
+    }
+
+    // Set exit type when signal closes
+    if (status !== 'OPEN') {
+      updates.exitType = status;
+      console.log(`🚪 [SignalDB] Setting exitType: ${status}`);
+    }
+
     await db.update(signals).set(updates).where(eq(signals.id, id));
+    console.log(`✅ [SignalDB] Signal ${id} updated successfully`);
   }
 
   async updateTelegramMessageId(id: number, telegramMessageId: number): Promise<void> {
@@ -95,6 +155,8 @@ export class SignalDB {
 
   async getStatistics() {
     const allSignals = await db.select().from(signals);
+    
+    console.log(`📊 [SignalDB] Calculating statistics for ${allSignals.length} signals`);
     
     const stats: any = {
       total: allSignals.length,
@@ -107,26 +169,22 @@ export class SignalDB {
       pnlPositive: 0,
       pnlNegative: 0,
       pnlNet: 0,
+      pnlRNet: 0, // NEW: Net PnL in R units
       byPattern: {} as any,
       byTimeframe: {} as any,
       byDirection: { 
-        LONG: { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 }, 
-        SHORT: { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 } 
+        LONG: { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0, pnlRNet: 0 }, 
+        SHORT: { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0, pnlRNet: 0 } 
       },
     };
 
     allSignals.forEach((signal) => {
-      // Используем централизованную логику расчета PnL
-      const outcome = calculateTradeOutcome({
-        status: signal.status,
-        direction: signal.direction,
-        entryPrice: signal.entryPrice,
-        tp2Price: signal.tp2Price,
-        slPrice: signal.slPrice,
-        currentSl: signal.currentSl,
-      });
-
-      const pnl = outcome.pnl;
+      // Use stored PnL values instead of recalculating
+      // This ensures we use the exact partial close calculations from when the signal closed
+      const pnl = signal.pnlPercent ? parseFloat(signal.pnlPercent) : 0;
+      const pnlR = signal.pnlR ? parseFloat(signal.pnlR) : 0;
+      
+      console.log(`📈 [SignalDB] Signal ${signal.id} (${signal.status}): pnl=${pnl.toFixed(4)}%, pnlR=${pnlR.toFixed(4)}R`);
 
       // Обновляем счетчики статусов
       if (signal.status === 'OPEN') {
@@ -143,17 +201,18 @@ export class SignalDB {
         stats.slHit++;
       }
 
-      // Общий PnL
+      // Общий PnL (percentage and R units)
       if (pnl > 0) {
         stats.pnlPositive += pnl;
       } else if (pnl < 0) {
         stats.pnlNegative += pnl;
       }
       stats.pnlNet += pnl;
+      stats.pnlRNet += pnlR; // NEW: Aggregate R units
 
       // По паттернам
       if (!stats.byPattern[signal.patternType]) {
-        stats.byPattern[signal.patternType] = { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 };
+        stats.byPattern[signal.patternType] = { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0, pnlRNet: 0 };
       }
       stats.byPattern[signal.patternType].total++;
       if (signal.status === 'TP1_HIT') stats.byPattern[signal.patternType].tp1++;
@@ -169,10 +228,11 @@ export class SignalDB {
         stats.byPattern[signal.patternType].pnlNegative += pnl;
       }
       stats.byPattern[signal.patternType].pnlNet += pnl;
+      stats.byPattern[signal.patternType].pnlRNet += pnlR; // NEW: Aggregate R units
 
       // По таймфреймам
       if (!stats.byTimeframe[signal.timeframe]) {
-        stats.byTimeframe[signal.timeframe] = { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0 };
+        stats.byTimeframe[signal.timeframe] = { total: 0, tp1: 0, tp2: 0, tp3: 0, breakeven: 0, sl: 0, open: 0, pnlPositive: 0, pnlNegative: 0, pnlNet: 0, pnlRNet: 0 };
       }
       stats.byTimeframe[signal.timeframe].total++;
       if (signal.status === 'TP1_HIT') stats.byTimeframe[signal.timeframe].tp1++;
@@ -188,6 +248,7 @@ export class SignalDB {
         stats.byTimeframe[signal.timeframe].pnlNegative += pnl;
       }
       stats.byTimeframe[signal.timeframe].pnlNet += pnl;
+      stats.byTimeframe[signal.timeframe].pnlRNet += pnlR; // NEW: Aggregate R units
 
       // По направлениям
       stats.byDirection[signal.direction].total++;
@@ -203,6 +264,7 @@ export class SignalDB {
         stats.byDirection[signal.direction].pnlNegative += pnl;
       }
       stats.byDirection[signal.direction].pnlNet += pnl;
+      stats.byDirection[signal.direction].pnlRNet += pnlR; // NEW: Aggregate R units
     });
 
     return stats;
