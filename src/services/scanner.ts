@@ -109,8 +109,11 @@ export class Scanner {
                 continue;
               }
               
-              // 🔥 КЛАСТЕРИЗАЦИЯ: проверяем лимит семейства (лидер:сектор)
+              // 🔥 КЛАСТЕРИЗАЦИЯ: определяем кластер для отображения в сообщении
               const cluster = getCoinCluster(symbol);
+              
+              // TEMPORARILY DISABLED - testing without family limits
+              /*
               const familyId = getFamilyId(cluster);
               const familyCoins = getCoinsByFamily(cluster.leader, cluster.sector);
               const familySymbols = familyCoins.map(c => c.symbol);
@@ -124,6 +127,7 @@ export class Scanner {
               }
               
               console.log(`✅ [Scanner] Family check passed: ${symbol} (${familyId}) - ${openFamilySignals}/${MAX_SIGNALS_PER_FAMILY} signals`);
+              */
 
               // PATTERN-BASED ENTRY STRATEGY:
               // Entry = pattern candle close price (the moment pattern completes)
