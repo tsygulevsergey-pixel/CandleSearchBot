@@ -230,33 +230,63 @@ function determineChannelType(
 }
 
 /**
- * Удаляет каналы, которые перекрываются с более сильными
+ * ✅ Pine Script style greedy channel selection
+ * 
+ * KEY DIFFERENCE from old logic:
+ * - OLD: Removed ANY overlapping channels (too aggressive)
+ * - NEW: Only removes channels whose BOUNDARIES fall INSIDE accepted zones
+ * - ALLOWS: Wrapper zones to coexist with inner zones!
+ * 
+ * Example:
+ * Zone A: [0.00800 - 0.00900] (wider, weaker)
+ * Zone B: [0.00850 - 0.00860] (narrower, stronger)
+ * 
+ * Pine Script: Keeps BOTH in TOP-6 ✅
+ * Old logic: Removed Zone A as "duplicate" ❌
  */
-function removeDuplicateChannels(channels: SRChannel[]): SRChannel[] {
+function selectTopChannelsPineStyle(channels: SRChannel[], maxChannels: number): SRChannel[] {
+  if (channels.length === 0) return [];
+  
+  // Already sorted by strength (descending)
   const result: SRChannel[] = [];
-
-  for (const channel of channels) {
-    let isDuplicate = false;
-
-    for (const existingChannel of result) {
-      // Проверяем перекрытие
-      const overlap = 
-        (channel.upper <= existingChannel.upper && channel.upper >= existingChannel.lower) ||
-        (channel.lower <= existingChannel.upper && channel.lower >= existingChannel.lower) ||
-        (existingChannel.upper <= channel.upper && existingChannel.upper >= channel.lower) ||
-        (existingChannel.lower <= channel.upper && existingChannel.lower >= channel.lower);
-
-      if (overlap) {
-        isDuplicate = true;
-        break;
+  const remaining = [...channels]; // Clone to avoid mutation
+  
+  while (result.length < maxChannels && remaining.length > 0) {
+    // Find strongest remaining channel
+    let strongestIdx = 0;
+    let strongestStrength = -1;
+    
+    for (let i = 0; i < remaining.length; i++) {
+      if (remaining[i].strength > strongestStrength) {
+        strongestStrength = remaining[i].strength;
+        strongestIdx = i;
       }
     }
-
-    if (!isDuplicate) {
-      result.push(channel);
-    }
+    
+    if (strongestStrength === -1) break; // No valid channels left
+    
+    // Add strongest to results
+    const accepted = remaining[strongestIdx];
+    result.push(accepted);
+    
+    // Remove accepted channel from remaining
+    remaining.splice(strongestIdx, 1);
+    
+    // Filter out channels whose BOUNDARIES are INSIDE the accepted zone
+    // BUT allow wrappers (channels that contain the accepted zone)!
+    const filtered = remaining.filter(candidate => {
+      const upperInside = candidate.upper >= accepted.lower && candidate.upper <= accepted.upper;
+      const lowerInside = candidate.lower >= accepted.lower && candidate.lower <= accepted.upper;
+      
+      // Remove ONLY if upper OR lower is inside
+      // Wrapper zones (upper > accepted.upper AND lower < accepted.lower) will PASS!
+      return !(upperInside || lowerInside);
+    });
+    
+    remaining.length = 0;
+    remaining.push(...filtered);
   }
-
+  
   return result;
 }
 
@@ -328,11 +358,8 @@ export function findSRChannels(
   // 4. Сортируем по силе (убывание)
   candidateChannels.sort((a, b) => b.strength - a.strength);
 
-  // 5. Удаляем дубликаты (перекрывающиеся каналы)
-  const uniqueChannels = removeDuplicateChannels(candidateChannels);
-
-  // 6. Возвращаем топ-N
-  const result = uniqueChannels.slice(0, maxChannels);
+  // 5. ✅ Pine Script style selection (allows wrapper zones!)
+  const result = selectTopChannelsPineStyle(candidateChannels, maxChannels);
 
   console.log(`✅ [SRChannels] Returning ${result.length} channels (sorted by strength)`);
   result.forEach((ch, idx) => {
