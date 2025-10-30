@@ -679,6 +679,54 @@ function calculateAdaptiveTps(
     }
   }
 
+  // ⚠️ CRITICAL SANITY CHECK: Ensure TPs are in correct direction relative to entry
+  console.log(`\n🛡️ [TP Sanity Check] Validating TP direction relative to entry...`);
+  console.log(`   Entry: ${entryPrice.toFixed(8)}, Direction: ${direction}`);
+  
+  if (direction === 'SHORT') {
+    // For SHORT: All TPs MUST be BELOW entry (price falls = profit)
+    if (tp1 && tp1 > entryPrice) {
+      console.log(`❌ [TP Sanity] CRITICAL ERROR: TP1 ${tp1.toFixed(8)} is ABOVE entry ${entryPrice.toFixed(8)} for SHORT!`);
+      console.log(`   🔧 [TP Sanity] Correcting: Setting TP1 to null (invalid TP direction)`);
+      tp1 = null as any;
+      tp1Limited = false;
+    }
+    if (tp2 && tp2 > entryPrice) {
+      console.log(`❌ [TP Sanity] CRITICAL ERROR: TP2 ${tp2.toFixed(8)} is ABOVE entry ${entryPrice.toFixed(8)} for SHORT!`);
+      console.log(`   🔧 [TP Sanity] Correcting: Setting TP2 to null (invalid TP direction)`);
+      tp2 = null as any;
+      tp2Limited = false;
+    }
+    if (tp3 && tp3 > entryPrice) {
+      console.log(`❌ [TP Sanity] CRITICAL ERROR: TP3 ${tp3.toFixed(8)} is ABOVE entry ${entryPrice.toFixed(8)} for SHORT!`);
+      console.log(`   🔧 [TP Sanity] Correcting: Setting TP3 to null (invalid TP direction)`);
+      tp3 = null as any;
+      tp3Limited = false;
+    }
+  } else {
+    // For LONG: All TPs MUST be ABOVE entry (price rises = profit)
+    if (tp1 && tp1 < entryPrice) {
+      console.log(`❌ [TP Sanity] CRITICAL ERROR: TP1 ${tp1.toFixed(8)} is BELOW entry ${entryPrice.toFixed(8)} for LONG!`);
+      console.log(`   🔧 [TP Sanity] Correcting: Setting TP1 to null (invalid TP direction)`);
+      tp1 = null as any;
+      tp1Limited = false;
+    }
+    if (tp2 && tp2 < entryPrice) {
+      console.log(`❌ [TP Sanity] CRITICAL ERROR: TP2 ${tp2.toFixed(8)} is BELOW entry ${entryPrice.toFixed(8)} for LONG!`);
+      console.log(`   🔧 [TP Sanity] Correcting: Setting TP2 to null (invalid TP direction)`);
+      tp2 = null as any;
+      tp2Limited = false;
+    }
+    if (tp3 && tp3 < entryPrice) {
+      console.log(`❌ [TP Sanity] CRITICAL ERROR: TP3 ${tp3.toFixed(8)} is BELOW entry ${entryPrice.toFixed(8)} for LONG!`);
+      console.log(`   🔧 [TP Sanity] Correcting: Setting TP3 to null (invalid TP direction)`);
+      tp3 = null as any;
+      tp3Limited = false;
+    }
+  }
+  
+  console.log(`✅ [TP Sanity] Validation complete. Final valid TPs: TP1=${tp1?.toFixed(8) || 'null'}, TP2=${tp2?.toFixed(8) || 'null'}, TP3=${tp3?.toFixed(8) || 'null'}`);
+
   // Determine scenario based on how many TPs are valid
   let scenario: DynamicRiskProfile['scenario'];
   if (!tp1) {
