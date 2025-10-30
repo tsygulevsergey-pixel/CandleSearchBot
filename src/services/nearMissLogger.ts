@@ -77,9 +77,9 @@ export async function logNearMissSkip(data: NearMissLogData): Promise<void> {
       
       // Zones snapshot
       zones: data.mlContext.zones || [],
-      inH4Zone: data.mlContext.inH4Zone || false,
-      nearH4Support: data.mlContext.nearH4Support || false,
-      nearH4Resistance: data.mlContext.nearH4Resistance || false,
+      inH4Zone: data.mlContext.inH4Zone ?? false,
+      nearH4Support: data.mlContext.nearH4Support ?? false,
+      nearH4Resistance: data.mlContext.nearH4Resistance ?? false,
       
       // Distances
       distToDirH1ZoneAtr: data.mlContext.distToDirH1ZoneAtr?.toFixed(4) || '0.0000',
@@ -99,43 +99,43 @@ export async function logNearMissSkip(data: NearMissLogData): Promise<void> {
       
       // Confirmation
       confirmType: data.mlContext.confirmType || null,
-      confirmWaitBars15m: data.mlContext.confirmWaitBars15m || null,
+      confirmWaitBars15m: data.mlContext.confirmWaitBars15m ?? null,
       
       // Dynamic S/R fields
-      clearance15m: data.mlContext.clearance15m?.toFixed(8) || null,
-      clearance1h: data.mlContext.clearance1h?.toFixed(8) || null,
-      rAvailable: data.mlContext.rAvailable?.toFixed(2) || null,
-      zoneTestCount24h: data.mlContext.zoneTestCount24h || null,
+      clearance15m: data.mlContext.clearance15m?.toFixed(8) ?? null,
+      clearance1h: data.mlContext.clearance1h?.toFixed(8) ?? null,
+      rAvailable: data.mlContext.rAvailable?.toFixed(2) ?? null,
+      zoneTestCount24h: data.mlContext.zoneTestCount24h ?? null,
       vetoReason: data.mlContext.vetoReason || null,
-      slBufferAtr15: data.mlContext.slBufferAtr15?.toFixed(4) || null,
+      slBufferAtr15: data.mlContext.slBufferAtr15?.toFixed(4) ?? null,
       
       // Pattern Quality Metrics
       patternScore: data.patternScore.toFixed(2),
       patternScoreFactors: data.patternScoreFactors || null,
       
       // Stop Loss Metrics (from mlContext if available)
-      swingExtremePrice: data.mlContext.swingExtremePrice?.toFixed(8) || null,
-      slBufferAtr: data.mlContext.slBufferAtr?.toFixed(2) || null,
-      roundNumberAdjusted: data.mlContext.roundNumberAdjusted || null,
-      minDistanceFromZone: data.mlContext.minDistanceFromZone?.toFixed(4) || null,
+      swingExtremePrice: data.mlContext.swingExtremePrice?.toFixed(8) ?? null,
+      slBufferAtr: data.mlContext.slBufferAtr?.toFixed(2) ?? null,
+      roundNumberAdjusted: data.mlContext.roundNumberAdjusted ?? null,
+      minDistanceFromZone: data.mlContext.minDistanceFromZone?.toFixed(4) ?? null,
       
       // Take Profit Metrics
-      tp1LimitedByZone: data.mlContext.tp1LimitedByZone || null,
-      tp2LimitedByZone: data.mlContext.tp2LimitedByZone || null,
-      tp3LimitedByZone: data.mlContext.tp3LimitedByZone || null,
-      nearestResistanceDistanceR: data.mlContext.nearestResistanceDistanceR?.toFixed(2) || null,
+      tp1LimitedByZone: data.mlContext.tp1LimitedByZone ?? null,
+      tp2LimitedByZone: data.mlContext.tp2LimitedByZone ?? null,
+      tp3LimitedByZone: data.mlContext.tp3LimitedByZone ?? null,
+      nearestResistanceDistanceR: data.mlContext.nearestResistanceDistanceR?.toFixed(2) ?? null,
       
       // Risk:Reward Metrics
-      actualRrTp1: data.mlContext.actualRrTp1?.toFixed(2) || null,
-      actualRrTp2: data.mlContext.actualRrTp2?.toFixed(2) || null,
-      actualRrTp3: data.mlContext.actualRrTp3?.toFixed(2) || null,
-      dynamicMinRr: data.mlContext.dynamicMinRr?.toFixed(2) || null,
+      actualRrTp1: data.mlContext.actualRrTp1?.toFixed(2) ?? null,
+      actualRrTp2: data.mlContext.actualRrTp2?.toFixed(2) ?? null,
+      actualRrTp3: data.mlContext.actualRrTp3?.toFixed(2) ?? null,
+      dynamicMinRr: data.mlContext.dynamicMinRr?.toFixed(2) ?? null,
       dynamicMinRrAdjustments: data.mlContext.dynamicMinRrAdjustments || null,
       dynamicMinRrReasoning: data.mlContext.dynamicMinRrReasoning || null,
       trendAlignment: data.mlContext.trendAlignment || null,
-      multiTfAlignment: data.mlContext.multiTfAlignment || null,
+      multiTfAlignment: data.mlContext.multiTfAlignment ?? null,
       atrVolatility: data.mlContext.atrVolatility || null,
-      rrValidationPassed: data.mlContext.rrValidationPassed || null,
+      rrValidationPassed: data.mlContext.rrValidationPassed ?? null,
       rrValidationMessage: data.mlContext.rrValidationMessage || null,
       
       // Decision
@@ -176,9 +176,9 @@ export async function logNearMissSkipLegacy(
   // Extract pattern score from mlContext if available
   const patternScore = mlContext.pattern_score || 0;
   
-  // Default confluence data (will be filled by scanner when it adds confluence scoring)
-  const confluenceScore = 0; // To be calculated by scanner
-  const confluenceFactors: ConfluenceFactors = {
+  // Read confluence data from mlContext (already calculated by scanner)
+  const confluenceScore = mlContext.confluenceScore || 0;
+  const confluenceFactors: ConfluenceFactors = mlContext.confluenceDetails || {
     patternQuality: false,
     atKeyZone: false,
     trendAligned: false,

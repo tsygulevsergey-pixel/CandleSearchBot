@@ -109,6 +109,10 @@ export interface MLContext {
   atr_volatility?: 'low' | 'normal' | 'high';  // Volatility classification
   rr_validation_passed?: boolean;      // Did signal pass R:R validation?
   rr_validation_message?: string;      // Validation result message
+  
+  // Confluence Metrics
+  confluenceScore?: number;            // 0-10 confluence score
+  confluenceDetails?: any;             // Confluence factors breakdown
 }
 
 /**
@@ -144,7 +148,13 @@ export function enrichMLContextWithRiskProfile(
     actual_rr_tp2: riskProfile.actualRR.tp2,
     actual_rr_tp3: riskProfile.actualRR.tp3,
     dynamic_min_rr: riskProfile.dynamicMinRR,
-    dynamic_min_rr_adjustments: riskProfile.dynamicMinRRAdjustments,
+    dynamic_min_rr_adjustments: riskProfile.dynamicMinRRAdjustments ? {
+      pattern_score: riskProfile.dynamicMinRRAdjustments.patternScore,
+      zone_freshness: riskProfile.dynamicMinRRAdjustments.zoneFreshness,
+      trend: riskProfile.dynamicMinRRAdjustments.trend,
+      multi_tf: riskProfile.dynamicMinRRAdjustments.multiTF,
+      volatility: riskProfile.dynamicMinRRAdjustments.volatility,
+    } : undefined,
     dynamic_min_rr_reasoning: riskProfile.dynamicMinRRReasoning,
     trend_alignment: riskProfile.trendAlignment,
     multi_tf_alignment: riskProfile.multiTFAlignment,
@@ -465,33 +475,37 @@ export async function logNearMissSkip(
     slBufferAtr15: mlContext.slBufferAtr15.toFixed(4),
     
     // Pattern Quality Metrics
-    patternScore: mlContext.pattern_score ? mlContext.pattern_score.toFixed(2) : null,
+    patternScore: mlContext.pattern_score?.toFixed(2) ?? null,
     patternScoreFactors: mlContext.pattern_score_factors as any,
     
     // Stop Loss Metrics
-    swingExtremePrice: mlContext.swing_extreme_price?.toString() || null,
-    slBufferAtr: mlContext.sl_buffer_atr?.toFixed(2) || null,
-    roundNumberAdjusted: mlContext.round_number_adjusted || null,
-    minDistanceFromZone: mlContext.min_distance_from_zone?.toFixed(4) || null,
+    swingExtremePrice: mlContext.swing_extreme_price?.toString() ?? null,
+    slBufferAtr: mlContext.sl_buffer_atr?.toFixed(2) ?? null,
+    roundNumberAdjusted: mlContext.round_number_adjusted ?? null,
+    minDistanceFromZone: mlContext.min_distance_from_zone?.toFixed(4) ?? null,
     
     // Take Profit Metrics
-    tp1LimitedByZone: mlContext.tp1_limited_by_zone || null,
-    tp2LimitedByZone: mlContext.tp2_limited_by_zone || null,
-    tp3LimitedByZone: mlContext.tp3_limited_by_zone || null,
-    nearestResistanceDistanceR: mlContext.nearest_resistance_distance_r?.toFixed(2) || null,
+    tp1LimitedByZone: mlContext.tp1_limited_by_zone ?? null,
+    tp2LimitedByZone: mlContext.tp2_limited_by_zone ?? null,
+    tp3LimitedByZone: mlContext.tp3_limited_by_zone ?? null,
+    nearestResistanceDistanceR: mlContext.nearest_resistance_distance_r?.toFixed(2) ?? null,
     
     // Risk:Reward Metrics
-    actualRrTp1: mlContext.actual_rr_tp1?.toFixed(2) || null,
-    actualRrTp2: mlContext.actual_rr_tp2?.toFixed(2) || null,
-    actualRrTp3: mlContext.actual_rr_tp3?.toFixed(2) || null,
-    dynamicMinRr: mlContext.dynamic_min_rr?.toFixed(2) || null,
+    actualRrTp1: mlContext.actual_rr_tp1?.toFixed(2) ?? null,
+    actualRrTp2: mlContext.actual_rr_tp2?.toFixed(2) ?? null,
+    actualRrTp3: mlContext.actual_rr_tp3?.toFixed(2) ?? null,
+    dynamicMinRr: mlContext.dynamic_min_rr?.toFixed(2) ?? null,
     dynamicMinRrAdjustments: mlContext.dynamic_min_rr_adjustments as any,
     dynamicMinRrReasoning: mlContext.dynamic_min_rr_reasoning || null,
     trendAlignment: mlContext.trend_alignment || null,
-    multiTfAlignment: mlContext.multi_tf_alignment || null,
+    multiTfAlignment: mlContext.multi_tf_alignment ?? null,
     atrVolatility: mlContext.atr_volatility || null,
-    rrValidationPassed: mlContext.rr_validation_passed || null,
+    rrValidationPassed: mlContext.rr_validation_passed ?? null,
     rrValidationMessage: mlContext.rr_validation_message || null,
+    
+    // Confluence Metrics
+    confluenceScore: mlContext.confluenceScore ?? null,
+    confluenceDetails: mlContext.confluenceDetails || null,
     
     decision: 'skip',
     skipReasons,
@@ -535,13 +549,13 @@ export function formatExecutedSignalMLContext(mlContext: MLContext) {
     // Stop Loss Metrics
     swingExtremePrice: mlContext.swing_extreme_price?.toString() || null,
     slBufferAtr: mlContext.sl_buffer_atr?.toFixed(2) || null,
-    roundNumberAdjusted: mlContext.round_number_adjusted || null,
+    roundNumberAdjusted: mlContext.round_number_adjusted ?? null,
     minDistanceFromZone: mlContext.min_distance_from_zone?.toFixed(4) || null,
     
     // Take Profit Metrics
-    tp1LimitedByZone: mlContext.tp1_limited_by_zone || null,
-    tp2LimitedByZone: mlContext.tp2_limited_by_zone || null,
-    tp3LimitedByZone: mlContext.tp3_limited_by_zone || null,
+    tp1LimitedByZone: mlContext.tp1_limited_by_zone ?? null,
+    tp2LimitedByZone: mlContext.tp2_limited_by_zone ?? null,
+    tp3LimitedByZone: mlContext.tp3_limited_by_zone ?? null,
     nearestResistanceDistanceR: mlContext.nearest_resistance_distance_r?.toFixed(2) || null,
     
     // Risk:Reward Metrics
@@ -552,9 +566,9 @@ export function formatExecutedSignalMLContext(mlContext: MLContext) {
     dynamicMinRrAdjustments: mlContext.dynamic_min_rr_adjustments as any,
     dynamicMinRrReasoning: mlContext.dynamic_min_rr_reasoning || null,
     trendAlignment: mlContext.trend_alignment || null,
-    multiTfAlignment: mlContext.multi_tf_alignment || null,
+    multiTfAlignment: mlContext.multi_tf_alignment ?? null,
     atrVolatility: mlContext.atr_volatility || null,
-    rrValidationPassed: mlContext.rr_validation_passed || null,
+    rrValidationPassed: mlContext.rr_validation_passed ?? null,
     rrValidationMessage: mlContext.rr_validation_message || null,
   };
 }

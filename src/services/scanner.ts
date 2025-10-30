@@ -5,6 +5,7 @@ import { calculateDynamicRiskProfile } from '../utils/dynamicRiskCalculator';
 import { signalDB } from '../mastra/storage/db';
 import { getCoinCluster, getCoinsByFamily, getFamilyId } from '../utils/marketClusters';
 import { processMLIntegration, extractMLContextFields } from './mlIntegration';
+import { enrichMLContextWithRiskProfile } from './mlLogger';
 import { zoneTestTracker } from './zoneTestTracker';
 import { SKIP_REASONS } from '../types/skipReasons';
 import { 
@@ -214,6 +215,15 @@ export class Scanner {
               console.log(`   📊 Trend: ${dynamicProfile.trendAlignment}, Multi-TF: ${dynamicProfile.multiTFAlignment}, Volatility: ${dynamicProfile.atrVolatility}`);
               console.log(`   📊 R:R Validation: ${dynamicProfile.rrValidation.message}`);
               
+              // 🔄 ENRICH ML CONTEXT with dynamic risk profile data (actualRR, trend, etc.)
+              console.log(`🔄 [Scanner] Enriching ML context with risk profile data for ${symbol}...`);
+              let enrichedMLContext = enrichMLContextWithRiskProfile(
+                mlResult.mlContext,
+                dynamicProfile,
+                pattern.score
+              );
+              console.log(`✅ [Scanner] ML context enriched with actualRR data`);
+              
               // ⭐ CONFLUENCE SCORING: Professional 8-factor system (required: 5/10 for 15m)
               console.log(`\n⭐ [Confluence] Calculating confluence score for ${symbol}...`);
               
@@ -335,17 +345,9 @@ export class Scanner {
                 };
               }
 
-              // Update ML context with dynamic risk profile fields AND confluence data
-              const enrichedMLContext = {
-                ...mlResult.mlContext,
-                clearance15m: dynamicProfile.clearance15m,
-                clearance1h: dynamicProfile.clearance1h,
-                rAvailable: dynamicProfile.rAvailable,
-                zoneTestCount24h: dynamicProfile.zoneTestCount24h,
-                vetoReason: dynamicProfile.vetoReason,
-                slBufferAtr15: dynamicProfile.slBufferAtr15,
-                
-                // Confluence scoring data (captured at signal entry)
+              // Add confluence scoring data to enriched ML context (captured at signal entry)
+              enrichedMLContext = {
+                ...enrichedMLContext,
                 confluenceScore,
                 confluenceDetails: confluenceFactors,
               };
