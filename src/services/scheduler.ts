@@ -10,31 +10,57 @@ export class Scheduler {
 
     this.tasks.push(
       cron.schedule('0,15,30,45 * * * *', async () => {
-        console.log('\n⏰ [Scheduler] 15m candle closed, waiting 10 seconds...');
-        await this.delay(10000);
-        await scanner.scanTimeframe('15m');
+        try {
+          console.log('\n⏰ [Scheduler] 15m candle closed, waiting 10 seconds...');
+          await this.delay(10000);
+          console.log('🚀 [Scheduler] Starting 15m scan...');
+          await scanner.scanTimeframe('15m');
+          console.log('✅ [Scheduler] 15m scan completed');
+        } catch (error: any) {
+          console.error('❌ [Scheduler] 15m scan failed:', error.message);
+          console.error(error.stack);
+        }
       })
     );
 
     this.tasks.push(
       cron.schedule('0 * * * *', async () => {
-        console.log('\n⏰ [Scheduler] 1h candle closed, waiting 10 seconds...');
-        await this.delay(10000);
-        await scanner.scanTimeframe('1h');
+        try {
+          console.log('\n⏰ [Scheduler] 1h candle closed, waiting 10 seconds...');
+          await this.delay(10000);
+          console.log('🚀 [Scheduler] Starting 1h scan...');
+          await scanner.scanTimeframe('1h');
+          console.log('✅ [Scheduler] 1h scan completed');
+        } catch (error: any) {
+          console.error('❌ [Scheduler] 1h scan failed:', error.message);
+          console.error(error.stack);
+        }
       })
     );
 
     this.tasks.push(
       cron.schedule('0 0,4,8,12,16,20 * * *', async () => {
-        console.log('\n⏰ [Scheduler] 4h candle closed, waiting 10 seconds...');
-        await this.delay(10000);
-        await scanner.scanTimeframe('4h');
+        try {
+          console.log('\n⏰ [Scheduler] 4h candle closed, waiting 10 seconds...');
+          await this.delay(10000);
+          console.log('🚀 [Scheduler] Starting 4h scan...');
+          await scanner.scanTimeframe('4h');
+          console.log('✅ [Scheduler] 4h scan completed');
+        } catch (error: any) {
+          console.error('❌ [Scheduler] 4h scan failed:', error.message);
+          console.error(error.stack);
+        }
       })
     );
 
     this.tasks.push(
       cron.schedule('* * * * *', async () => {
-        await signalTracker.trackSignals();
+        try {
+          await signalTracker.trackSignals();
+        } catch (error: any) {
+          console.error('❌ [Scheduler] Signal tracker failed:', error.message);
+          console.error(error.stack);
+        }
       })
     );
 
