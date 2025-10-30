@@ -216,6 +216,26 @@ export async function collectMLContext(
   const sr1h = analyzeSRZonesTV(candles1h);
   const sr4h = analyzeSRZonesTV(candles4h);
   
+  // 🔍 DEBUG: Log ALL found zones (TOP-6) for each timeframe
+  console.log(`\n🔍 [MLContext] ALL S/R zones found for ${symbol}:`);
+  console.log(`📊 [15m] Found ${sr15m.allZones.length} zones:`);
+  sr15m.allZones.forEach((z, i) => {
+    const dist = z.type === 'support' ? entryPrice - z.upper : z.lower - entryPrice;
+    console.log(`   ${i+1}. ${z.type.toUpperCase()}: ${z.lower.toFixed(8)}-${z.upper.toFixed(8)} | dist=${dist.toFixed(8)} | ${z.touches} touches, ${z.strength}`);
+  });
+  console.log(`📊 [1H] Found ${sr1h.allZones.length} zones:`);
+  sr1h.allZones.forEach((z, i) => {
+    const dist = z.type === 'support' ? entryPrice - z.upper : z.lower - entryPrice;
+    console.log(`   ${i+1}. ${z.type.toUpperCase()}: ${z.lower.toFixed(8)}-${z.upper.toFixed(8)} | dist=${dist.toFixed(8)} | ${z.touches} touches, ${z.strength}`);
+  });
+  console.log(`📊 [4H] Found ${sr4h.allZones.length} zones:`);
+  sr4h.allZones.forEach((z, i) => {
+    const dist = z.type === 'support' ? entryPrice - z.upper : z.lower - entryPrice;
+    const distATR = Math.abs(dist) / atr4h;
+    console.log(`   ${i+1}. ${z.type.toUpperCase()}: ${z.lower.toFixed(8)}-${z.upper.toFixed(8)} | dist=${dist.toFixed(8)} (${distATR.toFixed(2)} ATR) | ${z.touches} touches, ${z.strength}`);
+  });
+  console.log(`✅ [MLContext] Nearest zones: 4H Support=${sr4h.nearestSupport ? sr4h.nearestSupport.price.toFixed(8) : 'none'}, 4H Resistance=${sr4h.nearestResistance ? sr4h.nearestResistance.price.toFixed(8) : 'none'}\n`);
+  
   // Convert to Zone format
   const zones: Zone[] = [];
   
