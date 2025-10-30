@@ -212,9 +212,20 @@ export async function collectMLContext(
   const arrivalPattern = detectArrivalPattern(recent15mCandles, atr15m);
   
   // S/R zones analysis (using existing function for now)
+  // For display: TOP-6 strongest zones
   const sr15m = analyzeSRZonesTV(candles15m);
   const sr1h = analyzeSRZonesTV(candles1h);
   const sr4h = analyzeSRZonesTV(candles4h);
+  
+  // For filter: ALL zones (not just TOP-6) to detect ANY close opposing zone
+  const { findSRChannels, getNearestSupportChannel, getNearestResistanceChannel } = await import('../utils/srChannels');
+  const channels4hAll = findSRChannels(candles4h, {
+    pivotPeriod: 10,
+    maxChannelWidthPercent: 5,
+    minStrength: 1,
+    maxChannels: 999,  // Get ALL zones, not just TOP-6
+    loopbackPeriod: 290,
+  });
   
   // 🔍 DEBUG: Log ALL found zones (TOP-6) for each timeframe
   console.log(`\n🔍 [MLContext] ALL S/R zones found for ${symbol}:`);
@@ -306,6 +317,7 @@ export async function collectMLContext(
   }
   
   // Check if in/near H4 zone
+  // For display: use TOP-6 zones
   const h4Support = zones.find(z => z.type === 'support' && z.tf === '4h');
   const h4Resistance = zones.find(z => z.type === 'resistance' && z.tf === '4h');
   
@@ -314,13 +326,26 @@ export async function collectMLContext(
     (h4Resistance && entryPrice >= h4Resistance.low && entryPrice <= h4Resistance.high)
   ) || false;
   
-  const nearH4Support = h4Support 
-    ? Math.abs(entryPrice - h4Support.high) <= (0.20 * atr4h)
+  // ✅ FIX: For filter, check NEAREST from ALL zones (not just TOP-6)
+  // This catches WEAK zones that didn't make TOP-6 but are close enough to block signal!
+  const nearestSupport4hAll = getNearestSupportChannel(channels4hAll, entryPrice);
+  const nearestResistance4hAll = getNearestResistanceChannel(channels4hAll, entryPrice);
+  
+  const nearH4Support = nearestSupport4hAll
+    ? Math.abs(entryPrice - nearestSupport4hAll.upper) <= (0.20 * atr4h)
     : false;
   
-  const nearH4Resistance = h4Resistance
-    ? Math.abs(h4Resistance.low - entryPrice) <= (0.20 * atr4h)
+  const nearH4Resistance = nearestResistance4hAll
+    ? Math.abs(nearestResistance4hAll.lower - entryPrice) <= (0.20 * atr4h)
     : false;
+  
+  // 🔍 DEBUG: Log if weak zone was missed by TOP-6
+  if (nearH4Support && !h4Support && nearestSupport4hAll) {
+    console.log(`⚠️ [MLContext] WEAK 4H support detected (not in TOP-6): ${nearestSupport4hAll.lower.toFixed(8)}-${nearestSupport4hAll.upper.toFixed(8)} | strength=${nearestSupport4hAll.strength} | dist=${Math.abs(entryPrice - nearestSupport4hAll.upper).toFixed(8)} (${(Math.abs(entryPrice - nearestSupport4hAll.upper) / atr4h).toFixed(2)} ATR)`);
+  }
+  if (nearH4Resistance && !h4Resistance && nearestResistance4hAll) {
+    console.log(`⚠️ [MLContext] WEAK 4H resistance detected (not in TOP-6): ${nearestResistance4hAll.lower.toFixed(8)}-${nearestResistance4hAll.upper.toFixed(8)} | strength=${nearestResistance4hAll.strength} | dist=${Math.abs(nearestResistance4hAll.lower - entryPrice).toFixed(8)} (${(Math.abs(nearestResistance4hAll.lower - entryPrice) / atr4h).toFixed(2)} ATR)`);
+  }
   
   // Calculate standard plan for free_path_R
   const h4ZoneEdge = direction === 'LONG' 
