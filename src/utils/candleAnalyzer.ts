@@ -580,7 +580,7 @@ export class PatternDetector {
     const BODY_MAX_FRACTION = 0.33;
     const EDGE_THRESHOLD = 0.25;
     const TAIL_BODY_RATIO_MIN = 2.0;
-    const LONG_TAIL_RANGE_MIN = 0.60;
+    const LONG_TAIL_RANGE_MIN = 0.66; // Softened from 0.60 for 15m (66% tail ratio)
     const OPP_TAIL_RANGE_MAX = 0.20;
     const OPP_TAIL_BODY_MAX = 0.50;
     
@@ -959,8 +959,8 @@ export class PatternDetector {
     // 5. Not full engulfing (Close₂ < Open₁)
     
     if (Bar1.isRed && Bar2.isGreen) {
-      // Минимальные требования к размеру свечей
-      const MIN_BODY_ATR = 0.5;
+      // Минимальные требования к размеру свечей (softened from 0.5 to 0.4 ATR for 15m)
+      const MIN_BODY_ATR = 0.4;
       
       if (Bar1.body < MIN_BODY_ATR * atr) {
         console.log(`   ❌ BULLISH PPR: Bar₁ body too small: ${Bar1.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
@@ -1047,8 +1047,8 @@ export class PatternDetector {
     // 5. Not full engulfing (Close₂ > Open₁)
     
     if (Bar1.isGreen && Bar2.isRed) {
-      // Минимальные требования к размеру свечей
-      const MIN_BODY_ATR = 0.5;
+      // Минимальные требования к размеру свечей (softened from 0.5 to 0.4 ATR for 15m)
+      const MIN_BODY_ATR = 0.4;
       
       if (Bar1.body < MIN_BODY_ATR * atr) {
         console.log(`   ❌ BEARISH PPR: Bar₁ body too small: ${Bar1.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
@@ -1137,9 +1137,9 @@ export class PatternDetector {
 
     console.log(`\n🔍 [Engulfing] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
-    // Параметры по таймфреймам (снижены для 15m: minBodyATR 1.1→0.8)
+    // Параметры по таймфреймам (снижены для 15m: minBodyATR 1.1→0.8, bodyRatio 1.3→1.2)
     const tfParams = {
-      '15m': { gamma: 0.175, bodyRatio: 1.3, minBodyATR: 0.8 },
+      '15m': { gamma: 0.175, bodyRatio: 1.2, minBodyATR: 0.8 }, // Softened from 1.3 for 15m
       '1h':  { gamma: 0.15,  bodyRatio: 1.2, minBodyATR: 1.0 },
       '4h':  { gamma: 0.125, bodyRatio: 1.1, minBodyATR: 0.8 },
     };

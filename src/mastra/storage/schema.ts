@@ -27,6 +27,7 @@ export const shadowOutcomeEnum = pgEnum('shadow_outcome', ['tp1', 'tp2', 'sl', '
 export const vetoReasonEnum = pgEnum('veto_reason', ['h4_res_too_close', 'h4_sup_too_close', 'h1_res_too_close', 'h1_sup_too_close', 'none']);
 export const trendAlignmentEnum = pgEnum('trend_alignment', ['with', 'against', 'neutral']);
 export const atrVolatilityEnum = pgEnum('atr_volatility', ['low', 'normal', 'high']);
+export const skipCategoryEnum = pgEnum('skip_category', ['volume', 'pattern_geometry', 'directional', 'confluence', 'rr', 'veto', 'bad_context']);
 
 // Main signals table (existing + new fields for ENTER trades)
 export const signals = pgTable('signals', {
@@ -214,6 +215,11 @@ export const nearMissSkips = pgTable('near_miss_skips', {
   decision: decisionEnum('decision').notNull().default('skip'),
   skipReasons: text('skip_reasons').array().notNull(), // Array of reason codes
   rulesetVersion: text('ruleset_version').notNull(),
+  
+  // NEW: Confluence scoring (for analyzing why patterns were skipped)
+  confluenceScore: integer('confluence_score'), // 0-10 points
+  confluenceDetails: jsonb('confluence_details'), // {patternQuality, atKeyZone, trendAligned, ...}
+  skipCategory: text('skip_category'), // Main category of skip reason
   
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

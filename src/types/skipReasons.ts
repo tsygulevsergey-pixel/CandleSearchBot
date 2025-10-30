@@ -66,6 +66,9 @@ export const SKIP_REASONS = {
   
   // NEW: R:R validation (Dynamic minimum R:R requirement)
   RR_BELOW_DYNAMIC_MIN: 'rr_below_dynamic_min', // Actual TP1 R:R < dynamically calculated minimum R:R
+  
+  // NEW: Confluence scoring (Professional 8-factor confluence requirement)
+  CONFLUENCE_TOO_LOW: 'confluence_too_low', // Confluence score below minimum requirement (5/10 for 15m)
 } as const;
 
 export type SkipReason = typeof SKIP_REASONS[keyof typeof SKIP_REASONS];

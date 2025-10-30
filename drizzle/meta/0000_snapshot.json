@@ -1,0 +1,1188 @@
+{
+  "id": "b2b25384-f8f1-4a0d-bffe-6015a1450e99",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.near_miss_skips": {
+      "name": "near_miss_skips",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "signal_id": {
+          "name": "signal_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "symbol": {
+          "name": "symbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entry_tf": {
+          "name": "entry_tf",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "side": {
+          "name": "side",
+          "type": "signal_direction",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pattern_type": {
+          "name": "pattern_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ts": {
+          "name": "ts",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atr_15m": {
+          "name": "atr_15m",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atr_1h": {
+          "name": "atr_1h",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "atr_4h": {
+          "name": "atr_4h",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ema200_1h_pos": {
+          "name": "ema200_1h_pos",
+          "type": "ema200_position",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vwap_1h_pos": {
+          "name": "vwap_1h_pos",
+          "type": "vwap_position",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trend_bias": {
+          "name": "trend_bias",
+          "type": "trend_bias",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "btc_trend_state": {
+          "name": "btc_trend_state",
+          "type": "btc_trend_state",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "zones": {
+          "name": "zones",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "in_h4_zone": {
+          "name": "in_h4_zone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "near_h4_support": {
+          "name": "near_h4_support",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "near_h4_resistance": {
+          "name": "near_h4_resistance",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dist_to_dir_h1_zone_atr": {
+          "name": "dist_to_dir_h1_zone_atr",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "dist_to_dir_h4_zone_atr": {
+          "name": "dist_to_dir_h4_zone_atr",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "free_path_pts": {
+          "name": "free_path_pts",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "free_path_atr15": {
+          "name": "free_path_atr15",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "free_path_r": {
+          "name": "free_path_r",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "arrival_pattern": {
+          "name": "arrival_pattern",
+          "type": "arrival_pattern",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "zone_touch_count_bucket": {
+          "name": "zone_touch_count_bucket",
+          "type": "zone_touch_bucket",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "zone_thickness_atr15": {
+          "name": "zone_thickness_atr15",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "signal_bar_size_atr15": {
+          "name": "signal_bar_size_atr15",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "signal_bar_size_bucket": {
+          "name": "signal_bar_size_bucket",
+          "type": "signal_bar_size_bucket",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confirm_type": {
+          "name": "confirm_type",
+          "type": "confirm_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confirm_wait_bars_15m": {
+          "name": "confirm_wait_bars_15m",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clearance_15m": {
+          "name": "clearance_15m",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clearance_1h": {
+          "name": "clearance_1h",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "r_available": {
+          "name": "r_available",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zone_test_count_24h": {
+          "name": "zone_test_count_24h",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "veto_reason": {
+          "name": "veto_reason",
+          "type": "veto_reason",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sl_buffer_atr15": {
+          "name": "sl_buffer_atr15",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pattern_score": {
+          "name": "pattern_score",
+          "type": "numeric(4, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pattern_score_factors": {
+          "name": "pattern_score_factors",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "swing_extreme_price": {
+          "name": "swing_extreme_price",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sl_buffer_atr": {
+          "name": "sl_buffer_atr",
+          "type": "numeric(4, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "round_number_adjusted": {
+          "name": "round_number_adjusted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "min_distance_from_zone": {
+          "name": "min_distance_from_zone",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tp1_limited_by_zone": {
+          "name": "tp1_limited_by_zone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tp2_limited_by_zone": {
+          "name": "tp2_limited_by_zone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tp3_limited_by_zone": {
+          "name": "tp3_limited_by_zone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nearest_resistance_distance_r": {
+          "name": "nearest_resistance_distance_r",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actual_rr_tp1": {
+          "name": "actual_rr_tp1",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actual_rr_tp2": {
+          "name": "actual_rr_tp2",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actual_rr_tp3": {
+          "name": "actual_rr_tp3",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dynamic_min_rr": {
+          "name": "dynamic_min_rr",
+          "type": "numeric(4, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dynamic_min_rr_adjustments": {
+          "name": "dynamic_min_rr_adjustments",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dynamic_min_rr_reasoning": {
+          "name": "dynamic_min_rr_reasoning",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trend_alignment": {
+          "name": "trend_alignment",
+          "type": "trend_alignment",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "multi_tf_alignment": {
+          "name": "multi_tf_alignment",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "atr_volatility": {
+          "name": "atr_volatility",
+          "type": "atr_volatility",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rr_validation_passed": {
+          "name": "rr_validation_passed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rr_validation_message": {
+          "name": "rr_validation_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "decision": {
+          "name": "decision",
+          "type": "decision",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'skip'"
+        },
+        "skip_reasons": {
+          "name": "skip_reasons",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ruleset_version": {
+          "name": "ruleset_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "confluence_score": {
+          "name": "confluence_score",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "confluence_details": {
+          "name": "confluence_details",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "skip_category": {
+          "name": "skip_category",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "near_miss_skips_signal_id_unique": {
+          "name": "near_miss_skips_signal_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "signal_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.parquet_exports": {
+      "name": "parquet_exports",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "export_date": {
+          "name": "export_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "export_type": {
+          "name": "export_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "record_count": {
+          "name": "record_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.shadow_evaluations": {
+      "name": "shadow_evaluations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "signal_id": {
+          "name": "signal_id",
+          "type": "varchar(36)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason_code": {
+          "name": "reason_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hypothetical_entry_price": {
+          "name": "hypothetical_entry_price",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "hypothetical_entry_time": {
+          "name": "hypothetical_entry_time",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "shadow_outcome": {
+          "name": "shadow_outcome",
+          "type": "shadow_outcome",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shadow_mfe_r": {
+          "name": "shadow_mfe_r",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shadow_mae_r": {
+          "name": "shadow_mae_r",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shadow_time_to_first_touch_min": {
+          "name": "shadow_time_to_first_touch_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.signals": {
+      "name": "signals",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "symbol": {
+          "name": "symbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timeframe": {
+          "name": "timeframe",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pattern_type": {
+          "name": "pattern_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "entry_price": {
+          "name": "entry_price",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sl_price": {
+          "name": "sl_price",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tp1_price": {
+          "name": "tp1_price",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tp2_price": {
+          "name": "tp2_price",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tp3_price": {
+          "name": "tp3_price",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "current_sl": {
+          "name": "current_sl",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "initial_sl": {
+          "name": "initial_sl",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "position_size": {
+          "name": "position_size",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'100.00'"
+        },
+        "partial_closed": {
+          "name": "partial_closed",
+          "type": "numeric(5, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0.00'"
+        },
+        "be_activated": {
+          "name": "be_activated",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "trailing_activated": {
+          "name": "trailing_activated",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "exit_type": {
+          "name": "exit_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pnl_r": {
+          "name": "pnl_r",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pnl_percent": {
+          "name": "pnl_percent",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "atr_15m": {
+          "name": "atr_15m",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "atr_h4": {
+          "name": "atr_h4",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dist_to_dir_h1_zone_atr": {
+          "name": "dist_to_dir_h1_zone_atr",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dist_to_dir_h4_zone_atr": {
+          "name": "dist_to_dir_h4_zone_atr",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "free_path_r": {
+          "name": "free_path_r",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "arrival_pattern": {
+          "name": "arrival_pattern",
+          "type": "arrival_pattern",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clearance_15m": {
+          "name": "clearance_15m",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clearance_1h": {
+          "name": "clearance_1h",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "r_available": {
+          "name": "r_available",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "zone_test_count_24h": {
+          "name": "zone_test_count_24h",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "veto_reason": {
+          "name": "veto_reason",
+          "type": "veto_reason",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sl_buffer_atr15": {
+          "name": "sl_buffer_atr15",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pattern_score": {
+          "name": "pattern_score",
+          "type": "numeric(4, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pattern_score_factors": {
+          "name": "pattern_score_factors",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "swing_extreme_price": {
+          "name": "swing_extreme_price",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sl_buffer_atr": {
+          "name": "sl_buffer_atr",
+          "type": "numeric(4, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "round_number_adjusted": {
+          "name": "round_number_adjusted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "min_distance_from_zone": {
+          "name": "min_distance_from_zone",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tp1_limited_by_zone": {
+          "name": "tp1_limited_by_zone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tp2_limited_by_zone": {
+          "name": "tp2_limited_by_zone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "tp3_limited_by_zone": {
+          "name": "tp3_limited_by_zone",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nearest_resistance_distance_r": {
+          "name": "nearest_resistance_distance_r",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actual_rr_tp1": {
+          "name": "actual_rr_tp1",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actual_rr_tp2": {
+          "name": "actual_rr_tp2",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "actual_rr_tp3": {
+          "name": "actual_rr_tp3",
+          "type": "numeric(10, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dynamic_min_rr": {
+          "name": "dynamic_min_rr",
+          "type": "numeric(4, 2)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dynamic_min_rr_adjustments": {
+          "name": "dynamic_min_rr_adjustments",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "dynamic_min_rr_reasoning": {
+          "name": "dynamic_min_rr_reasoning",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "trend_alignment": {
+          "name": "trend_alignment",
+          "type": "trend_alignment",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "multi_tf_alignment": {
+          "name": "multi_tf_alignment",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "atr_volatility": {
+          "name": "atr_volatility",
+          "type": "atr_volatility",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rr_validation_passed": {
+          "name": "rr_validation_passed",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rr_validation_message": {
+          "name": "rr_validation_message",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mfe_r": {
+          "name": "mfe_r",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mae_r": {
+          "name": "mae_r",
+          "type": "numeric(10, 4)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "time_to_tp1_min": {
+          "name": "time_to_tp1_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "time_to_tp2_min": {
+          "name": "time_to_tp2_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "time_to_tp3_min": {
+          "name": "time_to_tp3_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "time_to_sl_min": {
+          "name": "time_to_sl_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "time_to_be_min": {
+          "name": "time_to_be_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "first_touch": {
+          "name": "first_touch",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "signal_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'OPEN'"
+        },
+        "direction": {
+          "name": "direction",
+          "type": "signal_direction",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "telegram_message_id": {
+          "name": "telegram_message_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tracking_1m_shadow": {
+      "name": "tracking_1m_shadow",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "shadow_eval_id": {
+          "name": "shadow_eval_id",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bar_1m_ts": {
+          "name": "bar_1m_ts",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "high": {
+          "name": "high",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "low": {
+          "name": "low",
+          "type": "numeric(18, 8)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.arrival_pattern": {
+      "name": "arrival_pattern",
+      "schema": "public",
+      "values": [
+        "impulse_up",
+        "impulse_down",
+        "compression",
+        "chop"
+      ]
+    },
+    "public.atr_volatility": {
+      "name": "atr_volatility",
+      "schema": "public",
+      "values": [
+        "low",
+        "normal",
+        "high"
+      ]
+    },
+    "public.btc_trend_state": {
+      "name": "btc_trend_state",
+      "schema": "public",
+      "values": [
+        "up",
+        "down",
+        "neutral"
+      ]
+    },
+    "public.confirm_type": {
+      "name": "confirm_type",
+      "schema": "public",
+      "values": [
+        "bos_1m",
+        "bos_5m",
+        "rejection_15m",
+        "fakey_reentry",
+        "none"
+      ]
+    },
+    "public.decision": {
+      "name": "decision",
+      "schema": "public",
+      "values": [
+        "enter",
+        "skip"
+      ]
+    },
+    "public.ema200_position": {
+      "name": "ema200_position",
+      "schema": "public",
+      "values": [
+        "above",
+        "below",
+        "crossing"
+      ]
+    },
+    "public.shadow_outcome": {
+      "name": "shadow_outcome",
+      "schema": "public",
+      "values": [
+        "tp1",
+        "tp2",
+        "sl",
+        "timeout"
+      ]
+    },
+    "public.signal_bar_size_bucket": {
+      "name": "signal_bar_size_bucket",
+      "schema": "public",
+      "values": [
+        "<0.15",
+        "0.15-0.6",
+        "0.6-1.2",
+        ">1.2"
+      ]
+    },
+    "public.signal_direction": {
+      "name": "signal_direction",
+      "schema": "public",
+      "values": [
+        "LONG",
+        "SHORT"
+      ]
+    },
+    "public.signal_status": {
+      "name": "signal_status",
+      "schema": "public",
+      "values": [
+        "OPEN",
+        "TP1_HIT",
+        "TP2_HIT",
+        "TP3_HIT",
+        "SL_HIT",
+        "BE_HIT",
+        "FAIL_SAFE"
+      ]
+    },
+    "public.skip_category": {
+      "name": "skip_category",
+      "schema": "public",
+      "values": [
+        "volume",
+        "pattern_geometry",
+        "directional",
+        "confluence",
+        "rr",
+        "veto",
+        "bad_context"
+      ]
+    },
+    "public.trend_alignment": {
+      "name": "trend_alignment",
+      "schema": "public",
+      "values": [
+        "with",
+        "against",
+        "neutral"
+      ]
+    },
+    "public.trend_bias": {
+      "name": "trend_bias",
+      "schema": "public",
+      "values": [
+        "long",
+        "short",
+        "neutral"
+      ]
+    },
+    "public.veto_reason": {
+      "name": "veto_reason",
+      "schema": "public",
+      "values": [
+        "h4_res_too_close",
+        "h4_sup_too_close",
+        "h1_res_too_close",
+        "h1_sup_too_close",
+        "none"
+      ]
+    },
+    "public.vwap_position": {
+      "name": "vwap_position",
+      "schema": "public",
+      "values": [
+        "above",
+        "below"
+      ]
+    },
+    "public.zone_touch_bucket": {
+      "name": "zone_touch_bucket",
+      "schema": "public",
+      "values": [
+        "0",
+        "1",
+        "2",
+        ">=3"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

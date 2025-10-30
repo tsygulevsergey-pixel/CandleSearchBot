@@ -1,0 +1,182 @@
+CREATE TYPE "public"."arrival_pattern" AS ENUM('impulse_up', 'impulse_down', 'compression', 'chop');--> statement-breakpoint
+CREATE TYPE "public"."atr_volatility" AS ENUM('low', 'normal', 'high');--> statement-breakpoint
+CREATE TYPE "public"."btc_trend_state" AS ENUM('up', 'down', 'neutral');--> statement-breakpoint
+CREATE TYPE "public"."confirm_type" AS ENUM('bos_1m', 'bos_5m', 'rejection_15m', 'fakey_reentry', 'none');--> statement-breakpoint
+CREATE TYPE "public"."decision" AS ENUM('enter', 'skip');--> statement-breakpoint
+CREATE TYPE "public"."ema200_position" AS ENUM('above', 'below', 'crossing');--> statement-breakpoint
+CREATE TYPE "public"."shadow_outcome" AS ENUM('tp1', 'tp2', 'sl', 'timeout');--> statement-breakpoint
+CREATE TYPE "public"."signal_bar_size_bucket" AS ENUM('<0.15', '0.15-0.6', '0.6-1.2', '>1.2');--> statement-breakpoint
+CREATE TYPE "public"."signal_direction" AS ENUM('LONG', 'SHORT');--> statement-breakpoint
+CREATE TYPE "public"."signal_status" AS ENUM('OPEN', 'TP1_HIT', 'TP2_HIT', 'TP3_HIT', 'SL_HIT', 'BE_HIT', 'FAIL_SAFE');--> statement-breakpoint
+CREATE TYPE "public"."skip_category" AS ENUM('volume', 'pattern_geometry', 'directional', 'confluence', 'rr', 'veto', 'bad_context');--> statement-breakpoint
+CREATE TYPE "public"."trend_alignment" AS ENUM('with', 'against', 'neutral');--> statement-breakpoint
+CREATE TYPE "public"."trend_bias" AS ENUM('long', 'short', 'neutral');--> statement-breakpoint
+CREATE TYPE "public"."veto_reason" AS ENUM('h4_res_too_close', 'h4_sup_too_close', 'h1_res_too_close', 'h1_sup_too_close', 'none');--> statement-breakpoint
+CREATE TYPE "public"."vwap_position" AS ENUM('above', 'below');--> statement-breakpoint
+CREATE TYPE "public"."zone_touch_bucket" AS ENUM('0', '1', '2', '>=3');--> statement-breakpoint
+CREATE TABLE "near_miss_skips" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"signal_id" varchar(36) NOT NULL,
+	"symbol" text NOT NULL,
+	"entry_tf" text NOT NULL,
+	"side" "signal_direction" NOT NULL,
+	"pattern_type" text NOT NULL,
+	"ts" timestamp NOT NULL,
+	"atr_15m" numeric(18, 8) NOT NULL,
+	"atr_1h" numeric(18, 8) NOT NULL,
+	"atr_4h" numeric(18, 8) NOT NULL,
+	"ema200_1h_pos" "ema200_position" NOT NULL,
+	"vwap_1h_pos" "vwap_position" NOT NULL,
+	"trend_bias" "trend_bias" NOT NULL,
+	"btc_trend_state" "btc_trend_state" NOT NULL,
+	"zones" jsonb NOT NULL,
+	"in_h4_zone" boolean NOT NULL,
+	"near_h4_support" boolean NOT NULL,
+	"near_h4_resistance" boolean NOT NULL,
+	"dist_to_dir_h1_zone_atr" numeric(10, 4) NOT NULL,
+	"dist_to_dir_h4_zone_atr" numeric(10, 4) NOT NULL,
+	"free_path_pts" numeric(18, 8) NOT NULL,
+	"free_path_atr15" numeric(10, 4) NOT NULL,
+	"free_path_r" numeric(10, 4) NOT NULL,
+	"arrival_pattern" "arrival_pattern" NOT NULL,
+	"zone_touch_count_bucket" "zone_touch_bucket" NOT NULL,
+	"zone_thickness_atr15" numeric(10, 4) NOT NULL,
+	"signal_bar_size_atr15" numeric(10, 4) NOT NULL,
+	"signal_bar_size_bucket" "signal_bar_size_bucket" NOT NULL,
+	"confirm_type" "confirm_type",
+	"confirm_wait_bars_15m" integer,
+	"clearance_15m" numeric(18, 8),
+	"clearance_1h" numeric(18, 8),
+	"r_available" numeric(10, 2),
+	"zone_test_count_24h" integer,
+	"veto_reason" "veto_reason",
+	"sl_buffer_atr15" numeric(10, 4),
+	"pattern_score" numeric(4, 2),
+	"pattern_score_factors" jsonb,
+	"swing_extreme_price" numeric(18, 8),
+	"sl_buffer_atr" numeric(4, 2),
+	"round_number_adjusted" boolean,
+	"min_distance_from_zone" numeric(10, 4),
+	"tp1_limited_by_zone" boolean,
+	"tp2_limited_by_zone" boolean,
+	"tp3_limited_by_zone" boolean,
+	"nearest_resistance_distance_r" numeric(10, 2),
+	"actual_rr_tp1" numeric(10, 2),
+	"actual_rr_tp2" numeric(10, 2),
+	"actual_rr_tp3" numeric(10, 2),
+	"dynamic_min_rr" numeric(4, 2),
+	"dynamic_min_rr_adjustments" jsonb,
+	"dynamic_min_rr_reasoning" text,
+	"trend_alignment" "trend_alignment",
+	"multi_tf_alignment" boolean,
+	"atr_volatility" "atr_volatility",
+	"rr_validation_passed" boolean,
+	"rr_validation_message" text,
+	"decision" "decision" DEFAULT 'skip' NOT NULL,
+	"skip_reasons" text[] NOT NULL,
+	"ruleset_version" text NOT NULL,
+	"confluence_score" integer,
+	"confluence_details" jsonb,
+	"skip_category" text,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "near_miss_skips_signal_id_unique" UNIQUE("signal_id")
+);
+--> statement-breakpoint
+CREATE TABLE "parquet_exports" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"export_date" date NOT NULL,
+	"export_type" text NOT NULL,
+	"file_path" text NOT NULL,
+	"record_count" integer NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "shadow_evaluations" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"signal_id" varchar(36) NOT NULL,
+	"reason_code" text NOT NULL,
+	"hypothetical_entry_price" numeric(18, 8) NOT NULL,
+	"hypothetical_entry_time" timestamp NOT NULL,
+	"shadow_outcome" "shadow_outcome",
+	"shadow_mfe_r" numeric(10, 4),
+	"shadow_mae_r" numeric(10, 4),
+	"shadow_time_to_first_touch_min" integer,
+	"is_active" boolean DEFAULT true,
+	"completed_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "signals" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"symbol" text NOT NULL,
+	"timeframe" text NOT NULL,
+	"pattern_type" text NOT NULL,
+	"entry_price" numeric(18, 8) NOT NULL,
+	"sl_price" numeric(18, 8) NOT NULL,
+	"tp1_price" numeric(18, 8),
+	"tp2_price" numeric(18, 8) NOT NULL,
+	"tp3_price" numeric(18, 8),
+	"current_sl" numeric(18, 8) NOT NULL,
+	"initial_sl" numeric(18, 8),
+	"position_size" numeric(5, 2) DEFAULT '100.00',
+	"partial_closed" numeric(5, 2) DEFAULT '0.00',
+	"be_activated" boolean DEFAULT false,
+	"trailing_activated" boolean DEFAULT false,
+	"exit_type" text,
+	"pnl_r" numeric(10, 4),
+	"pnl_percent" numeric(10, 4),
+	"atr_15m" numeric(18, 8),
+	"atr_h4" numeric(18, 8),
+	"dist_to_dir_h1_zone_atr" numeric(10, 4),
+	"dist_to_dir_h4_zone_atr" numeric(10, 4),
+	"free_path_r" numeric(10, 4),
+	"arrival_pattern" "arrival_pattern",
+	"clearance_15m" numeric(18, 8),
+	"clearance_1h" numeric(18, 8),
+	"r_available" numeric(10, 2),
+	"zone_test_count_24h" integer,
+	"veto_reason" "veto_reason",
+	"sl_buffer_atr15" numeric(10, 4),
+	"pattern_score" numeric(4, 2),
+	"pattern_score_factors" jsonb,
+	"swing_extreme_price" numeric(18, 8),
+	"sl_buffer_atr" numeric(4, 2),
+	"round_number_adjusted" boolean,
+	"min_distance_from_zone" numeric(10, 4),
+	"tp1_limited_by_zone" boolean,
+	"tp2_limited_by_zone" boolean,
+	"tp3_limited_by_zone" boolean,
+	"nearest_resistance_distance_r" numeric(10, 2),
+	"actual_rr_tp1" numeric(10, 2),
+	"actual_rr_tp2" numeric(10, 2),
+	"actual_rr_tp3" numeric(10, 2),
+	"dynamic_min_rr" numeric(4, 2),
+	"dynamic_min_rr_adjustments" jsonb,
+	"dynamic_min_rr_reasoning" text,
+	"trend_alignment" "trend_alignment",
+	"multi_tf_alignment" boolean,
+	"atr_volatility" "atr_volatility",
+	"rr_validation_passed" boolean,
+	"rr_validation_message" text,
+	"mfe_r" numeric(10, 4),
+	"mae_r" numeric(10, 4),
+	"time_to_tp1_min" integer,
+	"time_to_tp2_min" integer,
+	"time_to_tp3_min" integer,
+	"time_to_sl_min" integer,
+	"time_to_be_min" integer,
+	"first_touch" text,
+	"status" "signal_status" DEFAULT 'OPEN' NOT NULL,
+	"direction" "signal_direction" NOT NULL,
+	"telegram_message_id" integer,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "tracking_1m_shadow" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"shadow_eval_id" integer NOT NULL,
+	"bar_1m_ts" timestamp NOT NULL,
+	"high" numeric(18, 8) NOT NULL,
+	"low" numeric(18, 8) NOT NULL
+);

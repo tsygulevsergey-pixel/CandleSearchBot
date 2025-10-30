@@ -6,8 +6,13 @@ import { signalDB } from '../mastra/storage/db';
 import { getCoinCluster, getCoinsByFamily, getFamilyId } from '../utils/marketClusters';
 import { processMLIntegration, extractMLContextFields } from './mlIntegration';
 import { zoneTestTracker } from './zoneTestTracker';
-import { logNearMissSkip } from './mlLogger';
 import { SKIP_REASONS } from '../types/skipReasons';
+import { 
+  calculateConfluenceScore, 
+  meetsConfluenceRequirement, 
+  getConfluenceExplanation,
+  type ConfluenceFactors 
+} from '../utils/confluenceScoring';
 import axios from 'axios';
 
 export class Scanner {
@@ -209,21 +214,87 @@ export class Scanner {
               console.log(`   📊 Trend: ${dynamicProfile.trendAlignment}, Multi-TF: ${dynamicProfile.multiTFAlignment}, Volatility: ${dynamicProfile.atrVolatility}`);
               console.log(`   📊 R:R Validation: ${dynamicProfile.rrValidation.message}`);
               
+              // ⭐ CONFLUENCE SCORING: Professional 8-factor system (required: 5/10 for 15m)
+              console.log(`\n⭐ [Confluence] Calculating confluence score for ${symbol}...`);
+              
+              // Calculate volume spike (volume > 1.2x avg of last 20 bars)
+              const lastVolume = Number(candles[candles.length - 1].volume);
+              const avgVolume = candles.slice(-21, -1).reduce((sum, c) => sum + Number(c.volume), 0) / 20;
+              const hasVolumeSpike = lastVolume > avgVolume * 1.2;
+              
+              // Clean rejection: Pattern detection already checks tail protrusion in Pin Bar
+              // For now, give credit if pattern score is high (indicates quality pattern)
+              const hasCleanRejection = (pattern.score || 0) >= 7;
+              
+              const confluenceFactors: ConfluenceFactors = {
+                patternQuality: (pattern.score || 0) >= 7,  // Pattern score ≥ 7/10
+                atKeyZone: mlResult.mlContext.inH4Zone || mlResult.mlContext.distToDirH1ZoneAtr < 0.5, // At H4 zone or very close to H1 zone
+                trendAligned: dynamicProfile.trendAlignment === 'with',  // Trend aligned
+                volumeSpike: hasVolumeSpike, // Real volume check: current > 1.2x avg(20)
+                zoneFresh: parseInt(mlResult.mlContext.zoneTouchCountBucket) <= 3, // Zone touches ≤ 3
+                multiTFconfluence: dynamicProfile.multiTFAlignment || false,  // Multi-TF alignment
+                cleanRejection: hasCleanRejection, // High pattern score indicates clean rejection
+                rAvailable: dynamicProfile.rAvailable >= 2.0,  // R:R space ≥ 2.0
+              };
+              
+              const confluenceScore = calculateConfluenceScore(confluenceFactors);
+              const meetsConfluence = meetsConfluenceRequirement(confluenceScore, timeframe);
+              const confluenceExplanation = getConfluenceExplanation(confluenceFactors, confluenceScore, timeframe);
+              
+              if (!meetsConfluence) {
+                console.log(`⚠️ [Scanner] Signal rejected due to insufficient confluence: ${symbol} ${pattern.type}`);
+                console.log(`   ❌ ${confluenceExplanation}`);
+                
+                // Log as near-miss skip for ML analysis with FULL confluence data
+                const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
+                await logNearMissSkipFull({
+                  symbol,
+                  timeframe,
+                  patternType: pattern.type,
+                  entryPrice,
+                  direction: pattern.direction,
+                  skipReason: SKIP_REASONS.CONFLUENCE_TOO_LOW,
+                  skipCategory: 'confluence',
+                  confluenceScore,
+                  confluenceFactors,
+                  patternScore: pattern.score || 0,
+                  patternScoreFactors: mlResult.mlContext.pattern_score_factors,
+                  mlContext: mlResult.mlContext,
+                  atr15m,
+                  atr1h,
+                  atr4h,
+                });
+                
+                // Skip this signal and continue to next pattern
+                continue;
+              }
+              
+              console.log(`✅ [Confluence] Signal meets confluence requirement: ${confluenceExplanation}`);
+              
               // Check R:R validation - skip signal if R:R is below dynamic minimum
               if (!dynamicProfile.rrValidation.isValid) {
                 console.log(`⚠️ [Scanner] Signal rejected due to insufficient R:R: ${symbol} ${pattern.type}`);
                 console.log(`   ❌ TP1 R:R ${dynamicProfile.actualRR.tp1.toFixed(2)} < ${dynamicProfile.dynamicMinRR.toFixed(2)} (required)`);
                 
-                // Log as near-miss skip for ML analysis
-                await logNearMissSkip(
+                // Log as near-miss skip for ML analysis with FULL confluence data
+                const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
+                await logNearMissSkipFull({
                   symbol,
                   timeframe,
-                  pattern.type,
-                  pattern.direction,
+                  patternType: pattern.type,
                   entryPrice,
-                  mlResult.mlContext,
-                  [SKIP_REASONS.RR_BELOW_DYNAMIC_MIN]
-                );
+                  direction: pattern.direction,
+                  skipReason: SKIP_REASONS.RR_BELOW_DYNAMIC_MIN,
+                  skipCategory: 'rr',
+                  confluenceScore,
+                  confluenceFactors,
+                  patternScore: pattern.score || 0,
+                  patternScoreFactors: mlResult.mlContext.pattern_score_factors,
+                  mlContext: mlResult.mlContext,
+                  atr15m,
+                  atr1h,
+                  atr4h,
+                });
                 
                 // Skip this signal and continue to next pattern
                 continue;
