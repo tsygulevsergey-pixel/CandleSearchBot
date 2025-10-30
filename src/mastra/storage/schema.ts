@@ -84,7 +84,7 @@ export const signals = pgTable('signals', {
   
   // Stop Loss Metrics
   swingExtremePrice: decimal('swing_extreme_price', { precision: 18, scale: 8 }),
-  slBufferAtr: decimal('sl_buffer_atr', { precision: 4, scale: 2 }), // 0.3-0.5
+  slBufferAtr: decimal('sl_buffer_atr', { precision: 6, scale: 2 }), // SL buffer in ATR units
   roundNumberAdjusted: boolean('round_number_adjusted'),
   minDistanceFromZone: decimal('min_distance_from_zone', { precision: 10, scale: 4 }),
   
@@ -98,7 +98,7 @@ export const signals = pgTable('signals', {
   actualRrTp1: decimal('actual_rr_tp1', { precision: 10, scale: 2 }),
   actualRrTp2: decimal('actual_rr_tp2', { precision: 10, scale: 2 }),
   actualRrTp3: decimal('actual_rr_tp3', { precision: 10, scale: 2 }),
-  dynamicMinRr: decimal('dynamic_min_rr', { precision: 4, scale: 2 }),
+  dynamicMinRr: decimal('dynamic_min_rr', { precision: 6, scale: 2 }),
   dynamicMinRrAdjustments: jsonb('dynamic_min_rr_adjustments'), // {pattern_score, zone_freshness, etc}
   dynamicMinRrReasoning: text('dynamic_min_rr_reasoning'),
   trendAlignment: trendAlignmentEnum('trend_alignment'),
@@ -192,7 +192,7 @@ export const nearMissSkips = pgTable('near_miss_skips', {
   
   // Stop Loss Metrics
   swingExtremePrice: decimal('swing_extreme_price', { precision: 18, scale: 8 }),
-  slBufferAtr: decimal('sl_buffer_atr', { precision: 4, scale: 2 }), // 0.3-0.5
+  slBufferAtr: decimal('sl_buffer_atr', { precision: 6, scale: 2 }), // SL buffer in ATR units
   roundNumberAdjusted: boolean('round_number_adjusted'),
   minDistanceFromZone: decimal('min_distance_from_zone', { precision: 10, scale: 4 }),
   
@@ -206,7 +206,7 @@ export const nearMissSkips = pgTable('near_miss_skips', {
   actualRrTp1: decimal('actual_rr_tp1', { precision: 10, scale: 2 }),
   actualRrTp2: decimal('actual_rr_tp2', { precision: 10, scale: 2 }),
   actualRrTp3: decimal('actual_rr_tp3', { precision: 10, scale: 2 }),
-  dynamicMinRr: decimal('dynamic_min_rr', { precision: 4, scale: 2 }),
+  dynamicMinRr: decimal('dynamic_min_rr', { precision: 6, scale: 2 }),
   dynamicMinRrAdjustments: jsonb('dynamic_min_rr_adjustments'), // {pattern_score, zone_freshness, etc}
   dynamicMinRrReasoning: text('dynamic_min_rr_reasoning'),
   trendAlignment: trendAlignmentEnum('trend_alignment'),

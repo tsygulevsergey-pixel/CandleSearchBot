@@ -1,0 +1,109 @@
+0|crypto-bot  | ⚠️ [Scanner] Signal rejected due to insufficient confluence: TOWNSUSDT pinbar_buy
+0|crypto-bot  |    ❌ Confluence 4/5 for 15m. Passed: [Pattern Quality (+2), Multi-TF (+1), Clean Rejection (+1)]. Missing: [At Key Zone, Trend Aligned, Volume Spike, Fresh Zone, R:R Available]
+0|crypto-bot  | 📝 [NearMissLogger] Logging skip: TOWNSUSDT pinbar_buy - confluence_too_low (confluence: 4/10)
+0|crypto-bot  | ❌ [NearMissLogger] Error logging skip: DrizzleQueryError: Failed query: insert into "near_miss_skips" ("id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at") values (default, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, default) returning "id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at"
+0|crypto-bot  | params: 1b450760-0a96-4ec7-985a-17480231faae,TOWNSUSDT,15m,LONG,pinbar_buy,2025-10-30T04:00:24.800Z,0.00010857,0.00034214,0.00057429,crossing,above,neutral,neutral,[{"type":"support","low":0.01113,"high":0.01123,"tf":"15m","touches":89,"strength":"strong"},{"type":"resistance","low":0.01141,"high":0.01149,"tf":"15m","touches":83,"strength":"strong"},{"type":"support","low":0.01089,"high":0.01115,"tf":"1h","touches":78,"strength":"strong"},{"type":"resistance","low":0.01142,"high":0.01168,"tf":"1h","touches":114,"strength":"strong"},{"type":"support","low":0.00953,"high":0.01042,"tf":"4h","touches":14,"strength":"medium"},{"type":"resistance","low":0.01218,"high":0.01231,"tf":"4h","touches":11,"strength":"medium"}],false,false,false,1.3816,1.5846,0.00014000,1.2895,1.3649,impulse_down,>=3,8.1974,0.9211,0.6-1.2,,,0.00000000,0.00000000,0.00,0,none,0.0000,135.00,,,,,,,,,,,,,,,,,,,,,skip,{"confluence_too_low"},v2.0-confluence,4,{"patternQuality":true,"atKeyZone":false,"trendAligned":false,"volumeSpike":false,"zoneFresh":false,"multiTFconfluence":true,"cleanRejection":true,"rAvailable":false},confluence
+0|crypto-bot  |     at NodePgPreparedQuery.queryWithCache (file:///root/CandleSearchBot/node_modules/drizzle-orm/pg-core/session.js:41:15)
+0|crypto-bot  |     at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|crypto-bot  |     at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:117:22
+0|crypto-bot  |     ... 4 lines matching cause stack trace ...
+0|crypto-bot  |     at async Scanner.scanTimeframe (file:///root/CandleSearchBot/.mastra/output/index.mjs:3847:9)
+0|crypto-bot  |     at async file:///root/CandleSearchBot/.mastra/output/index.mjs:4267:9
+0|crypto-bot  |     at async Timeout._onTimeout (/root/CandleSearchBot/node_modules/node-cron/dist/esm/scheduler/runner.js:70:44) {
+0|crypto-bot  |   query: 'insert into "near_miss_skips" ("id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at") values (default, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, default) returning "id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at"',
+0|crypto-bot  |   params: [
+0|crypto-bot  |     '1b450760-0a96-4ec7-985a-17480231faae',
+0|crypto-bot  |     'TOWNSUSDT',
+0|crypto-bot  |     '15m',
+0|crypto-bot  |     'LONG',
+0|crypto-bot  |     'pinbar_buy',
+0|crypto-bot  |     '2025-10-30T04:00:24.800Z',
+0|crypto-bot  |     '0.00010857',
+0|crypto-bot  |     '0.00034214',
+0|crypto-bot  |     '0.00057429',
+0|crypto-bot  |     'crossing',
+0|crypto-bot  |     'above',
+0|crypto-bot  |     'neutral',
+0|crypto-bot  |     'neutral',
+0|crypto-bot  |     '[{"type":"support","low":0.01113,"high":0.01123,"tf":"15m","touches":89,"strength":"strong"},{"type":"resistance","low":0.01141,"high":0.01149,"tf":"15m","touches":83,"strength":"strong"},{"type":"support","low":0.01089,"high":0.01115,"tf":"1h","touches":78,"strength":"strong"},{"type":"resistance","low":0.01142,"high":0.01168,"tf":"1h","touches":114,"strength":"strong"},{"type":"support","low":0.00953,"high":0.01042,"tf":"4h","touches":14,"strength":"medium"},{"type":"resistance","low":0.01218,"high":0.01231,"tf":"4h","touches":11,"strength":"medium"}]',
+0|crypto-bot  |     false,
+0|crypto-bot  |     false,
+0|crypto-bot  |     false,
+0|crypto-bot  |     '1.3816',
+0|crypto-bot  |     '1.5846',
+0|crypto-bot  |     '0.00014000',
+0|crypto-bot  |     '1.2895',
+0|crypto-bot  |     '1.3649',
+0|crypto-bot  |     'impulse_down',
+0|crypto-bot  |     '>=3',
+0|crypto-bot  |     '8.1974',
+0|crypto-bot  |     '0.9211',
+0|crypto-bot  |     '0.6-1.2',
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     '0.00000000',
+0|crypto-bot  |     '0.00000000',
+0|crypto-bot  |     '0.00',
+0|crypto-bot  |     0,
+0|crypto-bot  |     'none',
+0|crypto-bot  |     '0.0000',
+0|crypto-bot  |     '135.00',
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     null,
+0|crypto-bot  |     'skip',
+0|crypto-bot  |     '{"confluence_too_low"}',
+0|crypto-bot  |     'v2.0-confluence',
+0|crypto-bot  |     4,
+0|crypto-bot  |     '{"patternQuality":true,"atKeyZone":false,"trendAligned":false,"volumeSpike":false,"zoneFresh":false,"multiTFconfluence":true,"cleanRejection":true,"rAvailable":false}',
+0|crypto-bot  |     'confluence'
+0|crypto-bot  |   ],
+0|crypto-bot  |   cause: error: numeric field overflow
+0|crypto-bot  |       at /root/CandleSearchBot/node_modules/pg-pool/index.js:45:11
+0|crypto-bot  |       at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+0|crypto-bot  |       at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:124:18
+0|crypto-bot  |       at async NodePgPreparedQuery.queryWithCache (file:///root/CandleSearchBot/node_modules/drizzle-orm/pg-core/session.js:39:16)
+0|crypto-bot  |       at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:117:22
+0|crypto-bot  |       at async NearMissSkipDB.createNearMissSkip (file:///root/CandleSearchBot/.mastra/output/statisticsTool.mjs:462:23)
+0|crypto-bot  |       at async logNearMissSkip (file:///root/CandleSearchBot/.mastra/output/nearMissLogger.mjs:93:5)
+0|crypto-bot  |       at async file:///root/CandleSearchBot/.mastra/output/index.mjs:3989:17
+0|crypto-bot  |       at async Promise.all (index 9)
+0|crypto-bot  |       at async Scanner.scanTimeframe (file:///root/CandleSearchBot/.mastra/output/index.mjs:3847:9) {
+0|crypto-bot  |     length: 164,
+0|crypto-bot  |     severity: 'ERROR',
+0|crypto-bot  |     code: '22003',
+0|crypto-bot  |     detail: 'A field with precision 4, scale 2 must round to an absolute value less than 10^2.',
+0|crypto-bot  |     hint: undefined,
+0|crypto-bot  |     position: undefined,
+0|crypto-bot  |     internalPosition: undefined,
+0|crypto-bot  |     internalQuery: undefined,
+0|crypto-bot  |     where: undefined,
+0|crypto-bot  |     schema: undefined,
+0|crypto-bot  |     table: undefined,
+0|crypto-bot  |     column: undefined,
+0|crypto-bot  |     dataType: undefined,
+0|crypto-bot  |     constraint: undefined,
+0|crypto-bot  |     file: 'numeric.c',
+0|crypto-bot  |     line: '7980',
+0|crypto-bot  |     routine: 'apply_typmod'
+0|crypto-bot  |   }
+0|crypto-bot  | }
+0|crypto-bot  | ⚡ [Scanner] Batch 13 completed: 20 coins in 1.7s (total: 260/263)
+0|crypto-bot  | 📈 [BinanceClient] Fetching 351 15m candles for ATUSDT (excluding current o
