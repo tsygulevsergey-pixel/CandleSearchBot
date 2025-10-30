@@ -107,6 +107,10 @@ export const signals = pgTable('signals', {
   rrValidationPassed: boolean('rr_validation_passed'),
   rrValidationMessage: text('rr_validation_message'),
   
+  // NEW: Confluence scoring (for analyzing signal quality at entry)
+  confluenceScore: integer('confluence_score'), // 0-10 points
+  confluenceDetails: jsonb('confluence_details'), // {patternQuality, atKeyZone, trendAligned, ...}
+  
   // NEW: Outcome timing metrics
   mfeR: decimal('mfe_r', { precision: 10, scale: 4 }), // Maximum Favorable Excursion
   maeR: decimal('mae_r', { precision: 10, scale: 4 }), // Maximum Adverse Excursion

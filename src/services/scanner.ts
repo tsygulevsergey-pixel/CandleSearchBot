@@ -335,7 +335,7 @@ export class Scanner {
                 };
               }
 
-              // Update ML context with dynamic risk profile fields
+              // Update ML context with dynamic risk profile fields AND confluence data
               const enrichedMLContext = {
                 ...mlResult.mlContext,
                 clearance15m: dynamicProfile.clearance15m,
@@ -344,6 +344,10 @@ export class Scanner {
                 zoneTestCount24h: dynamicProfile.zoneTestCount24h,
                 vetoReason: dynamicProfile.vetoReason,
                 slBufferAtr15: dynamicProfile.slBufferAtr15,
+                
+                // Confluence scoring data (captured at signal entry)
+                confluenceScore,
+                confluenceDetails: confluenceFactors,
               };
 
               const signal = await signalDB.createSignal({
