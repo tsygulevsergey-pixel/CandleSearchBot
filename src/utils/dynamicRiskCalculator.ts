@@ -5,7 +5,7 @@
  * 
  * SL CALCULATION:
  * 1. Professional SL using swing extremes (last 5 candles) instead of zone boundaries
- * 2. Adaptive buffer (0.3-0.5 ATR) based on volatility (ATR vs average ATR)
+ * 2. Adaptive buffer (2.0-3.0 ATR) based on volatility - professional standard for 15m crypto
  * 3. Round number protection - adjusts SL away from psychological levels
  * 4. Minimum distance validation from zone boundary (0.5 ATR)
  * 
@@ -29,7 +29,7 @@ export interface DynamicRiskProfile {
   
   // Metadata
   riskR: number;
-  slBufferAtr15: number; // Actual buffer used (0.3-0.5)
+  slBufferAtr15: number; // Actual buffer used (2.0-3.0, professional standard)
   clearance15m: number;
   clearance1h: number;
   rAvailable: number;
@@ -793,21 +793,22 @@ function adjustForRoundNumber(
 }
 
 /**
- * Helper: Calculate adaptive buffer (0.3-0.5 ATR) based on volatility
+ * Helper: Calculate adaptive buffer (2.0-3.0 ATR) based on volatility
+ * Professional standard for 15m crypto trading to prevent stop hunting and noise
  */
 function calculateAdaptiveBuffer(atr: number, avgAtr: number): number {
   const ratio = atr / avgAtr;
   
   let buffer: number;
   if (ratio > 1.5) {
-    buffer = 0.5; // High volatility
-    console.log(`📊 [AdaptiveBuffer] High volatility (ATR/Avg = ${ratio.toFixed(2)}) → 0.5 ATR buffer`);
+    buffer = 3.0; // High volatility (crypto standard)
+    console.log(`📊 [AdaptiveBuffer] High volatility (ATR/Avg = ${ratio.toFixed(2)}) → 3.0 ATR buffer (professional standard)`);
   } else if (ratio >= 0.8) {
-    buffer = 0.4; // Normal volatility
-    console.log(`📊 [AdaptiveBuffer] Normal volatility (ATR/Avg = ${ratio.toFixed(2)}) → 0.4 ATR buffer`);
+    buffer = 2.5; // Normal volatility
+    console.log(`📊 [AdaptiveBuffer] Normal volatility (ATR/Avg = ${ratio.toFixed(2)}) → 2.5 ATR buffer (professional standard)`);
   } else {
-    buffer = 0.3; // Low volatility
-    console.log(`📊 [AdaptiveBuffer] Low volatility (ATR/Avg = ${ratio.toFixed(2)}) → 0.3 ATR buffer`);
+    buffer = 2.0; // Low volatility
+    console.log(`📊 [AdaptiveBuffer] Low volatility (ATR/Avg = ${ratio.toFixed(2)}) → 2.0 ATR buffer (professional standard)`);
   }
 
   return buffer;
