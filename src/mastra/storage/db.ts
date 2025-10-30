@@ -139,11 +139,9 @@ export class SignalDB {
       console.log(`💵 [SignalDB] Setting pnlPercent: ${pnlPercent.toFixed(4)}%`);
     }
 
-    // Set exit type when signal closes
-    if (status !== 'OPEN') {
-      updates.exitType = status;
-      console.log(`🚪 [SignalDB] Setting exitType: ${status}`);
-    }
+    // Set exit type (always set since this function only called on status change to closing status)
+    updates.exitType = status;
+    console.log(`🚪 [SignalDB] Setting exitType: ${status}`);
 
     await db.update(signals).set(updates).where(eq(signals.id, id));
     console.log(`✅ [SignalDB] Signal ${id} updated successfully`);
