@@ -710,6 +710,122 @@ Storage: PostgreSQL with proper types ✅
 
 ---
 
+## CODE VERIFICATION & EVIDENCE
+
+### ⚠️ 1. Multi-Timeframe Data Pipeline (PARTIALLY IMPLEMENTED)
+
+**Claim:** 4H/1H candles ARE fetched and passed to risk calculator, BUT not used for trend analysis
+
+**Evidence:**
+```typescript
+// src/services/scanner.ts:144-145
+const candles1h = await binanceClient.getKlines(symbol, '1h', 350);
+const candles4h = await binanceClient.getKlines(symbol, '4h', 350);
+// ✅ Candles ARE fetched
+
+// src/services/scanner.ts:206-207
+const dynamicProfile = calculateDynamicRiskProfile({
+  ...
+  candles1h, // For trend analysis (comment is aspirational, not reality)
+  candles4h, // For trend analysis (comment is aspirational, not reality)
+  ...
+});
+// ✅ Candles ARE passed to function
+
+// BUT...
+
+// src/utils/dynamicRiskCalculator.ts:260
+const trendAlignment = determineTrendAlignment(candles15m, direction);
+// ❌ Uses candles15m, ignores candles4h/candles1h
+
+// src/utils/dynamicRiskCalculator.ts:998-1058
+function determineTrendAlignment(
+  candles: any[], // Receives 15m candles, NOT 4h
+  direction: 'LONG' | 'SHORT'
+): 'with' | 'against' | 'neutral' {
+  // Calculates EMA50/200 trend using received candles
+  // Since candles15m is passed, this is 15m trend, NOT 4H trend
+}
+```
+
+**Status:** ⚠️ INFRASTRUCTURE READY, BUT NOT UTILIZED
+- ✅ 4H/1H candles are fetched and available
+- ✅ Passed to calculateDynamicRiskProfile function
+- ❌ NOT used by determineTrendAlignment (uses 15m instead)
+- ❌ Comments in code are misleading ("For trend analysis" but not actually used)
+
+---
+
+### ✅ 2. R:R Telemetry Logging (VERIFIED)
+
+**Claim:** mlLogger captures all R:R distribution fields needed for telemetry
+
+**Evidence:**
+```typescript
+// src/services/mlLogger.ts:147-163
+actual_rr_tp1: riskProfile.actualRR.tp1,
+actual_rr_tp2: riskProfile.actualRR.tp2,
+actual_rr_tp3: riskProfile.actualRR.tp3,
+dynamic_min_rr: riskProfile.dynamicMinRR,
+dynamic_min_rr_adjustments: {
+  pattern_score, zone_freshness, trend, multi_tf, volatility
+},
+dynamic_min_rr_reasoning: riskProfile.dynamicMinRRReasoning,
+trend_alignment: riskProfile.trendAlignment,
+multi_tf_alignment: riskProfile.multiTFAlignment,
+atr_volatility: riskProfile.atrVolatility,
+```
+
+**Database Schema:**
+```typescript
+// src/mastra/storage/schema.ts:98-108 (signals table)
+actualRrTp1: decimal('actual_rr_tp1', { precision: 10, scale: 2 }),
+actualRrTp2: decimal('actual_rr_tp2', { precision: 10, scale: 2 }),
+actualRrTp3: decimal('actual_rr_tp3', { precision: 10, scale: 2 }),
+dynamicMinRr: decimal('dynamic_min_rr', { precision: 4, scale: 2 }),
+dynamicMinRrAdjustments: jsonb('dynamic_min_rr_adjustments'),
+dynamicMinRrReasoning: text('dynamic_min_rr_reasoning'),
+trendAlignment: trendAlignmentEnum('trend_alignment'),
+multiTfAlignment: boolean('multi_tf_alignment'),
+atrVolatility: atrVolatilityEnum('atr_volatility'),
+
+// lines 92-95: TP zone limiting tracking
+tp1LimitedByZone: boolean('tp1_limited_by_zone'),
+tp2LimitedByZone: boolean('tp2_limited_by_zone'),
+tp3LimitedByZone: boolean('tp3_limited_by_zone'),
+nearestResistanceDistanceR: decimal('nearest_resistance_distance_r'),
+```
+
+**Status:** ✅ CONFIRMED - All fields are logged to both `signals` and `nearMissSkips` tables
+
+---
+
+### ⚠️ 3. determineTrendAlignment Uses 15m Instead of 4H (VERIFIED ISSUE)
+
+**Claim:** Function receives 4H candles but doesn't use them
+
+**Evidence:**
+```typescript
+// src/utils/dynamicRiskCalculator.ts:260
+const trendAlignment = determineTrendAlignment(candles15m, direction);
+// Issue: Uses candles15m instead of candles4h
+
+// src/utils/dynamicRiskCalculator.ts:998-1058 (determineTrendAlignment function)
+function determineTrendAlignment(
+  candles: any[], // Receives whichever TF is passed
+  direction: 'LONG' | 'SHORT'
+): 'with' | 'against' | 'neutral' {
+  // ... trend logic uses received candles
+}
+```
+
+**Current Behavior:** Trend analysis based on 15m EMA, not 4H
+**Professional Standard:** "4H trend = primary direction"
+
+**Status:** ⚠️ OPTIMIZATION OPPORTUNITY - Easy fix, low risk
+
+---
+
 ## CRITICAL ISSUES SUMMARY (UPDATED AFTER ARCHITECT REVIEW)
 
 ### ⚠️ CLARIFICATIONS FROM ARCHITECT FEEDBACK
@@ -917,6 +1033,132 @@ Storage: PostgreSQL with proper types ✅
 4. **Coin Filtering:** Tighter volume (25M+), volatility range
 5. **S/R Zones:** Volume profile, role reversal tracking, ATR-based width
 6. **Pattern Quality:** Engulfing size ratios, wick validation, volume requirements
+
+---
+
+## MINIMAL REGRESSION TESTING PLAN
+
+### Goal: Verify Phase 1 changes don't degrade performance
+
+**Baseline Metrics (Before Changes):**
+1. Run bot for 50-100 signals, collect:
+   - Total signals generated
+   - Skip rate (% rejected by filters)
+   - Confluence score distribution (mean, p25, p50, p75)
+   - Dynamic R:R distribution (mean, p25, p50, p75)
+   - Volume spike occurrences (how often volume factor scores)
+
+**Test Procedure:**
+
+### Change 1: Volume Threshold 1.2× → 1.5×
+```typescript
+// Before: const VOLUME_SPIKE_THRESHOLD = 1.2;
+// After:  const VOLUME_SPIKE_THRESHOLD = 1.5;
+```
+
+**Expected Impact:**
+- Skip rate increase: +5-10% (fewer low-volume signals accepted)
+- Confluence score mean: -0.5 to -1.0 points (volume factor scores less often)
+- Signal quality: Improved (only accept strong volume confirmation)
+
+**Regression Check:**
+```sql
+-- Compare before/after
+SELECT 
+  COUNT(*) as total_signals,
+  AVG(confluence_score) as avg_confluence,
+  COUNT(CASE WHEN confluence_score >= 5 THEN 1 END) as high_confluence_count
+FROM signals
+WHERE created_at > '[test_start_time]';
+```
+
+**Pass Criteria:** Skip rate increases by <=15%, high-confluence signals (>=5) remain stable or improve
+
+---
+
+### Change 2: Use 4H Candles in determineTrendAlignment
+```typescript
+// Before: const trendAlignment = determineTrendAlignment(candles15m, direction);
+// After:  const trendAlignment = determineTrendAlignment(input.candles4h || candles15m, direction);
+```
+
+**Expected Impact:**
+- Skip rate increase: +10-20% (counter-HTF-trend signals filtered)
+- Trend alignment rate: Improved (more "with trend" signals)
+- Signal quality: Higher win rate on accepted signals
+
+**Regression Check:**
+```sql
+-- Compare trend alignment distribution
+SELECT 
+  trend_alignment,
+  COUNT(*) as count,
+  AVG(pnl_r) as avg_pnl  -- If outcomes available
+FROM signals
+WHERE created_at > '[test_start_time]'
+GROUP BY trend_alignment;
+```
+
+**Pass Criteria:** 
+- "against" trend signals reduce by >=30%
+- "with" trend signals increase
+- Overall skip rate increase <=25%
+
+---
+
+### Change 3: Add Spread Filter (<0.1%)
+```typescript
+// New filter in coinFilter.ts
+const MAX_SPREAD_PCT = 0.001; // 0.1%
+```
+
+**Expected Impact:**
+- Coin pool reduction: -5-15% (low-liquidity pairs removed)
+- Execution quality: Improved (lower slippage)
+- Signal count: Slight decrease (fewer eligible coins)
+
+**Regression Check:**
+```bash
+# Log filtered coins before/after
+console.log(`Filtered ${filteredCoins.length} coins by spread >0.1%`);
+```
+
+**Pass Criteria:** Coin pool reduces by <=20%, remaining coins are top-tier by volume
+
+---
+
+### Regression Test Workflow
+
+**Step 1: Baseline Collection** (Day 1)
+- Deploy current code (no changes)
+- Run for 50-100 signals
+- Export metrics to CSV:
+  ```sql
+  \copy (SELECT symbol, confluence_score, dynamic_min_rr, trend_alignment, created_at FROM signals WHERE created_at > NOW() - INTERVAL '24 hours') TO '/tmp/baseline.csv' CSV HEADER;
+  ```
+
+**Step 2: Apply Phase 1 Changes** (Day 2)
+- Implement all 3 changes together
+- Run for 50-100 signals
+- Export same metrics
+
+**Step 3: Compare Results** (Day 3)
+```python
+import pandas as pd
+
+baseline = pd.read_csv('/tmp/baseline.csv')
+test = pd.read_csv('/tmp/test.csv')
+
+print("Skip rate change:", (test.shape[0] - baseline.shape[0]) / baseline.shape[0])
+print("Confluence mean change:", test.confluence_score.mean() - baseline.confluence_score.mean())
+print("R:R mean change:", test.dynamic_min_rr.mean() - baseline.dynamic_min_rr.mean())
+```
+
+**Pass Criteria (Overall):**
+- Skip rate increase: 15-30% (expected due to stricter filters)
+- Confluence mean: -0.5 to +0.5 (minor change acceptable)
+- R:R mean: -0.2 to +0.2 (stable)
+- No crashes or errors in logs
 
 ---
 
