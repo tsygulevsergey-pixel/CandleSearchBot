@@ -63,16 +63,17 @@ function findPivotHigh(candles: Candle[], index: number, period: number, source:
 
   const centerValue = getValue(candles[index]);
 
+  // ✅ FIX: Pine Script uses STRICT inequality (allows plateau pivots)
   // Проверяем период слева
   for (let i = index - period; i < index; i++) {
-    if (getValue(candles[i]) >= centerValue) {
+    if (getValue(candles[i]) > centerValue) {  // Changed >= to >
       return null;
     }
   }
 
   // Проверяем период справа
   for (let i = index + 1; i <= index + period; i++) {
-    if (getValue(candles[i]) >= centerValue) {
+    if (getValue(candles[i]) > centerValue) {  // Changed >= to >
       return null;
     }
   }
@@ -94,16 +95,17 @@ function findPivotLow(candles: Candle[], index: number, period: number, source: 
 
   const centerValue = getValue(candles[index]);
 
+  // ✅ FIX: Pine Script uses STRICT inequality (allows plateau pivots)
   // Проверяем период слева
   for (let i = index - period; i < index; i++) {
-    if (getValue(candles[i]) <= centerValue) {
+    if (getValue(candles[i]) < centerValue) {  // Changed <= to <
       return null;
     }
   }
 
   // Проверяем период справа
   for (let i = index + 1; i <= index + period; i++) {
-    if (getValue(candles[i]) <= centerValue) {
+    if (getValue(candles[i]) < centerValue) {  // Changed <= to <
       return null;
     }
   }
@@ -186,7 +188,8 @@ function countChannelTouches(
   loopbackPeriod: number
 ): number {
   let touchCount = 0;
-  const startIndex = Math.max(0, candles.length - loopbackPeriod);
+  // ✅ FIX: Pine counts loopback+1 bars ("for y = 0 to loopback")
+  const startIndex = Math.max(0, candles.length - loopbackPeriod - 1);
 
   for (let i = startIndex; i < candles.length; i++) {
     const high = parseFloat(candles[i].high);
