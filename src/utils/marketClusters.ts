@@ -161,7 +161,7 @@ export function getCoinCluster(symbol: string): CoinCluster {
   
   if (!cluster) {
     // Если монеты нет в маппинге, определяем лидера по умолчанию
-    console.warn(`⚠️ [Cluster] Symbol ${symbol} not in cluster map, using default (ETH/Other)`);
+    // console.warn(`⚠️ [Cluster] Symbol ${symbol} not in cluster map, using default (ETH/Other)`);
     return {
       symbol,
       leader: 'ETH', // По умолчанию ETH ecosystem
