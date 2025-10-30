@@ -746,19 +746,19 @@ export class PatternDetector {
 
     console.log(`\n🔍 [Fakey] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
-    // Параметры по таймфреймам (снижены для 15m: minMBSize 1.2→1.0)
+    // Параметры по таймфреймам (REMOVED minMBSize - following professional standards)
     const tfParams = {
-      '15m': { epsilon: 0.225, minMBSize: 1.0, maxConfirmBars: 2 },
-      '1h':  { epsilon: 0.175, minMBSize: 1.0, maxConfirmBars: 3 },
-      '4h':  { epsilon: 0.125, minMBSize: 0.8, maxConfirmBars: 3 },
+      '15m': { epsilon: 0.225, maxConfirmBars: 2 },
+      '1h':  { epsilon: 0.175, maxConfirmBars: 3 },
+      '4h':  { epsilon: 0.125, maxConfirmBars: 3 },
     };
     
     const params = tfParams[timeframe as keyof typeof tfParams] || tfParams['1h'];
-    const { epsilon, minMBSize, maxConfirmBars } = params;
+    const { epsilon, maxConfirmBars } = params;
     
     const atr = this.calculateATR(candles, 5);
     
-    console.log(`   📊 ATR=${atr.toFixed(8)}, ε=${epsilon}, minMB=${minMBSize}×ATR`);
+    console.log(`   📊 ATR=${atr.toFixed(8)}, ε=${epsilon} (no MB size minimum)`);
 
     // Пробуем разные варианты: MB + 1 IB, MB + 2 IB
     for (let numIB = 1; numIB <= 2; numIB++) {
@@ -795,13 +795,8 @@ export class PatternDetector {
       console.log(`      IB: H=${IBHigh.toFixed(8)}, L=${IBLow.toFixed(8)}`);
       console.log(`      FB: H=${FB.high.toFixed(8)}, L=${FB.low.toFixed(8)}, C=${FB.close.toFixed(8)}`);
 
-      // ФИЛЬТР 1: Минимальный размер MB
-      const mbSizeOK = MB.range >= minMBSize * atr;
-      if (!mbSizeOK) {
-        console.log(`   ❌ MB too small: ${MB.range.toFixed(8)} < ${(minMBSize * atr).toFixed(8)}`);
-        continue;
-      }
-      console.log(`   ✅ MB size OK: ${MB.range.toFixed(8)} >= ${(minMBSize * atr).toFixed(8)}`);
+      // Professional standard: NO minimum MB size requirement, rely on structure clarity
+      console.log(`   ✅ MB structure check: Range=${MB.range.toFixed(8)} (ATR size filter REMOVED per pro standards)`);
 
       // ========== LONG FAKEY ==========
       // FB пробивает вниз (ложный пробой low IB), но закрывается обратно
@@ -959,18 +954,8 @@ export class PatternDetector {
     // 5. Not full engulfing (Close₂ < Open₁)
     
     if (Bar1.isRed && Bar2.isGreen) {
-      // Минимальные требования к размеру свечей (softened from 0.5 to 0.4 ATR for 15m)
-      const MIN_BODY_ATR = 0.4;
-      
-      if (Bar1.body < MIN_BODY_ATR * atr) {
-        console.log(`   ❌ BULLISH PPR: Bar₁ body too small: ${Bar1.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
-        return { detected: false };
-      }
-      
-      if (Bar2.body < MIN_BODY_ATR * atr) {
-        console.log(`   ❌ BULLISH PPR: Bar₂ body too small: ${Bar2.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
-        return { detected: false };
-      }
+      // Professional standard: NO minimum body size in ATR, rely on gap + penetration geometry
+      console.log(`   ✅ BULLISH PPR color sequence: RED→GREEN (ATR size filter REMOVED per pro standards)`);
       
       const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
       
@@ -1047,18 +1032,8 @@ export class PatternDetector {
     // 5. Not full engulfing (Close₂ > Open₁)
     
     if (Bar1.isGreen && Bar2.isRed) {
-      // Минимальные требования к размеру свечей (softened from 0.5 to 0.4 ATR for 15m)
-      const MIN_BODY_ATR = 0.4;
-      
-      if (Bar1.body < MIN_BODY_ATR * atr) {
-        console.log(`   ❌ BEARISH PPR: Bar₁ body too small: ${Bar1.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
-        return { detected: false };
-      }
-      
-      if (Bar2.body < MIN_BODY_ATR * atr) {
-        console.log(`   ❌ BEARISH PPR: Bar₂ body too small: ${Bar2.body.toFixed(8)} < ${(MIN_BODY_ATR * atr).toFixed(8)}`);
-        return { detected: false };
-      }
+      // Professional standard: NO minimum body size in ATR, rely on gap + penetration geometry
+      console.log(`   ✅ BEARISH PPR color sequence: GREEN→RED (ATR size filter REMOVED per pro standards)`);
       
       const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
       
@@ -1137,19 +1112,19 @@ export class PatternDetector {
 
     console.log(`\n🔍 [Engulfing] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
-    // Параметры по таймфреймам (снижены для 15m: minBodyATR 1.1→0.8, bodyRatio 1.3→1.2)
+    // Параметры по таймфреймам (REMOVED minBodyATR - following professional standards)
     const tfParams = {
-      '15m': { gamma: 0.175, bodyRatio: 1.2, minBodyATR: 0.8 }, // Softened from 1.3 for 15m
-      '1h':  { gamma: 0.15,  bodyRatio: 1.2, minBodyATR: 1.0 },
-      '4h':  { gamma: 0.125, bodyRatio: 1.1, minBodyATR: 0.8 },
+      '15m': { gamma: 0.175, bodyRatio: 1.2 },
+      '1h':  { gamma: 0.15,  bodyRatio: 1.2 },
+      '4h':  { gamma: 0.125, bodyRatio: 1.1 },
     };
     
     const params = tfParams[timeframe as keyof typeof tfParams] || tfParams['1h'];
-    const { gamma, bodyRatio, minBodyATR } = params;
+    const { gamma, bodyRatio } = params;
     
     const atr = this.calculateATR(candles, 5);
     
-    console.log(`   📊 ATR=${atr.toFixed(8)}, γ=${gamma}, bodyRatio=${bodyRatio}, minBodyATR=${minBodyATR}`);
+    console.log(`   📊 ATR=${atr.toFixed(8)}, γ=${gamma}, bodyRatio=${bodyRatio} (no ATR minimum)`);
 
     // Bar₁ и Bar₂ (последние две ЗАКРЫТЫЕ свечи)
     const Bar1 = analyzeCand(candles[candles.length - 2]); // C1 (поглощаемая, первая свеча паттерна)
@@ -1163,22 +1138,14 @@ export class PatternDetector {
     const EDGE_MAX = 0.25;
     
     // Проверка импульсности Bar₂
-    // 1. B₂ ≥ k_body·B₁
+    // Professional standard: Only check body ratio, NO minimum ATR requirement
     const bodyRatioActual = Bar1.body > 0 ? Bar2.body / Bar1.body : 0;
     const bodyRatioOK = bodyRatioActual >= bodyRatio;
     if (!bodyRatioOK) {
       console.log(`   ❌ Body ratio too small: ${bodyRatioActual.toFixed(2)} < ${bodyRatio}`);
       return { detected: false };
     }
-    console.log(`   ✅ Body ratio OK: ${bodyRatioActual.toFixed(2)} >= ${bodyRatio}`);
-    
-    // 2. B₂ ≥ k_ATR·ATR
-    const bodySizeOK = Bar2.body >= minBodyATR * atr;
-    if (!bodySizeOK) {
-      console.log(`   ❌ Body too small: ${Bar2.body.toFixed(8)} < ${(minBodyATR * atr).toFixed(8)}`);
-      return { detected: false };
-    }
-    console.log(`   ✅ Body size OK: ${Bar2.body.toFixed(8)} >= ${(minBodyATR * atr).toFixed(8)}`);
+    console.log(`   ✅ Body ratio OK: ${bodyRatioActual.toFixed(2)} >= ${bodyRatio} (ATR size filter REMOVED per pro standards)`);
 
     // ========== LONG (бычье поглощение) ==========
     // Цвет: Bar₁ RED, Bar₂ GREEN
