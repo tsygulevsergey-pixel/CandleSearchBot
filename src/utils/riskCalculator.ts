@@ -660,6 +660,80 @@ export class RiskCalculator {
 
     return { newStatus: currentStatus };
   }
+
+  /**
+   * 🎯 SPECIAL METHOD FOR 15M TIMEFRAME
+   * 
+   * Simpler logic for scalping on 15m:
+   * - SL: max of pattern candles + 0.3% ATR
+   * - TP: 2R (single level, no TP1/TP3)
+   * 
+   * @returns Simple risk profile with only TP2 (2R)
+   */
+  calculate15mRiskProfile(
+    patternType: string,
+    direction: 'LONG' | 'SHORT',
+    entryPrice: number,
+    candles15m: Candle[]
+  ): RiskProfile {
+    const logger = console;
+    logger.log(`🎯 [RiskCalculator] calculate15mRiskProfile for ${patternType} ${direction} @ ${entryPrice.toFixed(8)}`);
+
+    // Calculate ATR for 15m
+    const atr15m = calculateATR(candles15m);
+
+    // Find max/min of recent pattern candles (last 5 candles for pattern)
+    const patternCandles = candles15m.slice(-5);
+    const patternHigh = Math.max(...patternCandles.map((c) => Number(c.high)));
+    const patternLow = Math.min(...patternCandles.map((c) => Number(c.low)));
+
+    // Calculate SL: max/min of pattern + 0.3x ATR buffer
+    const atrBuffer = atrToPrice(atr15m, 0.30);
+    let sl: number;
+
+    if (direction === 'LONG') {
+      sl = patternLow - atrBuffer;
+      logger.log(`📉 [15m LONG] SL = patternLow (${patternLow.toFixed(8)}) - 0.3×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+    } else {
+      sl = patternHigh + atrBuffer;
+      logger.log(`📈 [15m SHORT] SL = patternHigh (${patternHigh.toFixed(8)}) + 0.3×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+    }
+
+    // Calculate TP: 2R (single level)
+    const riskR = Math.abs(entryPrice - sl);
+    const tp2 = direction === 'LONG' ? entryPrice + riskR * 2 : entryPrice - riskR * 2;
+
+    // Set TP1 and TP3 same as TP2 (for compatibility with existing schema)
+    const tp1 = tp2;
+    const tp3 = tp2;
+
+    const profile: RiskProfile = {
+      sl,
+      tp1,
+      tp2,
+      tp3,
+      initialSl: sl,
+      atr15m,
+      atr4h: 0, // Not used for 15m
+      scenario: 'trend_continuation', // Always trend continuation for 15m
+      meta: {
+        riskR,
+        tp1R: 2.0, // 2R
+        tp2R: 2.0, // 2R
+        tp3R: 2.0, // 2R (same as tp2 for 15m)
+      },
+    };
+
+    logger.log(`💰 [15m RiskCalculator] Profile:`, {
+      sl: sl.toFixed(8),
+      tp2: tp2.toFixed(8),
+      riskR: riskR.toFixed(8),
+      tp2R: '2.0R',
+      note: 'Single TP level at 2R for 15m scalping',
+    });
+
+    return profile;
+  }
 }
 
 export const riskCalculator = new RiskCalculator();

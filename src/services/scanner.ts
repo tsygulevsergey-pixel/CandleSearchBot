@@ -14,6 +14,7 @@ import {
   getConfluenceExplanation,
   type ConfluenceFactors 
 } from '../utils/confluenceScoring';
+import { detectTrend, isPatternWithTrend } from '../utils/trendDetector';
 import axios from 'axios';
 
 export class Scanner {
@@ -141,7 +142,154 @@ export class Scanner {
               console.log(`   Entry (candleClosePrice): ${entryPrice}`);
               console.log(`   Last candle close time: ${new Date(lastCandle.closeTime).toISOString()}`);
               
-              // 🎯 NEW STRATEGY: Calculate risk profile with ATR + S/R zones
+              // ⚡ 15M TREND-BASED LOGIC
+              if (timeframe === '15m') {
+                console.log(`\n📈 [15m Trend Filter] Applying trend-based filtering for ${symbol}...`);
+                
+                // Step 1: Detect trend on 15m candles
+                console.log(`📊 [15m Trend Filter] Step 1: Detecting trend on 15m timeframe...`);
+                // Convert candles to match trendDetector's expected type (number fields)
+                const candlesForTrend = candles.map(c => ({
+                  high: Number(c.high),
+                  low: Number(c.low),
+                  close: Number(c.close),
+                  open: Number(c.open),
+                  timestamp: c.openTime,
+                }));
+                const trend = detectTrend(candlesForTrend, entryPrice);
+                console.log(`📊 [15m Trend Filter] Trend detected: ${trend.direction} (strength: ${trend.strength}%)`);
+                console.log(`   📊 EMA20: ${trend.ema20.toFixed(8)}, EMA50: ${trend.ema50.toFixed(8)}`);
+                console.log(`   📊 Swing: ${trend.details.swingStructure}, EMA aligned: ${trend.details.emaAlignment}, Price vs EMA: ${trend.details.priceVsEma}`);
+                
+                // Step 2: Check if pattern aligns with trend (minStrength=60)
+                console.log(`📊 [15m Trend Filter] Step 2: Checking pattern alignment with trend (minStrength=60)...`);
+                const isAligned = isPatternWithTrend(pattern.direction, trend, 60);
+                
+                if (!isAligned) {
+                  console.log(`❌ [15m Trend Filter] Signal REJECTED - pattern NOT aligned with trend`);
+                  console.log(`   ⚠️ Pattern: ${pattern.direction}, Trend: ${trend.direction} (${trend.strength}%), Required: 60%`);
+                  console.log(`   ⚠️ Skipping ${symbol} - 15m patterns MUST align with trend (LONG+UPTREND or SHORT+DOWNTREND)`);
+                  
+                  // Log as near-miss skip for ML analysis
+                  const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
+                  await logNearMissSkipFull({
+                    symbol,
+                    timeframe,
+                    patternType: pattern.type,
+                    entryPrice,
+                    direction: pattern.direction,
+                    skipReason: SKIP_REASONS.TREND_MISALIGNMENT,
+                    skipCategory: 'directional',
+                    confluenceScore: 0,
+                    confluenceFactors: {} as any,
+                    patternScore: pattern.score || 0,
+                    patternScoreFactors: {},
+                    mlContext: {
+                      trendDirection: trend.direction,
+                      trendStrength: trend.strength,
+                      ema20: trend.ema20,
+                      ema50: trend.ema50,
+                    } as any,
+                    atr15m: calculateATR(candles),
+                    atr1h: 0,
+                    atr4h: 0,
+                  });
+                  
+                  continue; // Skip this signal
+                }
+                
+                console.log(`✅ [15m Trend Filter] Pattern ALIGNED with trend - proceeding with signal`);
+                console.log(`   ✅ Pattern: ${pattern.direction}, Trend: ${trend.direction} (${trend.strength}%)`);
+                
+                // Step 3: Use calculate15mRiskProfile for trend-aligned 15m signals
+                console.log(`🎯 [15m Risk] Calculating 15m-specific risk profile for ${symbol}...`);
+                const riskProfile = riskCalculator.calculate15mRiskProfile(
+                  pattern.type,
+                  pattern.direction,
+                  entryPrice,
+                  candles
+                );
+                
+                console.log(`✅ [15m Risk] Risk profile calculated: SL=${riskProfile.sl.toFixed(8)}, TP=${riskProfile.tp2.toFixed(8)} (2R)`);
+                console.log(`   📊 R=${riskProfile.meta.riskR.toFixed(8)}, TP R:R=${riskProfile.meta.tp2R.toFixed(2)}R`);
+                
+                // Create minimal enriched ML context for 15m (no multi-TF data needed)
+                const enrichedMLContext = {
+                  trendDirection: trend.direction,
+                  trendStrength: trend.strength,
+                  ema20: trend.ema20,
+                  ema50: trend.ema50,
+                  swingStructure: trend.details.swingStructure,
+                  patternScore: pattern.score || 0,
+                  actualRR_tp1: riskProfile.meta.tp1R,
+                  actualRR_tp2: riskProfile.meta.tp2R,
+                  actualRR_tp3: riskProfile.meta.tp3R,
+                  confluenceScore: 0, // Not used for 15m
+                  confluenceDetails: {},
+                };
+                
+                // Create signal for 15m (trend-aligned)
+                // ✅ CRITICAL: Set 100% close at TP2 for 15m (not 50/30/20)
+                const signal = await signalDB.createSignal({
+                  symbol,
+                  timeframe,
+                  patternType: pattern.type,
+                  entryPrice: entryPrice.toString(),
+                  slPrice: riskProfile.sl.toString(),
+                  tp1Price: riskProfile.tp1.toString(),
+                  tp2Price: riskProfile.tp2.toString(),
+                  tp3Price: riskProfile.tp3.toString(),
+                  currentSl: riskProfile.sl.toString(),
+                  initialSl: riskProfile.initialSl.toString(),
+                  atr15m: riskProfile.atr15m.toString(),
+                  atrH4: '0', // Not used for 15m
+                  direction: pattern.direction,
+                  status: 'OPEN',
+                  // ✅ Single-level TP: 100% close at TP2 (2R)
+                  partialCloseP1: '0',   // 0% at TP1 (TP1=TP2=TP3 anyway)
+                  partialCloseP2: '100', // 100% at TP2 (full close)
+                  partialCloseP3: '0',   // 0% at TP3 (not used)
+                  strategyProfile: 'SCALP_15M', // Trend-based scalping
+                  // ✅ Store actual R values for PnL calc
+                  actualRrTp1: riskProfile.meta.tp1R.toString(),
+                  actualRrTp2: riskProfile.meta.tp2R.toString(),
+                  actualRrTp3: riskProfile.meta.tp3R.toString(),
+                });
+                
+                signalsFound++;
+                const elapsedSinceClose = Math.max(0, (Date.now() - lastCandle.closeTime) / 1000).toFixed(1);
+                const directionText = pattern.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
+                const patternName = pattern.type.replace('_', ' ').toUpperCase();
+                
+                const message = `
+🚨 <b>15M TREND SIGNAL ⚡</b> 🚨
+
+💎 <b>Монета:</b> ${symbol}
+📊 <b>Направление:</b> ${directionText}
+⏰ <b>Таймфрейм:</b> ${timeframe}
+📈 <b>Паттерн:</b> ${patternName}
+🏷️ <b>Кластер:</b> ${cluster.leader} | ${cluster.sector}
+📈 <b>Тренд:</b> ${trend.direction} (${trend.strength}%)
+
+💰 <b>Entry:</b> ${entryPrice.toFixed(8)}
+🛑 <b>Stop Loss:</b> ${riskProfile.sl.toFixed(8)}
+🎯 <b>TP (2R):</b> ${riskProfile.tp2.toFixed(8)}
+
+⚡ <b>R:R:</b> 1:${riskProfile.meta.tp2R.toFixed(2)}
+📊 <b>ATR (15m):</b> ${riskProfile.atr15m.toFixed(2)}%
+⏱️ <b>Задержка:</b> ${elapsedSinceClose}s
+
+🎯 <b>Стратегия:</b> Trend-based scalping (15m)
+              `.trim();
+                
+                await this.sendTelegramMessage(message);
+                console.log(`✅ [Scanner] 15m signal created and sent: ${symbol} ${pattern.direction}`);
+                
+                // Skip to next pattern (15m logic complete)
+                continue;
+              }
+              
+              // 🎯 1H/4H STRATEGY: Calculate risk profile with ATR + S/R zones (existing logic)
               console.log(`🎯 [Scanner] Fetching multi-timeframe data for ${symbol}...`);
               
               // Fetch candles for all timeframes (for ATR + S/R zone analysis)
