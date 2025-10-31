@@ -157,9 +157,16 @@ export function calculateTradeOutcome(params: TradeParams): TradeOutcome {
   const R = Math.abs(entryPrice - slPrice);
   
   // ✅ Extract %s: use custom if provided, otherwise defaults
-  const p1 = customPercents?.p1 || 50;
-  const p2 = customPercents?.p2 || 30;
-  const p3 = customPercents?.p3 || 20;
+  // IMPORTANT: Use ?? instead of || to properly handle 0 values (e.g., p1=0 for 15m scalp)
+  const p1 = customPercents?.p1 ?? 50;
+  const p2 = customPercents?.p2 ?? 30;
+  const p3 = customPercents?.p3 ?? 20;
+  
+  // Validation: ensure percentages sum to 100 (allow small floating point errors)
+  const sum = p1 + p2 + p3;
+  if (Math.abs(sum - 100) > 0.1) {
+    console.warn(`⚠️ [TradeOutcomes] Invalid percentages: ${p1}+${p2}+${p3} = ${sum}% (should be 100%)`);
+  }
   
   // ✅ Extract R levels: use actual if provided, otherwise calculate from prices
   let tp1R: number, tp2R: number, tp3R: number;

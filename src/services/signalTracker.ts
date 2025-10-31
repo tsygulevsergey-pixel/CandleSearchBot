@@ -100,13 +100,14 @@ export class SignalTracker {
             console.log(`🔄 [SignalTracker] Status change detected: ${signal.status} → ${newStatus}`);
 
             // ✅ Read dynamic strategy parameters from DB (if available)
-            const customPercents = signal.partialCloseP1 ? {
+            // IMPORTANT: Check for null/undefined, not truthiness (0 is valid value!)
+            const customPercents = signal.partialCloseP1 !== null && signal.partialCloseP1 !== undefined ? {
               p1: parseFloat(signal.partialCloseP1),
               p2: parseFloat(signal.partialCloseP2!),
               p3: parseFloat(signal.partialCloseP3!),
             } : undefined; // undefined = use defaults (backward compatibility)
 
-            const actualTpR = signal.actualRrTp1 ? {
+            const actualTpR = signal.actualRrTp1 !== null && signal.actualRrTp1 !== undefined ? {
               tp1R: parseFloat(signal.actualRrTp1),
               tp2R: parseFloat(signal.actualRrTp2!),
               tp3R: parseFloat(signal.actualRrTp3!),
