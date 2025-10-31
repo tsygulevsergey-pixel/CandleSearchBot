@@ -699,9 +699,15 @@ export class RiskCalculator {
       logger.log(`📈 [15m SHORT] SL = patternHigh (${patternHigh.toFixed(8)}) + 0.3×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
     }
 
-    // Calculate TP: 2R (single level)
+    // Calculate TP: dynamic R based on SL size
     const riskR = Math.abs(entryPrice - sl);
-    const tp2 = direction === 'LONG' ? entryPrice + riskR * 2 : entryPrice - riskR * 2;
+    const slPercent = (riskR / entryPrice) * 100;
+    
+    // ✅ DYNAMIC TP: If SL >= 3%, use 1.8R instead of 2R (tighter TP for wider SL)
+    const tpMultiplier = slPercent >= 3.0 ? 1.8 : 2.0;
+    const tp2 = direction === 'LONG' ? entryPrice + riskR * tpMultiplier : entryPrice - riskR * tpMultiplier;
+
+    logger.log(`🎯 [15m TP Logic] SL = ${slPercent.toFixed(2)}% → TP multiplier = ${tpMultiplier}R ${slPercent >= 3.0 ? '(wide SL, reduced TP)' : '(normal)'}`);
 
     // Set TP1 and TP3 same as TP2 (for compatibility with existing schema)
     const tp1 = tp2;
@@ -718,9 +724,9 @@ export class RiskCalculator {
       scenario: 'trend_continuation', // Always trend continuation for 15m
       meta: {
         riskR,
-        tp1R: 2.0, // 2R
-        tp2R: 2.0, // 2R
-        tp3R: 2.0, // 2R (same as tp2 for 15m)
+        tp1R: tpMultiplier, // 1.8R or 2R
+        tp2R: tpMultiplier, // 1.8R or 2R
+        tp3R: tpMultiplier, // 1.8R or 2R (same as tp2 for 15m)
       },
     };
 
@@ -728,8 +734,11 @@ export class RiskCalculator {
       sl: sl.toFixed(8),
       tp2: tp2.toFixed(8),
       riskR: riskR.toFixed(8),
-      tp2R: '2.0R',
-      note: 'Single TP level at 2R for 15m scalping',
+      slPercent: `${slPercent.toFixed(2)}%`,
+      tp2R: `${tpMultiplier}R`,
+      note: slPercent >= 3.0 
+        ? 'Wide SL (≥3%) → Reduced TP to 1.8R for better win rate'
+        : 'Normal SL (<3%) → Standard 2R target',
     });
 
     return profile;

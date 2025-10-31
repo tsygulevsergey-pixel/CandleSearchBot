@@ -210,8 +210,8 @@ export class Scanner {
                   candles
                 );
                 
-                console.log(`✅ [15m Risk] Risk profile calculated: SL=${riskProfile.sl.toFixed(8)}, TP=${riskProfile.tp2.toFixed(8)} (2R)`);
-                console.log(`   📊 R=${riskProfile.meta.riskR.toFixed(8)}, TP R:R=${riskProfile.meta.tp2R.toFixed(2)}R`);
+                console.log(`✅ [15m Risk] Risk profile calculated: SL=${riskProfile.sl.toFixed(8)}, TP=${riskProfile.tp2.toFixed(8)} (${riskProfile.meta.tp2R}R)`);
+                console.log(`   📊 Risk R=${riskProfile.meta.riskR.toFixed(8)}, TP Multiplier=${riskProfile.meta.tp2R}R`);
                 
                 // Create minimal enriched ML context for 15m (no multi-TF data needed)
                 const enrichedMLContext = {
@@ -273,9 +273,9 @@ export class Scanner {
 
 💰 <b>Entry:</b> ${entryPrice.toFixed(8)}
 🛑 <b>Stop Loss:</b> ${riskProfile.sl.toFixed(8)}
-🎯 <b>TP (2R):</b> ${riskProfile.tp2.toFixed(8)}
+🎯 <b>TP (${riskProfile.meta.tp2R}R):</b> ${riskProfile.tp2.toFixed(8)}
 
-⚡ <b>R:R:</b> 1:${riskProfile.meta.tp2R.toFixed(2)}
+⚡ <b>R:R:</b> 1:${riskProfile.meta.tp2R.toFixed(1)}
 📊 <b>ATR (15m):</b> ${riskProfile.atr15m.toFixed(2)}%
 ⏱️ <b>Задержка:</b> ${elapsedSinceClose}s
 
