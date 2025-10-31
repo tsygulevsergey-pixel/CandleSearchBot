@@ -282,7 +282,11 @@ export class Scanner {
 🎯 <b>Стратегия:</b> Trend-based scalping (15m)
               `.trim();
                 
-                await this.sendTelegramMessage(message);
+                const messageId = await this.sendTelegramMessage(message);
+                if (messageId) {
+                  await signalDB.updateTelegramMessageId(signal.id, messageId);
+                  console.log(`✅ [Scanner] Saved Telegram message_id ${messageId} for signal ${signal.id}`);
+                }
                 console.log(`✅ [Scanner] 15m signal created and sent: ${symbol} ${pattern.direction}`);
                 
                 // Skip to next pattern (15m logic complete)
