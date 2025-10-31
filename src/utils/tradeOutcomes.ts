@@ -4,16 +4,19 @@
  * Централизованная логика для расчета PnL и определения типа закрытия сделки.
  * Используется в signalTracker.ts и db.ts для обеспечения консистентности.
  * 
- * PARTIAL CLOSE STRATEGY (Aggressive):
- * - TP1 (1R): Close 50% → partialClosed = 50%
- * - TP2 (2R): Close 30% → partialClosed = 80% (50% + 30%)
- * - TP3 (3R): Close 20% → partialClosed = 100% (50% + 30% + 20%)
+ * SUPPORTS DYNAMIC & FIXED STRATEGIES:
+ * - Fixed (default): 50%/30%/20% at 1R/2R/3R (for backward compatibility)
+ * - Dynamic: Custom %s and Rs based on market conditions (new signals)
  * 
- * PnL CALCULATION EXAMPLES:
+ * PnL CALCULATION EXAMPLES (Fixed):
  * - TP3 full win: 0.5×1R + 0.3×2R + 0.2×3R = 1.7R
  * - TP2 then BE: 0.5×1R + 0.3×2R + 0.2×0R = 1.1R
  * - TP1 then BE: 0.5×1R + 0.5×0R = 0.5R
  * - SL before TP1: 1.0×(-1R) = -1R
+ * 
+ * PnL CALCULATION EXAMPLES (Dynamic):
+ * - Conservative (60%/30%/10% at 0.8R/1.8R/2.5R): 0.6×0.8 + 0.3×1.8 + 0.1×2.5 = 1.27R
+ * - Aggressive (30%/30%/40% at 1.2R/2.5R/4R): 0.3×1.2 + 0.3×2.5 + 0.4×4 = 2.47R
  */
 
 export interface TradeOutcome {
@@ -34,6 +37,10 @@ interface TradeParams {
   slPrice: string;
   currentSl: string;
   partialClosed?: number; // For BE_HIT scenario: how much was already closed (0-100)
+  
+  // NEW: Dynamic strategy parameters (optional - if not provided, uses defaults)
+  customPercents?: { p1: number; p2: number; p3: number }; // Custom partial close %s
+  actualTpR?: { tp1R: number; tp2R: number; tp3R: number }; // Actual TP levels in R units
 }
 
 /**
@@ -51,23 +58,48 @@ export function isBreakevenSL(currentSl: number, entryPrice: number): boolean {
 /**
  * Рассчитывает процент позиции, которая была закрыта частично
  * 
+ * SUPPORTS DYNAMIC & FIXED STRATEGIES:
+ * - If customPercents provided → uses dynamic %s (new signals)
+ * - If not provided → uses defaults 50/30/20 (old signals, backward compatibility)
+ * 
  * @param status - текущий статус сигнала
  * @param previousPartialClosed - предыдущий процент закрытия (для BE_HIT)
+ * @param customPercents - кастомные проценты для динамической стратегии (optional)
  * @returns процент закрытой позиции (0-100)
  */
 export function calculatePartialClosedPercent(
   status: string,
-  previousPartialClosed?: number
+  previousPartialClosed?: number,
+  customPercents?: { p1: number; p2: number; p3: number }
 ): number {
-  console.log(`📊 [TradeOutcomes] calculatePartialClosedPercent: status=${status}, previous=${previousPartialClosed}`);
+  console.log(`📊 [TradeOutcomes] calculatePartialClosedPercent: status=${status}, custom=${JSON.stringify(customPercents)}`);
 
+  // ✅ Dynamic strategy (if customPercents provided)
+  if (customPercents) {
+    switch (status) {
+      case 'OPEN':
+        return 0;
+      case 'TP1_HIT':
+        return customPercents.p1; // Dynamic % at TP1
+      case 'TP2_HIT':
+        return customPercents.p1 + customPercents.p2; // Cumulative
+      case 'TP3_HIT':
+      case 'BE_HIT':
+      case 'SL_HIT':
+        return 100; // Full position closed
+      default:
+        return 0;
+    }
+  }
+
+  // ✅ Fixed strategy (defaults for backward compatibility)
   switch (status) {
     case 'OPEN':
       return 0;
     case 'TP1_HIT':
-      return 50; // Close 50% at TP1
+      return 50; // Default: Close 50% at TP1
     case 'TP2_HIT':
-      return 80; // Close 30% more (total 80%)
+      return 80; // Default: Close 30% more (total 80%)
     case 'TP3_HIT':
     case 'BE_HIT':  // BE_HIT closes remaining position = 100%
     case 'SL_HIT':
@@ -80,12 +112,11 @@ export function calculatePartialClosedPercent(
 /**
  * Рассчитывает PnL и определяет тип закрытия сделки
  * 
- * Используется агрессивная стратегия частичного закрытия:
- * - TP1 (1R): закрывается 50% позиции
- * - TP2 (2R): закрывается 30% позиции (всего 80%)
- * - TP3 (3R): закрывается 20% позиции (всего 100%)
+ * SUPPORTS DYNAMIC & FIXED STRATEGIES:
+ * - Fixed (default): 50%/30%/20% at 1R/2R/3R (backward compatibility)
+ * - Dynamic: Custom %s and Rs from dynamicPositionManager (new signals)
  * 
- * @param params - параметры сделки
+ * @param params - параметры сделки (включая опциональные customPercents и actualTpR)
  * @returns TradeOutcome с PnL (в % и R), типом закрытия и описанием
  */
 export function calculateTradeOutcome(params: TradeParams): TradeOutcome {
@@ -99,6 +130,8 @@ export function calculateTradeOutcome(params: TradeParams): TradeOutcome {
     slPrice: slStr,
     currentSl: currentSlStr,
     partialClosed,
+    customPercents,  // NEW: dynamic %s
+    actualTpR,       // NEW: actual TP levels in R
   } = params;
 
   const entryPrice = parseFloat(entryStr);
@@ -116,10 +149,30 @@ export function calculateTradeOutcome(params: TradeParams): TradeOutcome {
     sl: slPrice.toFixed(8),
     currentSl: currentSl.toFixed(8),
     partialClosed,
+    customPercents: customPercents ? `${customPercents.p1}/${customPercents.p2}/${customPercents.p3}` : 'default',
+    actualTpR: actualTpR ? `${actualTpR.tp1R}R/${actualTpR.tp2R}R/${actualTpR.tp3R}R` : 'default',
   });
 
   // Calculate R (risk) as distance from entry to initial SL
   const R = Math.abs(entryPrice - slPrice);
+  
+  // ✅ Extract %s: use custom if provided, otherwise defaults
+  const p1 = customPercents?.p1 || 50;
+  const p2 = customPercents?.p2 || 30;
+  const p3 = customPercents?.p3 || 20;
+  
+  // ✅ Extract R levels: use actual if provided, otherwise calculate from prices
+  let tp1R: number, tp2R: number, tp3R: number;
+  if (actualTpR) {
+    tp1R = actualTpR.tp1R;
+    tp2R = actualTpR.tp2R;
+    tp3R = actualTpR.tp3R;
+  } else {
+    // Calculate from prices (fallback for old signals)
+    tp1R = Math.abs(tp1Price - entryPrice) / R;
+    tp2R = Math.abs(tp2Price - entryPrice) / R;
+    tp3R = tp3Price ? Math.abs(tp3Price - entryPrice) / R : 3.0;
+  }
 
   let pnlR = 0; // PnL in R units
   let outcomeType: TradeOutcome['outcomeType'] = 'OPEN';
@@ -132,22 +185,22 @@ export function calculateTradeOutcome(params: TradeParams): TradeOutcome {
     pnlR = 0;
   } else if (status === 'TP1_HIT') {
     outcomeType = 'TP1_HIT';
-    description = 'TP1 достигнут (50% закрыто)';
-    // TP1: 50% closed at 1R = 0.5 × 1R = 0.5R
-    pnlR = 0.5 * 1;
-    console.log(`🎯 [TradeOutcomes] TP1_HIT: 50% × 1R = ${pnlR.toFixed(2)}R`);
+    description = `TP1 достигнут (${p1}% закрыто)`;
+    // TP1: p1% closed at tp1R
+    pnlR = (p1 / 100) * tp1R;
+    console.log(`🎯 [TradeOutcomes] TP1_HIT: ${p1}% × ${tp1R.toFixed(2)}R = ${pnlR.toFixed(2)}R`);
   } else if (status === 'TP2_HIT') {
     outcomeType = 'TP2_HIT';
-    description = 'TP2 достигнут (80% закрыто)';
-    // TP2: 50% at 1R + 30% at 2R = 0.5×1R + 0.3×2R = 1.1R
-    pnlR = 0.5 * 1 + 0.3 * 2;
-    console.log(`🎯🎯 [TradeOutcomes] TP2_HIT: 50%×1R + 30%×2R = ${pnlR.toFixed(2)}R`);
+    description = `TP2 достигнут (${p1 + p2}% закрыто)`;
+    // TP2: p1% at tp1R + p2% at tp2R
+    pnlR = (p1 / 100) * tp1R + (p2 / 100) * tp2R;
+    console.log(`🎯🎯 [TradeOutcomes] TP2_HIT: ${p1}%×${tp1R.toFixed(2)}R + ${p2}%×${tp2R.toFixed(2)}R = ${pnlR.toFixed(2)}R`);
   } else if (status === 'TP3_HIT') {
     outcomeType = 'TP3_HIT';
     description = 'TP3 достигнут (полная прибыль)';
-    // TP3: 50% at 1R + 30% at 2R + 20% at 3R = 0.5×1R + 0.3×2R + 0.2×3R = 1.7R
-    pnlR = 0.5 * 1 + 0.3 * 2 + 0.2 * 3;
-    console.log(`🎯🎯🎯 [TradeOutcomes] TP3_HIT: 50%×1R + 30%×2R + 20%×3R = ${pnlR.toFixed(2)}R`);
+    // TP3: p1% at tp1R + p2% at tp2R + p3% at tp3R
+    pnlR = (p1 / 100) * tp1R + (p2 / 100) * tp2R + (p3 / 100) * tp3R;
+    console.log(`🎯🎯🎯 [TradeOutcomes] TP3_HIT: ${p1}%×${tp1R.toFixed(2)}R + ${p2}%×${tp2R.toFixed(2)}R + ${p3}%×${tp3R.toFixed(2)}R = ${pnlR.toFixed(2)}R`);
   } else if (status === 'SL_HIT') {
     outcomeType = 'SL_HIT';
     description = 'Stop Loss сработал';
@@ -159,22 +212,25 @@ export function calculateTradeOutcome(params: TradeParams): TradeOutcome {
     breakeven = true;
 
     // BE_HIT: Breakeven hit after partial close
-    // Determine how much was already closed based on partialClosed param
-    if (partialClosed === 50) {
-      // After TP1: 50% at 1R + 50% at 0R = 0.5R
-      pnlR = 0.5 * 1 + 0.5 * 0;
-      description = 'Breakeven после TP1 (50% прибыль)';
-      console.log(`⚖️ [TradeOutcomes] BE_HIT after TP1: 50%×1R + 50%×0R = ${pnlR.toFixed(2)}R`);
-    } else if (partialClosed === 80) {
-      // After TP2: 50% at 1R + 30% at 2R + 20% at 0R = 1.1R
-      pnlR = 0.5 * 1 + 0.3 * 2 + 0.2 * 0;
-      description = 'Breakeven после TP2 (80% прибыль)';
-      console.log(`⚖️ [TradeOutcomes] BE_HIT after TP2: 50%×1R + 30%×2R + 20%×0R = ${pnlR.toFixed(2)}R`);
+    // Calculate based on how much was already closed (using custom or default %s)
+    const closedAtTP1 = p1;
+    const closedAtTP2 = p1 + p2;
+    
+    if (partialClosed === closedAtTP1) {
+      // After TP1: p1% at tp1R + remaining at 0R
+      pnlR = (p1 / 100) * tp1R + ((100 - p1) / 100) * 0;
+      description = `Breakeven после TP1 (${p1}% прибыль)`;
+      console.log(`⚖️ [TradeOutcomes] BE_HIT after TP1: ${p1}%×${tp1R.toFixed(2)}R + ${100-p1}%×0R = ${pnlR.toFixed(2)}R`);
+    } else if (partialClosed === closedAtTP2) {
+      // After TP2: p1% at tp1R + p2% at tp2R + remaining at 0R
+      pnlR = (p1 / 100) * tp1R + (p2 / 100) * tp2R + (p3 / 100) * 0;
+      description = `Breakeven после TP2 (${closedAtTP2}% прибыль)`;
+      console.log(`⚖️ [TradeOutcomes] BE_HIT after TP2: ${p1}%×${tp1R.toFixed(2)}R + ${p2}%×${tp2R.toFixed(2)}R + ${p3}%×0R = ${pnlR.toFixed(2)}R`);
     } else {
-      // Unknown or default: assume after TP1 (safest assumption)
-      pnlR = 0.5 * 1;
+      // Unknown: assume after TP1 (safest assumption)
+      pnlR = (p1 / 100) * tp1R;
       description = 'Breakeven сработал (частичная прибыль)';
-      console.log(`⚖️ [TradeOutcomes] BE_HIT (default): 50%×1R = ${pnlR.toFixed(2)}R`);
+      console.log(`⚖️ [TradeOutcomes] BE_HIT (default): ${p1}%×${tp1R.toFixed(2)}R = ${pnlR.toFixed(2)}R`);
     }
   }
 

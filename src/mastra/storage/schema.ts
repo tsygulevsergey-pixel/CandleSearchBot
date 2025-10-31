@@ -121,6 +121,12 @@ export const signals = pgTable('signals', {
   timeToBeMin: integer('time_to_be_min'),
   firstTouch: text('first_touch'), // "tp1" | "tp2" | "tp3" | "sl" | "be"
   
+  // NEW: Dynamic position management percentages
+  partialCloseP1: decimal('partial_close_p1', { precision: 5, scale: 2 }), // % to close at TP1 (dynamic)
+  partialCloseP2: decimal('partial_close_p2', { precision: 5, scale: 2 }), // % to close at TP2 (dynamic)
+  partialCloseP3: decimal('partial_close_p3', { precision: 5, scale: 2 }), // % to close at TP3 (dynamic)
+  strategyProfile: text('strategy_profile'), // 'CONSERVATIVE', 'BALANCED', 'AGGRESSIVE', 'TREND_FOLLOWING', 'SCALP'
+  
   // Status
   status: signalStatusEnum('status').default('OPEN').notNull(),
   direction: signalDirectionEnum('direction').notNull(),

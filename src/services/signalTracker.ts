@@ -88,9 +88,22 @@ export class SignalTracker {
           if (newStatus !== signal.status) {
             console.log(`🔄 [SignalTracker] Status change detected: ${signal.status} → ${newStatus}`);
 
-            // Calculate partial closed percentage
+            // ✅ Read dynamic strategy parameters from DB (if available)
+            const customPercents = signal.partialCloseP1 ? {
+              p1: parseFloat(signal.partialCloseP1),
+              p2: parseFloat(signal.partialCloseP2!),
+              p3: parseFloat(signal.partialCloseP3!),
+            } : undefined; // undefined = use defaults (backward compatibility)
+
+            const actualTpR = signal.actualRrTp1 ? {
+              tp1R: parseFloat(signal.actualRrTp1),
+              tp2R: parseFloat(signal.actualRrTp2!),
+              tp3R: parseFloat(signal.actualRrTp3!),
+            } : undefined; // undefined = calculate from prices (backward compatibility)
+
+            // Calculate partial closed percentage (with dynamic or default %s)
             const currentPartialClosed = parseFloat(signal.partialClosed || '0');
-            const partialClosed = calculatePartialClosedPercent(newStatus, currentPartialClosed);
+            const partialClosed = calculatePartialClosedPercent(newStatus, currentPartialClosed, customPercents);
             
             // Only set beActivated to true when TP1/TP2 hit
             // Leave it undefined (unchanged) for other statuses like BE_HIT
@@ -99,10 +112,12 @@ export class SignalTracker {
             console.log(`📊 [SignalTracker] Partial close calculation:`, {
               previousPartialClosed: currentPartialClosed,
               newPartialClosed: partialClosed,
+              customPercents: customPercents ? `${customPercents.p1}/${customPercents.p2}/${customPercents.p3}` : 'default 50/30/20',
+              actualTpR: actualTpR ? `${actualTpR.tp1R}R/${actualTpR.tp2R}R/${actualTpR.tp3R}R` : 'calculated from prices',
               beActivated,
             });
 
-            // Используем централизованную логику расчета PnL
+            // Используем централизованную логику расчета PnL (с динамическими или default параметрами)
             const outcome = calculateTradeOutcome({
               status: newStatus,
               direction: signal.direction,
@@ -113,6 +128,8 @@ export class SignalTracker {
               slPrice: signal.slPrice,
               currentSl: newSl !== undefined ? newSl.toString() : signal.currentSl,
               partialClosed: currentPartialClosed,
+              customPercents,  // ✅ Pass dynamic %s (or undefined for defaults)
+              actualTpR,       // ✅ Pass actual TP R values (or undefined to calculate)
             });
 
             // Update database with all new fields
@@ -135,7 +152,8 @@ export class SignalTracker {
 
             const statusEmoji = getStatusEmoji(outcome.outcomeType);
             const statusText = outcome.description.toUpperCase();
-            const pnlText = outcome.pnl !== 0 
+            // ✅ FIX: Always show PnL for closed positions (including SL_HIT with negative PnL)
+            const pnlText = (newStatus !== 'OPEN')
               ? `\n💵 <b>PnL:</b> ${formatPnL(outcome.pnl)} (${formatPnLR(outcome.pnlR)})` 
               : '';
             const partialClosedText = partialClosed > 0 && partialClosed < 100

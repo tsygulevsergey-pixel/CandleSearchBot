@@ -356,6 +356,21 @@ export class Scanner {
                 confluenceDetails: confluenceFactors,
               };
 
+              // ✅ NEW: Calculate dynamic position management strategy
+              let dynamicStrategy = null;
+              try {
+                const { calculateDynamicStrategy } = await import('../utils/dynamicPositionManager');
+                dynamicStrategy = calculateDynamicStrategy({
+                  confluenceScore,
+                  trendStrength: enrichedMLContext.trendBias === 'long' || enrichedMLContext.trendBias === 'short' ? 'strong' : 'medium',
+                  rAvailable: dynamicProfile?.rAvailable || 3.0,
+                  atrVolatility: dynamicProfile?.atrVolatility || 'normal',
+                });
+                console.log(`🎯 [Scanner] Dynamic strategy: ${dynamicStrategy.profile}, TPs: ${dynamicStrategy.tp1R}R/${dynamicStrategy.tp2R}R/${dynamicStrategy.tp3R}R, Close: ${dynamicStrategy.p1}%/${dynamicStrategy.p2}%/${dynamicStrategy.p3}%`);
+              } catch (error: any) {
+                console.warn(`⚠️ [Scanner] Failed to calculate dynamic strategy, using defaults:`, error.message);
+              }
+
               const signal = await signalDB.createSignal({
                 symbol,
                 timeframe,
@@ -373,6 +388,13 @@ export class Scanner {
                 status: 'OPEN',
                 // ML context fields (enriched with dynamic risk data)
                 ...extractMLContextFields(enrichedMLContext),
+                // ✅ NEW: Dynamic position management parameters
+                ...(dynamicStrategy ? {
+                  partialCloseP1: dynamicStrategy.p1.toString(),
+                  partialCloseP2: dynamicStrategy.p2.toString(),
+                  partialCloseP3: dynamicStrategy.p3.toString(),
+                  strategyProfile: dynamicStrategy.profile,
+                } : {}),
               });
 
               signalsFound++;
