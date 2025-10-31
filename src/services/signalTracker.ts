@@ -63,13 +63,24 @@ export class SignalTracker {
 
           const currentPrice = await binanceClient.getCurrentPrice(signal.symbol);
           
+          // ✅ Smart TP3 detection: if tp2 and tp3 are equal (or very close), treat as single-level TP
+          // This prevents TP3_HIT misdetection for 15m scalp signals where tp1=tp2=tp3=2R
+          const tp2Value = parseFloat(signal.tp2Price);
+          const tp3Value = signal.tp3Price ? parseFloat(signal.tp3Price) : null;
+          const PRICE_TOLERANCE = tp2Value * 0.0001; // 0.01% tolerance for price equality
+          
+          // If tp3 exists AND is within tolerance of tp2, treat as null (single-level TP)
+          const tp3EqualsTP2 = tp3Value !== null && Math.abs(tp3Value - tp2Value) < PRICE_TOLERANCE;
+          const tp3ForCheck = tp3EqualsTP2 ? null : tp3Value;
+          
           console.log(`🔍 [SignalTracker] Checking ${signal.symbol} (ID: ${signal.id}):`, {
             currentPrice: currentPrice.toFixed(8),
             high1m: Number(candles[candles.length - 1].high).toFixed(8),
             low1m: Number(candles[candles.length - 1].low).toFixed(8),
+            strategyProfile: signal.strategyProfile || 'default',
             tp1: signal.tp1Price ? parseFloat(signal.tp1Price).toFixed(8) : 'null',
-            tp2: parseFloat(signal.tp2Price).toFixed(8),
-            tp3: signal.tp3Price ? parseFloat(signal.tp3Price).toFixed(8) : 'null',
+            tp2: tp2Value.toFixed(8),
+            tp3: tp3ForCheck ? tp3ForCheck.toFixed(8) : `null (${tp3EqualsTP2 ? 'equals tp2' : 'not set'})`,
             sl: parseFloat(signal.currentSl).toFixed(8),
           });
           
@@ -79,8 +90,8 @@ export class SignalTracker {
             parseFloat(signal.entryPrice),
             parseFloat(signal.currentSl),
             signal.tp1Price ? parseFloat(signal.tp1Price) : parseFloat(signal.entryPrice), // TP1 fallback to entry
-            parseFloat(signal.tp2Price),
-            signal.tp3Price ? parseFloat(signal.tp3Price) : null,
+            tp2Value,
+            tp3ForCheck, // ✅ null if tp3=tp2 (single-level), prevents TP3_HIT misdetection
             signal.direction,
             signal.status
           );
