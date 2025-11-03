@@ -179,8 +179,16 @@ export class SignalDB {
     allSignals.forEach((signal) => {
       // Use stored PnL values instead of recalculating
       // This ensures we use the exact partial close calculations from when the signal closed
-      const pnl = signal.pnlPercent ? parseFloat(signal.pnlPercent) : 0;
-      const pnlR = signal.pnlR ? parseFloat(signal.pnlR) : 0;
+      const pnlRaw = signal.pnlPercent ? parseFloat(signal.pnlPercent) : 0;
+      const pnlRRaw = signal.pnlR ? parseFloat(signal.pnlR) : 0;
+      
+      // SAFETY: Filter out NaN values (from old buggy signals in DB)
+      const pnl = isNaN(pnlRaw) ? 0 : pnlRaw;
+      const pnlR = isNaN(pnlRRaw) ? 0 : pnlRRaw;
+      
+      if (isNaN(pnlRaw) || isNaN(pnlRRaw)) {
+        console.warn(`⚠️ [SignalDB] Signal ${signal.id} has NaN in DB: pnlPercent="${signal.pnlPercent}", pnlR="${signal.pnlR}" - using 0`);
+      }
       
       console.log(`📈 [SignalDB] Signal ${signal.id} (${signal.status}): pnl=${pnl.toFixed(4)}%, pnlR=${pnlR.toFixed(4)}R`);
 
