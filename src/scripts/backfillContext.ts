@@ -116,20 +116,20 @@ async function backfillContextData(signal: SignalData, dryRun: boolean) {
       const patternDetector = new PatternDetector();
       let patternResult = { detected: false, score: null } as any;
       
-      // Detect pattern based on pattern_type
+      // Detect pattern based on pattern_type (use convertedCandles with numbers!)
       if (signal.patternType.includes('pinbar')) {
-        patternResult = patternDetector.detectPinBar(candles);
+        patternResult = patternDetector.detectPinBar(convertedCandles);
       } else if (signal.patternType.includes('fakey')) {
-        patternResult = patternDetector.detectFakey(candles);
+        patternResult = patternDetector.detectFakey(convertedCandles);
       } else if (signal.patternType.includes('ppr')) {
-        patternResult = patternDetector.detectPPR(candles, '15m');
+        patternResult = patternDetector.detectPPR(convertedCandles, '15m');
       }
       
       if (patternResult.detected && patternResult.score) {
         patternScore = patternResult.score;
         console.log(`      Pattern Score: ${patternScore}/10`);
       } else {
-        console.log(`      Pattern Score: Could not recalculate`);
+        console.log(`      Pattern Score: Could not recalculate (pattern changed or not detected)`);
       }
     } catch (error) {
       console.log(`      Pattern Score: Error - ${error}`);
@@ -138,8 +138,8 @@ async function backfillContextData(signal: SignalData, dryRun: boolean) {
     // Trend Alignment
     let trendAlignment: string | null = null;
     try {
-      const ema20 = calculateEMA(candles, 20);
-      const ema50 = calculateEMA(candles, 50);
+      const ema20 = calculateEMA(convertedCandles, 20);
+      const ema50 = calculateEMA(convertedCandles, 50);
       
       let trendDirection: 'UPTREND' | 'DOWNTREND' | 'SIDEWAYS';
       if (ema20 > ema50 * 1.002) {
@@ -174,7 +174,16 @@ async function backfillContextData(signal: SignalData, dryRun: boolean) {
       );
       
       if (candlesExtended.length >= 300) {
-        const zones = findSRChannels(candlesExtended, {
+        // Convert extended candles to numbers
+        const convertedExtended = candlesExtended.map(c => ({
+          open: parseFloat(c.open),
+          high: parseFloat(c.high),
+          low: parseFloat(c.low),
+          close: parseFloat(c.close),
+          openTime: c.openTime,
+        }));
+        
+        const zones = findSRChannels(convertedExtended, {
           pivotPeriod: 10,
           maxChannelWidthPercent: 5,
           minStrength: 1,
