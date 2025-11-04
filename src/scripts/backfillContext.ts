@@ -18,7 +18,7 @@
 
 import { db } from '../mastra/storage/db.js';
 import { signals } from '../mastra/storage/schema.js';
-import { eq, and, isNull, or } from 'drizzle-orm';
+import { eq, and, isNull, or, inArray } from 'drizzle-orm';
 import { BinanceClient } from '../utils/binanceClient.js';
 import { analyzeContextBeforeSignal } from '../utils/contextAnalyzer.js';
 import { PatternDetector } from '../utils/candleAnalyzer.js';
@@ -435,7 +435,14 @@ async function main() {
   const contextOnly = args.includes('--context-only');
   const postSlOnly = args.includes('--post-sl-only');
   
+  // Поддержка --status для фильтрации по статусу (TP или SL)
+  const statusArg = args.find((arg) => arg.startsWith('--status='));
+  const statusFilter = statusArg 
+    ? statusArg.split('=')[1].split(',').map(s => s.trim())
+    : ['SL_HIT']; // Default: только стоп-лоссы
+  
   console.log('🔄 [Backfill] Starting context & post-SL backfill...\n');
+  console.log(`📍 Status filter: ${statusFilter.join(', ')}`);
   if (dryRun) {
     console.log('🔸 DRY RUN MODE - No database changes will be made\n');
   }
@@ -462,6 +469,7 @@ async function main() {
       .where(
         and(
           eq(signals.timeframe, '15m'),
+          inArray(signals.status, statusFilter),
           or(
             isNull(signals.contextTrendBefore),
             isNull(signals.patternScore),
