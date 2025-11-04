@@ -151,10 +151,39 @@ export class SignalDB {
     await db.update(signals).set({ telegramMessageId }).where(eq(signals.id, id));
   }
 
+  /**
+   * Get statistics for signals created on specific dates
+   * @param dates - Array of date strings in YYYY-MM-DD format, e.g., ['2025-11-01', '2025-11-04']
+   */
+  async getStatisticsByDates(dates: string[]) {
+    const logger = console;
+    logger.info(`📊 [SignalDB] Fetching signals for dates: ${dates.join(', ')}`);
+    
+    // Build SQL condition: WHERE DATE(created_at) IN ('2025-11-01', '2025-11-04')
+    const dateConditions = dates.map(date => sql`DATE(${signals.createdAt}) = ${date}`);
+    const whereClause = or(...dateConditions);
+    
+    const allSignals = await db.select().from(signals).where(whereClause!);
+    
+    logger.info(`📊 [SignalDB] Found ${allSignals.length} signals for specified dates`);
+    
+    return this.calculateStats(allSignals, `dates: ${dates.join(', ')}`);
+  }
+
   async getStatistics() {
     const allSignals = await db.select().from(signals);
     
     console.log(`📊 [SignalDB] Calculating statistics for ${allSignals.length} signals`);
+    
+    return this.calculateStats(allSignals, 'all signals');
+  }
+
+  /**
+   * Internal method to calculate statistics from a list of signals
+   * Extracted to avoid code duplication between getStatistics() and getStatisticsByDates()
+   */
+  private calculateStats(allSignals: any[], context: string = 'signals') {
+    console.log(`📊 [SignalDB] Calculating statistics for ${allSignals.length} ${context}`);
     
     const stats: any = {
       total: allSignals.length,
@@ -167,7 +196,7 @@ export class SignalDB {
       pnlPositive: 0,
       pnlNegative: 0,
       pnlNet: 0,
-      pnlRNet: 0, // NEW: Net PnL in R units
+      pnlRNet: 0,
       byPattern: {} as any,
       byTimeframe: {} as any,
       byDirection: { 

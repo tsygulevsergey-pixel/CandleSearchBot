@@ -40,7 +40,8 @@ export class TelegramBot {
 
     const commands = [
       { command: 'start', description: '🚀 Запустить бота' },
-      { command: 'stats', description: '📊 Статистика сигналов' },
+      { command: 'stats', description: '📊 Статистика (все сигналы)' },
+      { command: 'stats_date', description: '📅 Статистика по датам' },
       { command: 'help', description: '❓ Помощь' },
       { command: 'status', description: '📈 Статус сканера' },
     ];
@@ -92,6 +93,12 @@ export class TelegramBot {
     console.log(`📨 [TelegramBot] Handling command: ${command}`);
 
     try {
+      // Check for /stats_date command with parameters
+      if (command.startsWith('/stats_date')) {
+        await this.handleStatsDateCommand(command, chatId);
+        return;
+      }
+
       switch (command) {
         case '/start':
           await this.handleStartCommand(chatId);
@@ -326,6 +333,206 @@ ${avgPnlEmoji} <b>Средний PnL: ${parseFloat(avgPnl) >= 0 ? '+' : ''}${avg
 `;
 
     await this.sendMessage(message.trim(), chatId);
+  }
+
+  private async handleStatsDateCommand(command: string, chatId: string): Promise<void> {
+    console.log('📅 [TelegramBot] Fetching statistics by dates...');
+    
+    // Parse command: /stats_date 2025-11-01,2025-11-04
+    // or: /stats_date Пятница,Понедельник
+    const params = command.replace('/stats_date', '').trim();
+    
+    if (!params) {
+      const helpMessage = `
+📅 <b>СТАТИСТИКА ПО ДАТАМ</b>
+
+<b>Формат команды:</b>
+/stats_date ДАТЫ
+
+<b>Примеры использования:</b>
+
+1️⃣ <b>По конкретным датам:</b>
+/stats_date 2025-11-01,2025-11-04
+(Статистика за 1 и 4 ноября)
+
+/stats_date 2025-11-01
+(Статистика только за 1 ноября)
+
+2️⃣ <b>По дням недели (сегодня/вчера):</b>
+/stats_date пятница,понедельник
+(Пятница и понедельник этой недели)
+
+/stats_date сегодня
+(Только сегодня)
+
+/stats_date вчера
+(Только вчера)
+
+<b>Форматы дат:</b>
+• YYYY-MM-DD (2025-11-01)
+• Названия дней: понедельник, вторник, среда, четверг, пятница, суббота, воскресенье
+• Ключевые слова: сегодня, вчера
+
+<b>Несколько дат:</b> Разделяйте запятой без пробелов
+      `.trim();
+      
+      await this.sendMessage(helpMessage, chatId);
+      return;
+    }
+
+    // Parse dates
+    const dateStrings = params.split(',').map(d => d.trim().toLowerCase());
+    const parsedDates: string[] = [];
+    
+    for (const dateStr of dateStrings) {
+      const parsed = this.parseDate(dateStr);
+      if (parsed) {
+        parsedDates.push(parsed);
+      } else {
+        await this.sendMessage(`❌ Неверный формат даты: "${dateStr}"\n\nИспользуйте /stats_date без параметров для справки.`, chatId);
+        return;
+      }
+    }
+
+    if (parsedDates.length === 0) {
+      await this.sendMessage('❌ Не удалось распознать ни одной даты. Используйте /stats_date для справки.', chatId);
+      return;
+    }
+
+    console.log(`📅 [TelegramBot] Parsed dates: ${parsedDates.join(', ')}`);
+
+    // Fetch statistics
+    const stats = await signalDB.getStatisticsByDates(parsedDates);
+
+    if (stats.total === 0) {
+      const message = `
+📅 <b>СТАТИСТИКА ПО ДАТАМ</b>
+
+📆 <b>Даты:</b> ${parsedDates.join(', ')}
+
+📭 Нет сигналов за указанные даты.
+      `.trim();
+      
+      await this.sendMessage(message, chatId);
+      return;
+    }
+
+    // Format and send statistics (reuse same formatting logic as /stats)
+    const closedSignals = stats.tp1Hit + stats.tp2Hit + stats.tp3Hit + stats.breakevenHit + stats.slHit;
+    const winRate1 = closedSignals > 0 
+      ? ((stats.tp1Hit + stats.tp2Hit + stats.tp3Hit + stats.breakevenHit) / closedSignals * 100).toFixed(1)
+      : '0.0';
+    const winRate2 = closedSignals > 0
+      ? ((stats.tp2Hit + stats.tp3Hit) / closedSignals * 100).toFixed(1)
+      : '0.0';
+    
+    const avgPnl = closedSignals > 0 ? (stats.pnlNet / closedSignals).toFixed(2) : '0.00';
+    const pnlEmoji = stats.pnlNet > 0 ? '✅' : stats.pnlNet < 0 ? '❌' : '⚪';
+    const avgPnlEmoji = parseFloat(avgPnl) >= 1.5 ? '🎯' : parseFloat(avgPnl) > 0 ? '✅' : '❌';
+
+    let message = `
+📅 <b>СТАТИСТИКА ПО ДАТАМ</b>
+
+📆 <b>Даты:</b> ${parsedDates.join(', ')}
+
+📈 <b>Общая статистика:</b>
+• Всего сигналов: ${stats.total}
+• Открыто: ${stats.open}
+• Закрыто: ${closedSignals}
+
+🎯 <b>Результаты закрытых:</b>
+• TP1 достигнут: ${stats.tp1Hit}
+• TP2 достигнут: ${stats.tp2Hit}
+• TP3 достигнут: ${stats.tp3Hit}
+• Breakeven: ${stats.breakevenHit} ⚖️
+• SL сработал: ${stats.slHit}
+
+📊 <b>Win Rate:</b>
+• Win rate (TP1+TP2+TP3+BE): ${winRate1}%
+• Win rate (TP2+TP3): ${winRate2}%
+
+💰 <b>PnL:</b>
+${pnlEmoji} <b>Net PnL: ${stats.pnlNet >= 0 ? '+' : ''}${stats.pnlNet.toFixed(2)}%</b>
+${avgPnlEmoji} <b>Средний PnL: ${parseFloat(avgPnl) >= 0 ? '+' : ''}${avgPnl}%</b> (цель: +1.5%+)
+• PnL+: ${stats.pnlPositive.toFixed(2)}%
+• PnL-: ${stats.pnlNegative.toFixed(2)}%
+
+`;
+
+    // Add pattern breakdown (simplified - just top patterns)
+    if (Object.keys(stats.byPattern).length > 0) {
+      message += `📊 <b>По паттернам:</b>\n`;
+      for (const [pattern, pStatsRaw] of Object.entries(stats.byPattern)) {
+        const pStats = pStatsRaw as { total: number; tp1: number; tp2: number; tp3: number; breakeven: number; sl: number; open: number; pnlPositive: number; pnlNegative: number; pnlNet: number };
+        const pClosedSignals = pStats.tp1 + pStats.tp2 + pStats.tp3 + pStats.breakeven + pStats.sl;
+        const pWinRate = pClosedSignals > 0
+          ? (((pStats.tp1 + pStats.tp2 + pStats.tp3 + pStats.breakeven) / pClosedSignals) * 100).toFixed(1)
+          : '0.0';
+        message += `\n<b>${pattern}:</b> ${pStats.total} сигналов | Win rate: ${pWinRate}% | PnL: ${pStats.pnlNet >= 0 ? '+' : ''}${pStats.pnlNet.toFixed(2)}%\n`;
+      }
+    }
+
+    await this.sendMessage(message.trim(), chatId);
+  }
+
+  /**
+   * Parse date string into YYYY-MM-DD format
+   * Supports:
+   * - Exact dates: 2025-11-01
+   * - Day names: понедельник, вторник, среда, четверг, пятница, суббота, воскресенье
+   * - Keywords: сегодня, вчера
+   */
+  private parseDate(input: string): string | null {
+    const trimmed = input.toLowerCase().trim();
+    
+    // Check if it's already in YYYY-MM-DD format
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+      return trimmed;
+    }
+
+    const now = new Date();
+    
+    // Keywords
+    if (trimmed === 'сегодня' || trimmed === 'today') {
+      return this.formatDate(now);
+    }
+    
+    if (trimmed === 'вчера' || trimmed === 'yesterday') {
+      const yesterday = new Date(now);
+      yesterday.setDate(yesterday.getDate() - 1);
+      return this.formatDate(yesterday);
+    }
+
+    // Day names (for current week)
+    const dayMap: { [key: string]: number } = {
+      'понедельник': 1, 'monday': 1,
+      'вторник': 2, 'tuesday': 2,
+      'среда': 3, 'wednesday': 3,
+      'четверг': 4, 'thursday': 4,
+      'пятница': 5, 'friday': 5,
+      'суббота': 6, 'saturday': 6,
+      'воскресенье': 0, 'sunday': 0,
+    };
+
+    if (trimmed in dayMap) {
+      const targetDay = dayMap[trimmed];
+      const currentDay = now.getDay();
+      const diff = targetDay - currentDay;
+      
+      const targetDate = new Date(now);
+      targetDate.setDate(targetDate.getDate() + diff);
+      
+      return this.formatDate(targetDate);
+    }
+
+    return null;
+  }
+
+  private formatDate(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   async startPolling(): Promise<void> {
