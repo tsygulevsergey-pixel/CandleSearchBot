@@ -86,6 +86,11 @@ export class SignalDB {
    * @param beActivated - Optional: Flag indicating breakeven is activated
    * @param pnlR - Optional: PnL in R units (risk units)
    * @param pnlPercent - Optional: PnL in percentage
+   * @param timeToTp1Min - Optional: Time to TP1 in minutes
+   * @param timeToTp2Min - Optional: Time to TP2 in minutes
+   * @param timeToTp3Min - Optional: Time to TP3 in minutes
+   * @param timeToSlMin - Optional: Time to SL in minutes
+   * @param timeToBeMin - Optional: Time to BE in minutes
    */
   async updateSignalStatus(
     id: number, 
@@ -94,7 +99,12 @@ export class SignalDB {
     partialClosed?: number,
     beActivated?: boolean,
     pnlR?: number,
-    pnlPercent?: number
+    pnlPercent?: number,
+    timeToTp1Min?: number,
+    timeToTp2Min?: number,
+    timeToTp3Min?: number,
+    timeToSlMin?: number,
+    timeToBeMin?: number
   ): Promise<void> {
     console.log(`📝 [SignalDB] Updating signal ${id}:`, {
       status,
@@ -103,6 +113,11 @@ export class SignalDB {
       beActivated,
       pnlR: pnlR?.toFixed(4),
       pnlPercent: pnlPercent?.toFixed(4),
+      timeToTp1Min,
+      timeToTp2Min,
+      timeToTp3Min,
+      timeToSlMin,
+      timeToBeMin,
     });
 
     const updates: any = {
@@ -139,6 +154,28 @@ export class SignalDB {
       console.log(`💵 [SignalDB] Setting pnlPercent: ${pnlPercent.toFixed(4)}%`);
     }
 
+    // ✅ NEW: Update time tracking fields
+    if (timeToTp1Min !== undefined) {
+      updates.timeToTp1Min = timeToTp1Min;
+      console.log(`⏱️ [SignalDB] Setting timeToTp1Min: ${timeToTp1Min} minutes`);
+    }
+    if (timeToTp2Min !== undefined) {
+      updates.timeToTp2Min = timeToTp2Min;
+      console.log(`⏱️ [SignalDB] Setting timeToTp2Min: ${timeToTp2Min} minutes`);
+    }
+    if (timeToTp3Min !== undefined) {
+      updates.timeToTp3Min = timeToTp3Min;
+      console.log(`⏱️ [SignalDB] Setting timeToTp3Min: ${timeToTp3Min} minutes`);
+    }
+    if (timeToSlMin !== undefined) {
+      updates.timeToSlMin = timeToSlMin;
+      console.log(`⏱️ [SignalDB] Setting timeToSlMin: ${timeToSlMin} minutes`);
+    }
+    if (timeToBeMin !== undefined) {
+      updates.timeToBeMin = timeToBeMin;
+      console.log(`⏱️ [SignalDB] Setting timeToBeMin: ${timeToBeMin} minutes`);
+    }
+
     // Set exit type (always set since this function only called on status change to closing status)
     updates.exitType = status;
     console.log(`🚪 [SignalDB] Setting exitType: ${status}`);
@@ -149,6 +186,28 @@ export class SignalDB {
 
   async updateTelegramMessageId(id: number, telegramMessageId: number): Promise<void> {
     await db.update(signals).set({ telegramMessageId }).where(eq(signals.id, id));
+  }
+
+  /**
+   * Update MFE/MAE tracking for a signal
+   * Called by signalTracker every minute to track max profit/loss excursion
+   */
+  async updateMFEMAE(
+    id: number,
+    mfeR: number,
+    maeR: number,
+    firstTouch?: string
+  ): Promise<void> {
+    const updates: any = {
+      mfeR: mfeR.toString(),
+      maeR: maeR.toString(),
+    };
+    
+    if (firstTouch) {
+      updates.firstTouch = firstTouch;
+    }
+    
+    await db.update(signals).set(updates).where(eq(signals.id, id));
   }
 
   /**

@@ -213,6 +213,32 @@ export class Scanner {
                 console.log(`✅ [15m Risk] Risk profile calculated: SL=${riskProfile.sl.toFixed(8)}, TP=${riskProfile.tp2.toFixed(8)} (${riskProfile.meta.tp2R}R)`);
                 console.log(`   📊 Risk R=${riskProfile.meta.riskR.toFixed(8)}, TP Multiplier=${riskProfile.meta.tp2R}R`);
                 
+                // ✅ NEW: Calculate clearance to nearest S/R zone (15m only for now)
+                // For LONG: clearance to nearest support (below entry)
+                // For SHORT: clearance to nearest resistance (above entry)
+                const swingExtreme = pattern.direction === 'LONG'
+                  ? Math.min(...candles.slice(-3).map(c => Number(c.low)))
+                  : Math.max(...candles.slice(-3).map(c => Number(c.high)));
+                const clearance15m = Math.abs(entryPrice - swingExtreme);
+                
+                // ✅ NEW: Calculate SL buffer in ATR units
+                const atr15m = calculateATR(candles);
+                const slBufferAtr15 = Math.abs(riskProfile.sl - swingExtreme) / atr15m;
+                
+                // ✅ NEW: Determine trend alignment
+                const trendAlignment = (
+                  (pattern.direction === 'LONG' && trend.direction === 'UPTREND') ||
+                  (pattern.direction === 'SHORT' && trend.direction === 'DOWNTREND')
+                ) ? 'with' : trend.direction === 'SIDEWAYS' ? 'neutral' : 'against';
+                
+                console.log(`📊 [15m ML Context] Enriching with analysis data:`, {
+                  patternScore: pattern.score || 0,
+                  trendAlignment,
+                  clearance15m: clearance15m.toFixed(8),
+                  slBufferAtr15: slBufferAtr15.toFixed(4),
+                  swingExtreme: swingExtreme.toFixed(8),
+                });
+                
                 // Create minimal enriched ML context for 15m (no multi-TF data needed)
                 const enrichedMLContext = {
                   trendDirection: trend.direction,
@@ -254,6 +280,19 @@ export class Scanner {
                   actualRrTp1: riskProfile.meta.tp1R.toString(),
                   actualRrTp2: riskProfile.meta.tp2R.toString(),
                   actualRrTp3: riskProfile.meta.tp3R.toString(),
+                  // ✅ NEW: Add ML context fields for 15m analysis
+                  patternScore: pattern.score ? pattern.score.toString() : '0',
+                  trendAlignment: trendAlignment as 'with' | 'against' | 'neutral',
+                  clearance15m: clearance15m.toString(),
+                  clearance1h: '0', // Not calculated for 15m (no HTF zones)
+                  slBufferAtr15: slBufferAtr15.toString(),
+                  swingExtremePrice: swingExtreme.toString(),
+                  zoneTestCount24h: 0, // Not tracked for 15m (no zone logic)
+                  vetoReason: 'none',
+                  multiTfAlignment: false, // 15m doesn't use multi-TF
+                  atrVolatility: 'normal', // Could enhance this later
+                  rrValidationPassed: true, // Already passed trend filter
+                  rrValidationMessage: `TP R:R ${riskProfile.meta.tp2R.toFixed(2)} (trend-aligned scalp)`,
                 });
                 
                 signalsFound++;

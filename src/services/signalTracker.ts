@@ -73,6 +73,51 @@ export class SignalTracker {
           const tp3EqualsTP2 = tp3Value !== null && Math.abs(tp3Value - tp2Value) < PRICE_TOLERANCE;
           const tp3ForCheck = tp3EqualsTP2 ? null : tp3Value;
           
+          // ✅ NEW: Track MFE (Maximum Favorable Excursion) and MAE (Maximum Adverse Excursion)
+          const entryPrice = parseFloat(signal.entryPrice);
+          const slPrice = parseFloat(signal.slPrice);
+          const R = Math.abs(entryPrice - slPrice); // 1R = distance from entry to SL
+          
+          // Calculate current excursion in R units
+          let currentExcursion = 0;
+          if (signal.direction === 'LONG') {
+            currentExcursion = (currentPrice - entryPrice) / R;
+          } else {
+            currentExcursion = (entryPrice - currentPrice) / R;
+          }
+          
+          // Update MFE (max profit) and MAE (max loss)
+          const currentMFE = signal.mfeR ? parseFloat(signal.mfeR as any) : 0;
+          const currentMAE = signal.maeR ? parseFloat(signal.maeR as any) : 0;
+          const newMFE = Math.max(currentMFE, currentExcursion);
+          const newMAE = Math.min(currentMAE, currentExcursion);
+          
+          // Update first_touch if not set and any level touched
+          let firstTouch = signal.firstTouch;
+          if (!firstTouch) {
+            const tp1 = signal.tp1Price ? parseFloat(signal.tp1Price) : null;
+            const tp2 = tp2Value;
+            const tp3 = tp3ForCheck;
+            const sl = parseFloat(signal.currentSl);
+            
+            if (signal.direction === 'LONG') {
+              if (tp3 && currentPrice >= tp3) firstTouch = 'tp3';
+              else if (tp2 && currentPrice >= tp2) firstTouch = 'tp2';
+              else if (tp1 && currentPrice >= tp1) firstTouch = 'tp1';
+              else if (currentPrice <= sl) firstTouch = 'sl';
+            } else {
+              if (tp3 && currentPrice <= tp3) firstTouch = 'tp3';
+              else if (tp2 && currentPrice <= tp2) firstTouch = 'tp2';
+              else if (tp1 && currentPrice <= tp1) firstTouch = 'tp1';
+              else if (currentPrice >= sl) firstTouch = 'sl';
+            }
+          }
+          
+          // Update MFE/MAE in database (every check)
+          if (newMFE !== currentMFE || newMAE !== currentMAE || (firstTouch && firstTouch !== signal.firstTouch)) {
+            await signalDB.updateMFEMAE(signal.id, newMFE, newMAE, firstTouch || undefined);
+          }
+          
           console.log(`🔍 [SignalTracker] Checking ${signal.symbol} (ID: ${signal.id}):`, {
             currentPrice: currentPrice.toFixed(8),
             high1m: Number(candles[candles.length - 1].high).toFixed(8),
@@ -82,6 +127,9 @@ export class SignalTracker {
             tp2: tp2Value.toFixed(8),
             tp3: tp3ForCheck ? tp3ForCheck.toFixed(8) : `null (${tp3EqualsTP2 ? 'equals tp2' : 'not set'})`,
             sl: parseFloat(signal.currentSl).toFixed(8),
+            mfe: `${newMFE.toFixed(2)}R`,
+            mae: `${newMAE.toFixed(2)}R`,
+            firstTouch: firstTouch || 'none',
           });
           
           const { newStatus, newSl } = riskCalculator.checkSignalStatusWithCandles(
@@ -98,6 +146,25 @@ export class SignalTracker {
 
           if (newStatus !== signal.status) {
             console.log(`🔄 [SignalTracker] Status change detected: ${signal.status} → ${newStatus}`);
+
+            // ✅ NEW: Calculate time to TP/SL in minutes
+            const signalCreatedAt = new Date(signal.createdAt).getTime();
+            const now = Date.now();
+            const elapsedMinutes = Math.floor((now - signalCreatedAt) / (1000 * 60));
+            
+            let timeToTp1Min: number | undefined;
+            let timeToTp2Min: number | undefined;
+            let timeToTp3Min: number | undefined;
+            let timeToSlMin: number | undefined;
+            let timeToBeMin: number | undefined;
+            
+            if (newStatus === 'TP1_HIT') timeToTp1Min = elapsedMinutes;
+            else if (newStatus === 'TP2_HIT') timeToTp2Min = elapsedMinutes;
+            else if (newStatus === 'TP3_HIT') timeToTp3Min = elapsedMinutes;
+            else if (newStatus === 'SL_HIT') timeToSlMin = elapsedMinutes;
+            else if (newStatus === 'BE_HIT') timeToBeMin = elapsedMinutes;
+            
+            console.log(`⏱️ [SignalTracker] Time tracking: ${newStatus} reached after ${elapsedMinutes} minutes`);
 
             // ✅ Read dynamic strategy parameters from DB (if available)
             // IMPORTANT: Check for null/undefined, not truthiness (0 is valid value!)
@@ -144,7 +211,7 @@ export class SignalTracker {
               actualTpR,       // ✅ Pass actual TP R values (or undefined to calculate)
             });
 
-            // Update database with all new fields
+            // Update database with all new fields including time tracking
             await signalDB.updateSignalStatus(
               signal.id,
               newStatus as any,
@@ -152,7 +219,12 @@ export class SignalTracker {
               partialClosed,
               beActivated,
               outcome.pnlR,
-              outcome.pnl
+              outcome.pnl,
+              timeToTp1Min,
+              timeToTp2Min,
+              timeToTp3Min,
+              timeToSlMin,
+              timeToBeMin
             );
 
             console.log(`💰 [SignalTracker] PnL calculated:`, {
