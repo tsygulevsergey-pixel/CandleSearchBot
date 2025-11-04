@@ -112,6 +112,43 @@ export class BinanceClient {
     return candles;
   }
 
+  async getKlinesInRange(
+    symbol: string,
+    interval: string,
+    startTime: number,
+    endTime: number,
+    limit: number = 500
+  ): Promise<Candle[]> {
+    console.log(`📈 [BinanceClient] Fetching ${interval} candles for ${symbol} from ${new Date(startTime).toISOString()} to ${new Date(endTime).toISOString()}...`);
+    
+    const response = await binanceRateLimiter.executeRequest(1, async () => {
+      return await axiosInstance.get(`${BINANCE_FUTURES_API}/fapi/v1/klines`, {
+        params: {
+          symbol,
+          interval,
+          startTime,
+          endTime,
+          limit,
+        },
+      });
+    });
+
+    binanceRateLimiter.updateWeightFromResponse(response.headers);
+
+    const candles: Candle[] = response.data.map((k: any) => ({
+      openTime: k[0],
+      open: k[1],
+      high: k[2],
+      low: k[3],
+      close: k[4],
+      volume: k[5],
+      closeTime: k[6],
+    }));
+
+    console.log(`✅ [BinanceClient] Fetched ${candles.length} candles in range`);
+    return candles;
+  }
+
   async getCurrentPrice(symbol: string): Promise<number> {
     console.log(`💰 [BinanceClient] Fetching current price for ${symbol}...`);
     

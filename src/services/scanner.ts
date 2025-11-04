@@ -239,6 +239,30 @@ export class Scanner {
                   swingExtreme: swingExtreme.toFixed(8),
                 });
                 
+                // ✅ NEW: Analyze market context before signal
+                const { analyzeContextBeforeSignal, isGoodContext } = await import('../utils/contextAnalyzer');
+                const contextAnalysis = analyzeContextBeforeSignal(
+                  candles.map(c => ({
+                    high: parseFloat(c.high),
+                    low: parseFloat(c.low),
+                    close: parseFloat(c.close),
+                    open: parseFloat(c.open),
+                    openTime: c.openTime,
+                  })),
+                  entryPrice
+                );
+                
+                const contextQuality = isGoodContext(pattern.direction, contextAnalysis);
+                console.log(`🔍 [Context] Before signal:`, {
+                  trend: contextAnalysis.trendBefore,
+                  reversal: contextAnalysis.wasReversal,
+                  swings: contextAnalysis.swingCount20,
+                  recent: contextAnalysis.recentDirection,
+                  distEma: `${contextAnalysis.distanceFromEma.toFixed(2)}%`,
+                  isGood: contextQuality.isGood,
+                  reason: contextQuality.reason,
+                });
+                
                 // Create minimal enriched ML context for 15m (no multi-TF data needed)
                 const enrichedMLContext = {
                   trendDirection: trend.direction,
@@ -293,6 +317,12 @@ export class Scanner {
                   atrVolatility: 'normal', // Could enhance this later
                   rrValidationPassed: true, // Already passed trend filter
                   rrValidationMessage: `TP R:R ${riskProfile.meta.tp2R.toFixed(2)} (trend-aligned scalp)`,
+                  // ✅ NEW: Context before signal (what happened BEFORE entry)
+                  contextTrendBefore: contextAnalysis.trendBefore,
+                  contextWasReversal: contextAnalysis.wasReversal,
+                  contextSwingCount20: contextAnalysis.swingCount20,
+                  contextRecentDirection: contextAnalysis.recentDirection,
+                  contextDistanceFromEma: contextAnalysis.distanceFromEma.toString(),
                 });
                 
                 signalsFound++;

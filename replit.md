@@ -119,3 +119,33 @@ pm2 restart all
 2. Collect Win Rate statistics
 3. Fine-tune pattern scoring weights
 4. Expand market clustering to more symbols
+
+## 🆕 Новые функции (04.11.2025):
+
+### 📊 Context Tracking & Post-SL Analysis
+
+Теперь бот собирает детальный контекст **ДО** сигнала и мониторит **ПОСЛЕ** стопа:
+
+**Новые файлы:**
+- `src/utils/contextAnalyzer.ts` - анализ контекста перед сигналом
+- `src/services/postSlMonitor.ts` - мониторинг после SL_HIT
+- `CONTEXT_TRACKING_GUIDE.md` - полная документация
+
+**Что отслеживается:**
+- ✅ Тренд перед сигналом (uptrend/downtrend/sideways)
+- ✅ Был ли разворот тренда?
+- ✅ Количество swing highs/lows (choppy рынок)
+- ✅ Направление последних 10 свечей
+- ✅ Расстояние от EMA20 при входе
+
+**Post-SL мониторинг (4 часа после стопа):**
+- ✅ Достиг ли график TP? (reached_tp1/2/3)
+- ✅ Максимальная прибыль после SL (в R)
+- ✅ Время до TP (если достиг)
+
+**Используй для:**
+- Фильтрации плохих контекстов (развороты = 85%+ stop rate)
+- Оптимизации SL размера (если график достиг TP после стопа)
+- ML анализа успешности сигналов
+
+См. `CONTEXT_TRACKING_GUIDE.md` для примеров SQL queries и рекомендаций.

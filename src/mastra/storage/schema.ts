@@ -121,6 +121,19 @@ export const signals = pgTable('signals', {
   timeToBeMin: integer('time_to_be_min'),
   firstTouch: text('first_touch'), // "tp1" | "tp2" | "tp3" | "sl" | "be"
   
+  // NEW: Post-SL monitoring (что случилось ПОСЛЕ стопа)
+  postSlOutcome: text('post_sl_outcome'), // "reached_tp1" | "reached_tp2" | "reached_tp3" | "went_further_against" | "sideways"
+  postSlMaxFavorableR: decimal('post_sl_max_favorable_r', { precision: 10, scale: 4 }), // Макс. прибыль после SL
+  postSlTimeToTpMin: integer('post_sl_time_to_tp_min'), // Время до TP после SL (минуты)
+  postSlMonitoredUntil: timestamp('post_sl_monitored_until'), // До какого времени мониторили
+  
+  // NEW: Context before signal (что было ДО сигнала)
+  contextTrendBefore: text('context_trend_before'), // "uptrend" | "downtrend" | "sideways"
+  contextWasReversal: boolean('context_was_reversal'), // Был ли разворот?
+  contextSwingCount20: integer('context_swing_count_20'), // Количество swing highs/lows за 20 свечей
+  contextRecentDirection: text('context_recent_direction'), // "bullish" | "bearish" | "choppy" (последние 10 свечей)
+  contextDistanceFromEma: decimal('context_distance_from_ema', { precision: 10, scale: 4 }), // % от EMA20 при входе
+  
   // NEW: Dynamic position management percentages
   partialCloseP1: decimal('partial_close_p1', { precision: 5, scale: 2 }), // % to close at TP1 (dynamic)
   partialCloseP2: decimal('partial_close_p2', { precision: 5, scale: 2 }), // % to close at TP2 (dynamic)

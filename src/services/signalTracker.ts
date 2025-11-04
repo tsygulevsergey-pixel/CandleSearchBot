@@ -234,6 +234,31 @@ export class SignalTracker {
               beActivated,
             });
 
+            // ✅ NEW: Start post-SL monitoring for stopped signals
+            if (newStatus === 'SL_HIT') {
+              console.log(`📊 [PostSL] Signal #${signal.id} stopped, starting post-SL monitoring (4h)...`);
+              try {
+                const { monitorAfterStopLoss } = await import('./postSlMonitor');
+                
+                // Monitor in background (don't await - let it run asynchronously)
+                monitorAfterStopLoss(signal.id, 4).then(async (result) => {
+                  console.log(`✅ [PostSL] Monitoring complete for signal #${signal.id}:`, result);
+                  
+                  // Update DB with post-SL results
+                  await signalDB.updateSignal(signal.id, {
+                    postSlOutcome: result.outcome,
+                    postSlMaxFavorableR: result.maxFavorableR.toString(),
+                    postSlTimeToTpMin: result.timeToTpMin,
+                    postSlMonitoredUntil: new Date(),
+                  });
+                }).catch((error) => {
+                  console.error(`❌ [PostSL] Error monitoring signal #${signal.id}:`, error);
+                });
+              } catch (error) {
+                console.error(`❌ [PostSL] Failed to start post-SL monitoring:`, error);
+              }
+            }
+
             const statusEmoji = getStatusEmoji(outcome.outcomeType);
             const statusText = outcome.description.toUpperCase();
             // ✅ FIX: Always show PnL for closed positions (including SL_HIT with negative PnL)

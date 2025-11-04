@@ -188,6 +188,16 @@ export class SignalDB {
     await db.update(signals).set({ telegramMessageId }).where(eq(signals.id, id));
   }
 
+  async getSignalById(id: number): Promise<Signal | null> {
+    const result = await db.select().from(signals).where(eq(signals.id, id)).limit(1);
+    return result.length > 0 ? result[0] : null;
+  }
+
+  async updateSignal(id: number, updates: Partial<NewSignal>): Promise<void> {
+    const updateData: any = { ...updates, updatedAt: new Date() };
+    await db.update(signals).set(updateData).where(eq(signals.id, id));
+  }
+
   /**
    * Update MFE/MAE tracking for a signal
    * Called by signalTracker every minute to track max profit/loss excursion

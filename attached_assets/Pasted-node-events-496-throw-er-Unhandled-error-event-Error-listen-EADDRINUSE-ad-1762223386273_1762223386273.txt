@@ -1,0 +1,31 @@
+node:events:496
+      throw er; // Unhandled 'error' event
+      ^
+
+Error: listen EADDRINUSE: address already in use 0.0.0.0:5000
+    at Server.setupListenHandle [as _listen2] (node:net:1940:16)
+    at listenInCluster (node:net:1997:12)
+    at node:net:2206:7
+    at wrappedLookupCallback (/home/runner/workspace/node_modules/@opentelemetry/instrumentation-dns/build/src/instrumentation.js:131:29)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21)
+Emitted 'error' event on Server instance at:
+    at Server.incomingRequest (/home/runner/workspace/node_modules/@opentelemetry/instrumentation-http/build/src/http.js:333:33)
+    at emitErrorNT (node:net:1976:8)
+    at process.processTicksAndRejections (node:internal/process/task_queues:90:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 5000
+}
+
+Node.js v22.17.0
+❌ [TelegramBot] Polling error: Request failed with status code 409
+❌ [TelegramBot] Polling error: Request failed with status code 409
+❌ [TelegramBot] Polling error: Request failed with status code 409
+❌ [TelegramBot] Polling error: Request failed with status code 409
+◐ Bundling...
+
+👀 [SignalTracker] Checking open signals...
+❌ [SignalTracker] Fatal error during signal tracking: Failed query: select "id", "symbol", "timeframe", "pattern_type", "entry_price", "sl_price", "tp1_price", "tp2_price", "tp3_price", "current_sl", "initial_sl", "position_size", "partial_closed", "be_activated", "trailing_activated", "exit_type", "pnl_r", "pnl_percent", "atr_15m", "atr_h4", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_r", "arrival_pattern", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "confluence_score", "confluence_details", "mfe_r", "mae_r", "time_to_tp1_min", "time_to_tp2_min", "time_to_tp3_min", "time_to_sl_min", "time_to_be_min", "first_touch", "post_sl_outcome", "post_sl_max_favorable_r", "post_sl_time_to_tp_min", "post_sl_monitored_until", "context_trend_before", "context_was_reversal", "context_swing_count_20", "context_recent_direction", "context_distance_from_ema", "partial_close_p1", "partial_close_p2", "partial_close_p3", "strategy_profile", "status", "direction", "telegram_message_id", "created_at", "updated_at" from "signals" where "signals"."status" = $1
+params: OPEN
