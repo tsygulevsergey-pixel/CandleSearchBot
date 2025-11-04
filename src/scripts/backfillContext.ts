@@ -61,9 +61,11 @@ async function backfillContextData(signal: SignalData, dryRun: boolean) {
     // 50 * 15min = 750 minutes = 12.5 hours
     const signalTime = signal.createdAt.getTime();
     const startTime = signalTime - (50 * 15 * 60 * 1000); // 50 candles before
-    const endTime = signalTime;
+    // ВАЖНО: Добавляем 15 минут к endTime чтобы получить формирующуюся свечу
+    // (сигнал создается ВНУТРИ формирующейся свечи, а не после закрытия)
+    const endTime = signalTime + (15 * 60 * 1000);
     
-    console.log(`   📅 Fetching 50x15m candles before signal...`);
+    console.log(`   📅 Fetching 50x15m candles (including forming candle)...`);
     console.log(`      From: ${new Date(startTime).toISOString()}`);
     console.log(`      To:   ${new Date(endTime).toISOString()}`);
     
@@ -89,7 +91,9 @@ async function backfillContextData(signal: SignalData, dryRun: boolean) {
       high: parseFloat(c.high),
       low: parseFloat(c.low),
       close: parseFloat(c.close),
+      volume: parseFloat(c.volume),
       openTime: c.openTime,
+      closeTime: c.closeTime,
     }));
     
     // Analyze context
@@ -110,26 +114,54 @@ async function backfillContextData(signal: SignalData, dryRun: boolean) {
     // Also calculate pattern_score, trend_alignment, clearance_15m
     console.log(`\n   🔧 Calculating additional metrics...`);
     
-    // Pattern Score
+    // Pattern Score - Approximate (паттерны изменяются после создания сигнала)
     let patternScore: number | null = null;
     try {
-      const patternDetector = new PatternDetector();
-      let patternResult = { detected: false, score: null } as any;
+      // Паттерн создается ВНУТРИ формирующейся свечи, которая потом закрывается по-другому
+      // Поэтому используем ПРИБЛИЗИТЕЛЬНУЮ оценку на основе геометрии свечи
+      const lastCandle = convertedCandles[convertedCandles.length - 1];
+      const high = lastCandle.high;
+      const low = lastCandle.low;
+      const open = lastCandle.open;
+      const close = lastCandle.close;
       
-      // Detect pattern based on pattern_type (use convertedCandles with numbers!)
-      if (signal.patternType.includes('pinbar')) {
-        patternResult = patternDetector.detectPinBar(convertedCandles);
-      } else if (signal.patternType.includes('fakey')) {
-        patternResult = patternDetector.detectFakey(convertedCandles);
-      } else if (signal.patternType.includes('ppr')) {
-        patternResult = patternDetector.detectPPR(convertedCandles, '15m');
-      }
+      const range = high - low;
+      const body = Math.abs(close - open);
+      const upperWick = high - Math.max(open, close);
+      const lowerWick = Math.min(open, close) - low;
       
-      if (patternResult.detected && patternResult.score) {
-        patternScore = patternResult.score;
-        console.log(`      Pattern Score: ${patternScore}/10`);
+      if (range > 0) {
+        // Approximate scoring для pinbar (0-10)
+        if (signal.patternType.includes('pinbar_buy')) {
+          // LONG pinbar: оцениваем нижний хвост
+          const tailRatio = lowerWick / range;
+          const bodyRatio = body / range;
+          const wickCleanness = 1 - (upperWick / range);
+          
+          patternScore = Math.min(10, Math.max(0, Math.round(
+            (tailRatio * 4) +           // Max 4 points for tail
+            ((1 - bodyRatio) * 3) +     // Max 3 points for small body
+            (wickCleanness * 3)         // Max 3 points for clean wick
+          )));
+        } else if (signal.patternType.includes('pinbar_sell')) {
+          // SHORT pinbar: оцениваем верхний хвост
+          const tailRatio = upperWick / range;
+          const bodyRatio = body / range;
+          const wickCleanness = 1 - (lowerWick / range);
+          
+          patternScore = Math.min(10, Math.max(0, Math.round(
+            (tailRatio * 4) +           // Max 4 points for tail
+            ((1 - bodyRatio) * 3) +     // Max 3 points for small body
+            (wickCleanness * 3)         // Max 3 points for clean wick
+          )));
+        } else {
+          // Для fakey/ppr используем простую оценку body/range
+          patternScore = Math.min(10, Math.round((1 - (body / range)) * 10));
+        }
+        
+        console.log(`      Pattern Score: ${patternScore}/10 (approximate - pattern likely changed)`);
       } else {
-        console.log(`      Pattern Score: Could not recalculate (pattern changed or not detected)`);
+        console.log(`      Pattern Score: Cannot calculate (zero range candle)`);
       }
     } catch (error) {
       console.log(`      Pattern Score: Error - ${error}`);
@@ -180,7 +212,9 @@ async function backfillContextData(signal: SignalData, dryRun: boolean) {
           high: parseFloat(c.high),
           low: parseFloat(c.low),
           close: parseFloat(c.close),
+          volume: parseFloat(c.volume),
           openTime: c.openTime,
+          closeTime: c.closeTime,
         }));
         
         const zones = findSRChannels(convertedExtended, {
