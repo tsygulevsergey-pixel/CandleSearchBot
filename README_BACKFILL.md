@@ -8,12 +8,13 @@
 
 ## 🔄 Что восстанавливает?
 
-### **1. Context Before Signal** (контекст ДО сигнала)
+### **1. Context Before Signal + Metrics** (контекст ДО сигнала + метрики)
 
-Для каждого 15m сигнала где `context_trend_before IS NULL`:
+Для каждого 15m сигнала где `context_trend_before IS NULL` OR `pattern_score IS NULL` OR `trend_alignment IS NULL`:
 
 **Запрашивает:**
 - 50 свечей по 15m ДО создания сигнала (12.5 часов истории)
+- 300 свечей для расчета S/R зон (clearance_15m)
 
 **Анализирует:**
 - ✅ Тренд перед сигналом (uptrend/downtrend/sideways)
@@ -21,14 +22,23 @@
 - ✅ Количество swing highs/lows (choppy market)
 - ✅ Направление последних 10 свечей
 - ✅ Расстояние от EMA20
+- ✅ **Pattern Score** (качество паттерна 0-10) ← НОВОЕ!
+- ✅ **Trend Alignment** ('with'/'against'/'neutral') ← НОВОЕ!
+- ✅ **Clearance 15m** (расстояние до S/R зоны) ← НОВОЕ!
 
 **Обновляет поля:**
 ```sql
+-- Context
 context_trend_before
 context_was_reversal
 context_swing_count_20
 context_recent_direction
 context_distance_from_ema
+
+-- Metrics (ранее невозможно было восстановить!)
+pattern_score        -- 0-10 (tail/body ratio, clean wicks, etc.)
+trend_alignment      -- 'with'/'against'/'neutral'
+clearance_15m        -- Расстояние до ближайшей S/R зоны
 ```
 
 ---
@@ -132,8 +142,8 @@ npx tsx src/scripts/backfillContext.ts
 ```
 
 **Время выполнения:**
-- ~100ms на запрос (rate limit)
-- 200 сигналов ≈ 20-30 секунд
+- ~200ms на запрос (rate limit + дополнительные метрики)
+- 200 сигналов ≈ 40-60 секунд
 
 ---
 
@@ -144,6 +154,9 @@ psql $DATABASE_URL -c "
 SELECT 
   COUNT(*) as total_15m,
   COUNT(CASE WHEN context_trend_before IS NOT NULL THEN 1 END) as has_context,
+  COUNT(CASE WHEN pattern_score IS NOT NULL THEN 1 END) as has_pattern_score,
+  COUNT(CASE WHEN trend_alignment IS NOT NULL THEN 1 END) as has_trend_alignment,
+  COUNT(CASE WHEN clearance_15m IS NOT NULL THEN 1 END) as has_clearance,
   COUNT(CASE WHEN status = 'SL_HIT' AND post_sl_outcome IS NOT NULL THEN 1 END) as has_post_sl
 FROM signals 
 WHERE timeframe = '15m';
@@ -152,10 +165,14 @@ WHERE timeframe = '15m';
 
 **Ожидаемый результат:**
 ```
- total_15m | has_context | has_post_sl
------------|-------------|------------
-       57  |      57     |     128
+ total_15m | has_context | has_pattern_score | has_trend_alignment | has_clearance | has_post_sl
+-----------|-------------|-------------------|---------------------|---------------|------------
+       57  |      57     |        54         |         57          |      48       |     128
 ```
+
+**Почему не все 57?**
+- `pattern_score`: Может не восстановиться если паттерн изменился (другая свеча = другой паттерн)
+- `clearance_15m`: Может не быть S/R зоны в нужном направлении
 
 ---
 
@@ -164,7 +181,7 @@ WHERE timeframe = '15m';
 ### **1. Binance API Rate Limits**
 
 - Скрипт использует `binanceRateLimiter` для соблюдения лимитов
-- Задержка 100ms между запросами
+- Задержка 200ms между запросами (теперь запрашивает больше данных)
 - Для большого количества сигналов может занять время
 
 ### **2. Исторические данные**

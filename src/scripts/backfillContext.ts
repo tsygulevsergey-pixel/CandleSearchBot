@@ -18,9 +18,12 @@
 
 import { db } from '../mastra/storage/db.js';
 import { signals } from '../mastra/storage/schema.js';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, or } from 'drizzle-orm';
 import { BinanceClient } from '../utils/binanceClient.js';
 import { analyzeContextBeforeSignal } from '../utils/contextAnalyzer.js';
+import { PatternDetector } from '../utils/candleAnalyzer.js';
+import { calculateEMA } from '../utils/candleAnalyzer.js';
+import { findSRChannels } from '../utils/srChannels.js';
 
 const binanceClient = new BinanceClient();
 
@@ -28,6 +31,7 @@ interface SignalData {
   id: number;
   symbol: string;
   direction: 'LONG' | 'SHORT';
+  patternType: string;
   entryPrice: string;
   slPrice: string;
   tp1Price: string | null;
@@ -102,6 +106,104 @@ async function backfillContextData(signal: SignalData, dryRun: boolean) {
       return context;
     }
     
+    // Also calculate pattern_score, trend_alignment, clearance_15m
+    console.log(`\n   🔧 Calculating additional metrics...`);
+    
+    // Pattern Score
+    let patternScore: number | null = null;
+    try {
+      const patternDetector = new PatternDetector();
+      let patternResult = { detected: false, score: null } as any;
+      
+      // Detect pattern based on pattern_type
+      if (signal.patternType.includes('pinbar')) {
+        patternResult = patternDetector.detectPinBar(candles);
+      } else if (signal.patternType.includes('fakey')) {
+        patternResult = patternDetector.detectFakey(candles);
+      } else if (signal.patternType.includes('ppr')) {
+        patternResult = patternDetector.detectPPR(candles, '15m');
+      }
+      
+      if (patternResult.detected && patternResult.score) {
+        patternScore = patternResult.score;
+        console.log(`      Pattern Score: ${patternScore}/10`);
+      } else {
+        console.log(`      Pattern Score: Could not recalculate`);
+      }
+    } catch (error) {
+      console.log(`      Pattern Score: Error - ${error}`);
+    }
+    
+    // Trend Alignment
+    let trendAlignment: string | null = null;
+    try {
+      const ema20 = calculateEMA(candles, 20);
+      const ema50 = calculateEMA(candles, 50);
+      
+      let trendDirection: 'UPTREND' | 'DOWNTREND' | 'SIDEWAYS';
+      if (ema20 > ema50 * 1.002) {
+        trendDirection = 'UPTREND';
+      } else if (ema20 < ema50 * 0.998) {
+        trendDirection = 'DOWNTREND';
+      } else {
+        trendDirection = 'SIDEWAYS';
+      }
+      
+      trendAlignment = (
+        (signal.direction === 'LONG' && trendDirection === 'UPTREND') ||
+        (signal.direction === 'SHORT' && trendDirection === 'DOWNTREND')
+      ) ? 'with' : trendDirection === 'SIDEWAYS' ? 'neutral' : 'against';
+      
+      console.log(`      Trend Alignment: ${trendAlignment} (EMA20=${ema20.toFixed(2)}, EMA50=${ema50.toFixed(2)})`);
+    } catch (error) {
+      console.log(`      Trend Alignment: Error - ${error}`);
+    }
+    
+    // Clearance 15m (need more candles - 300)
+    let clearance15m: string | null = null;
+    try {
+      // Fetch more candles for S/R zones (300 candles)
+      const startTimeExtended = signalTime - (300 * 15 * 60 * 1000);
+      const candlesExtended = await binanceClient.getKlinesInRange(
+        signal.symbol,
+        '15m',
+        startTimeExtended,
+        endTime,
+        300
+      );
+      
+      if (candlesExtended.length >= 300) {
+        const zones = findSRChannels(candlesExtended, {
+          pivotPeriod: 10,
+          maxChannelWidthPercent: 5,
+          minStrength: 1,
+          maxChannels: 6,
+          loopbackPeriod: 290,
+          rangeCalculationPeriod: 300,
+        });
+        
+        // Find nearest opposing zone (S/R channels don't have 'tf' field, they're all 15m since we're using 15m candles)
+        const opposingZone15m = zones.find(z => 
+          z.type === (signal.direction === 'LONG' ? 'resistance' : 'support') &&
+          (signal.direction === 'LONG' ? z.lower > parseFloat(signal.entryPrice) : z.upper < parseFloat(signal.entryPrice))
+        );
+        
+        if (opposingZone15m) {
+          const clearanceValue = Math.abs(
+            (signal.direction === 'LONG' ? opposingZone15m.lower : opposingZone15m.upper) - parseFloat(signal.entryPrice)
+          );
+          clearance15m = clearanceValue.toString();
+          console.log(`      Clearance 15m: ${parseFloat(clearance15m).toFixed(8)}`);
+        } else {
+          console.log(`      Clearance 15m: No opposing zone found (unlimited)`);
+        }
+      } else {
+        console.log(`      Clearance 15m: Not enough candles (${candlesExtended.length}/300)`);
+      }
+    } catch (error) {
+      console.log(`      Clearance 15m: Error - ${error}`);
+    }
+    
     // Update database
     await db
       .update(signals)
@@ -111,11 +213,14 @@ async function backfillContextData(signal: SignalData, dryRun: boolean) {
         contextSwingCount20: context.swingCount20,
         contextRecentDirection: context.recentDirection,
         contextDistanceFromEma: context.distanceFromEma.toString(),
+        ...(patternScore !== null && { patternScore: patternScore.toString() }),
+        ...(trendAlignment !== null && { trendAlignment: trendAlignment as any }),
+        ...(clearance15m !== null && { clearance15m }),
       })
       .where(eq(signals.id, signal.id));
     
-    console.log(`   ✅ Updated signal #${signal.id} with context data`);
-    return context;
+    console.log(`   ✅ Updated signal #${signal.id} with context + metrics data`);
+    return { context, patternScore, trendAlignment, clearance15m };
     
   } catch (error) {
     console.error(`   ❌ Error processing signal #${signal.id}:`, error);
@@ -296,6 +401,9 @@ async function main() {
     contextSuccess: 0,
     postSlProcessed: 0,
     postSlSuccess: 0,
+    patternScoreRecovered: 0,
+    trendAlignmentRecovered: 0,
+    clearance15mRecovered: 0,
   };
   
   // Backfill CONTEXT data
@@ -308,7 +416,11 @@ async function main() {
       .where(
         and(
           eq(signals.timeframe, '15m'),
-          isNull(signals.contextTrendBefore)
+          or(
+            isNull(signals.contextTrendBefore),
+            isNull(signals.patternScore),
+            isNull(signals.trendAlignment)
+          )
         )
       )
       .limit(limit || 1000);
@@ -320,10 +432,13 @@ async function main() {
       const result = await backfillContextData(signal as any, dryRun);
       if (result) {
         stats.contextSuccess++;
+        if ((result as any).patternScore !== null) stats.patternScoreRecovered++;
+        if ((result as any).trendAlignment !== null) stats.trendAlignmentRecovered++;
+        if ((result as any).clearance15m !== null) stats.clearance15mRecovered++;
       }
       
-      // Rate limit: wait 100ms between requests
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Rate limit: wait 200ms between requests (more candles = more API calls)
+      await new Promise(resolve => setTimeout(resolve, 200));
     }
   }
   
@@ -366,6 +481,10 @@ async function main() {
     console.log(`   Processed: ${stats.contextProcessed}`);
     console.log(`   Success: ${stats.contextSuccess}`);
     console.log(`   Failed: ${stats.contextProcessed - stats.contextSuccess}`);
+    console.log(`\n📍 Additional Metrics Recovered:`);
+    console.log(`   Pattern Score: ${stats.patternScoreRecovered}`);
+    console.log(`   Trend Alignment: ${stats.trendAlignmentRecovered}`);
+    console.log(`   Clearance 15m: ${stats.clearance15mRecovered}`);
   }
   
   if (!contextOnly) {
