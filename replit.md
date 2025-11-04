@@ -148,4 +148,11 @@ pm2 restart all
 - Оптимизации SL размера (если график достиг TP после стопа)
 - ML анализа успешности сигналов
 
-См. `CONTEXT_TRACKING_GUIDE.md` для примеров SQL queries и рекомендаций.
+**Восстановление данных для старых сигналов:**
+```bash
+# Скрипт восстанавливает context & post-SL для старых сигналов из Binance API
+npx tsx src/scripts/backfillContext.ts --dry-run --limit=5  # Тест
+npx tsx src/scripts/backfillContext.ts                      # Полный backfill
+```
+
+См. `CONTEXT_TRACKING_GUIDE.md` и `README_BACKFILL.md` для подробностей.

@@ -280,6 +280,97 @@ y_recovery = 'post_sl_outcome' LIKE 'reached_tp%'  # Достигнет ли TP 
 
 ---
 
+## 🔄 **Восстановление данных для старых сигналов**
+
+### **Скрипт для backfill:**
+
+Создан скрипт `src/scripts/backfillContext.ts` который **восстанавливает** данные для старых сигналов:
+
+**Что восстанавливает:**
+1. ✅ **Context fields** - запрашивает 50 свечей ДО сигнала из Binance
+2. ✅ **Post-SL monitoring** - запрашивает 4 часа свечей ПОСЛЕ SL_HIT
+
+**Использование:**
+
+```bash
+# 1. Тестовый запуск (без изменений в БД)
+npx tsx src/scripts/backfillContext.ts --dry-run
+
+# 2. Восстановить только контекст
+npx tsx src/scripts/backfillContext.ts --context-only
+
+# 3. Восстановить только post-SL данные
+npx tsx src/scripts/backfillContext.ts --post-sl-only
+
+# 4. Восстановить первые 5 сигналов
+npx tsx src/scripts/backfillContext.ts --limit=5 --dry-run
+
+# 5. Запустить ПОЛНЫЙ backfill (все сигналы)
+npx tsx src/scripts/backfillContext.ts
+```
+
+**Пример вывода:**
+
+```bash
+🔄 [Backfill] Starting context & post-SL backfill...
+
+📊 === BACKFILLING CONTEXT DATA ===
+
+Found 57 signals missing context data
+
+🔍 [Context] Processing signal #1 BTCUSDT
+   📅 Fetching 50x15m candles before signal...
+      From: 2025-11-02T10:00:00.000Z
+      To:   2025-11-02T22:30:00.000Z
+   ✅ Fetched 50 candles
+   📊 Context analysis:
+      Trend: uptrend
+      Reversal: false
+      Swings: 6
+      Recent: bullish
+      Distance from EMA: +0.32%
+      Is good context: ✅
+   ✅ Updated signal #1 with context data
+
+📊 === BACKFILLING POST-SL DATA ===
+
+Found 132 stopped signals missing post-SL data
+
+📊 [Post-SL] Processing signal #142 SOLVUSDT
+   📅 Monitoring 4h after SL_HIT...
+      SL hit: 2025-11-03T14:45:00.000Z
+      Monitor until: 2025-11-03T18:45:00.000Z
+   ✅ Fetched 16 candles after SL_HIT
+   📊 Post-SL analysis:
+      Outcome: reached_tp1
+      Max favorable: 2.15R
+      Time to TP: 85 minutes
+   ✅ Updated signal #142 with post-SL data
+
+============================================================
+📊 BACKFILL SUMMARY
+============================================================
+
+📍 Context Data:
+   Processed: 57
+   Success: 57
+   Failed: 0
+
+📍 Post-SL Data:
+   Processed: 132
+   Success: 128
+   Failed: 4
+
+✅ Backfill complete!
+```
+
+**⚠️ ВАЖНО:**
+- Скрипт использует Binance API (rate limit: ~100ms между запросами)
+- Для 200 сигналов ≈ 20-30 секунд
+- Сначала запусти `--dry-run` для теста!
+
+---
+
 ## 🔍 Тестирование
 
 Чтобы протестировать на новом сигнале:
