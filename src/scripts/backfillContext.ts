@@ -170,8 +170,18 @@ async function backfillContextData(signal: SignalData, dryRun: boolean) {
     // Trend Alignment
     let trendAlignment: string | null = null;
     try {
-      const ema20 = calculateEMA(convertedCandles, 20);
-      const ema50 = calculateEMA(convertedCandles, 50);
+      // Convert back to string format for EMA calculation
+      const candlesForEMA = convertedCandles.map(c => ({
+        ...c,
+        open: c.open.toString(),
+        high: c.high.toString(),
+        low: c.low.toString(),
+        close: c.close.toString(),
+        volume: c.volume.toString(),
+      }));
+      
+      const ema20 = calculateEMA(candlesForEMA as any, 20);
+      const ema50 = calculateEMA(candlesForEMA as any, 50);
       
       let trendDirection: 'UPTREND' | 'DOWNTREND' | 'SIDEWAYS';
       if (ema20 > ema50 * 1.002) {
@@ -206,18 +216,8 @@ async function backfillContextData(signal: SignalData, dryRun: boolean) {
       );
       
       if (candlesExtended.length >= 300) {
-        // Convert extended candles to numbers
-        const convertedExtended = candlesExtended.map(c => ({
-          open: parseFloat(c.open),
-          high: parseFloat(c.high),
-          low: parseFloat(c.low),
-          close: parseFloat(c.close),
-          volume: parseFloat(c.volume),
-          openTime: c.openTime,
-          closeTime: c.closeTime,
-        }));
-        
-        const zones = findSRChannels(convertedExtended, {
+        // Keep as string format for findSRChannels
+        const zones = findSRChannels(candlesExtended, {
           pivotPeriod: 10,
           maxChannelWidthPercent: 5,
           minStrength: 1,
@@ -438,8 +438,8 @@ async function main() {
   // Поддержка --status для фильтрации по статусу (TP или SL)
   const statusArg = args.find((arg) => arg.startsWith('--status='));
   const statusFilter = statusArg 
-    ? statusArg.split('=')[1].split(',').map(s => s.trim())
-    : ['SL_HIT']; // Default: только стоп-лоссы
+    ? statusArg.split('=')[1].split(',').map(s => s.trim() as 'TP1_HIT' | 'TP2_HIT' | 'TP3_HIT' | 'SL_HIT')
+    : ['SL_HIT'] as const; // Default: только стоп-лоссы
   
   console.log('🔄 [Backfill] Starting context & post-SL backfill...\n');
   console.log(`📍 Status filter: ${statusFilter.join(', ')}`);
