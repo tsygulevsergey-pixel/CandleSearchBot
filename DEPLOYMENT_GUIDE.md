@@ -66,7 +66,18 @@ pm2 logs trading-bot --lines 50
 
 ## 📊 ВОССТАНОВЛЕНИЕ ДАННЫХ ДЛЯ СТАРЫХ СИГНАЛОВ
 
-### Шаг 1: Тестовый запуск (DRY RUN)
+### 🎯 Два метода восстановления:
+
+**Метод 1:** Из Binance API (MFE/MAE, first_touch, time_to_X)  
+**Метод 2:** Из лог-файлов (pattern_score, trend_alignment, clearance_15m)
+
+**Рекомендуется использовать ОБА метода для полного восстановления!**
+
+---
+
+### Метод 1: Восстановление из Binance API
+
+#### Шаг 1: Тестовый запуск (DRY RUN)
 ```bash
 # Протестировать на 5 сигналах БЕЗ записи в БД
 npx tsx src/scripts/backfillMFEMAE.ts --dry-run --limit 5
@@ -156,6 +167,119 @@ LIMIT 10;
  143 | UNIUSDT  | SL_HIT | 0.10  | -1.00 | sl          | 23
  144 | ETHUSDT  | SL_HIT | 1.50  | -1.00 | sl          | 520
 ```
+
+---
+
+### Метод 2: Восстановление из лог-файлов
+
+**ЧТО ВОССТАНАВЛИВАЕТСЯ:**
+- ✅ pattern_score
+- ✅ trend_alignment
+- ✅ clearance_15m
+- ✅ sl_buffer_atr15
+
+#### Шаг 1: Найти лог-файлы
+
+**PM2 логи:**
+```bash
+# Проверить где находятся логи
+pm2 logs trading-bot --lines 0
+
+# Обычно в:
+ls -lh ~/.pm2/logs/trading-bot-out-*.log
+```
+
+**Systemd логи:**
+```bash
+# Экспортировать логи за нужный период
+journalctl -u trading-bot --since "2024-10-20" --until "2024-11-04" > bot.log
+```
+
+#### Шаг 2: Тестовый запуск
+```bash
+# Протестировать парсинг логов
+npx tsx src/scripts/backfillFromLogs.ts --dry-run --log-dir ~/.pm2/logs
+```
+
+**Пример вывода:**
+```
+📂 Found 2 log files:
+   - trading-bot-out-0.log
+   - trading-bot-error-0.log
+
+📖 [Parser] Reading log file: trading-bot-out-0.log
+✅ [Parser] Found 45 ML context entries
+
+🔍 [Matcher] Matching 45 log entries to database signals...
+   ✅ Matched signal #142 (SOLVUSDT) to log entry
+   ✅ Matched signal #143 (UNIUSDT) to log entry
+   
+📊 [Matcher] Successfully matched 40/132 signals
+
+✅ Backfill complete!
+   ML contexts found: 45
+   Signals matched: 40
+   Successfully updated: 40
+```
+
+#### Шаг 3: Реальный запуск (если тест ОК)
+```bash
+# Восстановить из PM2 логов
+npx tsx src/scripts/backfillFromLogs.ts --log-dir ~/.pm2/logs
+
+# Или из systemd логов
+npx tsx src/scripts/backfillFromLogs.ts --log-dir .
+```
+
+#### Шаг 4: Проверить результат
+```bash
+psql $DATABASE_URL
+
+# Проверить что pattern_score заполнился
+SELECT 
+  id, symbol, 
+  pattern_score, trend_alignment, clearance_15m
+FROM signals 
+WHERE timeframe = '15m' 
+  AND status = 'SL_HIT'
+  AND pattern_score IS NOT NULL
+ORDER BY id DESC 
+LIMIT 10;
+```
+
+---
+
+### Комбинированный подход (РЕКОМЕНДУЕТСЯ):
+
+```bash
+# 1. Восстановить MFE/MAE из Binance
+npx tsx src/scripts/backfillMFEMAE.ts
+
+# 2. Восстановить pattern_score из логов
+npx tsx src/scripts/backfillFromLogs.ts --log-dir ~/.pm2/logs
+
+# 3. Проверить полноту данных
+psql $DATABASE_URL -c "
+  SELECT 
+    COUNT(*) as total,
+    COUNT(mfe_r) as has_mfe,
+    COUNT(pattern_score) as has_pattern_score,
+    COUNT(trend_alignment) as has_trend,
+    ROUND(100.0 * COUNT(mfe_r) / COUNT(*), 1) as mfe_pct,
+    ROUND(100.0 * COUNT(pattern_score) / COUNT(*), 1) as pattern_pct
+  FROM signals 
+  WHERE timeframe = '15m' AND status = 'SL_HIT';
+"
+```
+
+**Ожидаемый результат:**
+```
+ total | has_mfe | has_pattern_score | has_trend | mfe_pct | pattern_pct
+-------|---------|-------------------|-----------|---------|------------
+   132 |     132 |                40 |        40 |   100.0 |        30.3
+```
+
+📌 **Примечание:** Процент pattern_score зависит от того, сколько логов доступно. Если логи ротировались/удалены, часть данных невозможно восстановить.
 
 ---
 
