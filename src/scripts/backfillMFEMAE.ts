@@ -19,6 +19,7 @@ import { db } from '../mastra/storage/db.js';
 import { signals } from '../mastra/storage/schema.js';
 import { eq, and, or, isNull } from 'drizzle-orm';
 import { BinanceClient } from '../utils/binanceClient.js';
+import { binanceRateLimiter } from '../utils/rateLimiter.js';
 
 const binanceClient = new BinanceClient();
 
@@ -160,8 +161,14 @@ async function calculateMFEMAE(signal: SignalData) {
   }
 }
 
-async function backfillMFEMAE(options: { dryRun: boolean; limit?: number }) {
+async function backfillMFEMAE(options: { dryRun: boolean; limit?: number; batchSize?: number }) {
   console.log('🔄 [Backfill] Starting MFE/MAE backfill...\n');
+  
+  // Show rate limiter info
+  console.log('📊 [Backfill] Binance API Rate Limit Info:');
+  console.log('   - Limit: 2400 weight/minute (Futures API)');
+  console.log('   - getKlines weight: 1 per request');
+  console.log('   - Auto-throttling: ENABLED (will wait if approaching limit)\n');
   
   // Find all closed signals with NULL mfe_r
   const closedStatuses = ['TP1_HIT', 'TP2_HIT', 'TP3_HIT', 'SL_HIT', 'BE_HIT'];
@@ -183,13 +190,25 @@ async function backfillMFEMAE(options: { dryRun: boolean; limit?: number }) {
     console.log('🔍 DRY RUN MODE - no changes will be written to DB\n');
   }
   
+  // Calculate estimated time
+  const batchSize = options.batchSize || 50; // Process in batches
+  const estimatedMinutes = Math.ceil(signalsToUpdate.length / batchSize);
+  console.log(`⏱️ Estimated time: ~${estimatedMinutes} minutes (batch size: ${batchSize})\n`);
+  
   let processed = 0;
   let updated = 0;
   let failed = 0;
+  let batchCount = 0;
   
   for (const signal of signalsToUpdate) {
     processed++;
     console.log(`\n[${processed}/${signalsToUpdate.length}] Processing signal #${signal.id}...`);
+    
+    // Show rate limiter status every 10 signals
+    if (processed % 10 === 0) {
+      const status = binanceRateLimiter.getStatus();
+      console.log(`\n📊 [Rate Limiter] Current usage: ${status.weightUsed}/${status.weightLimit} (${status.percentage.toFixed(1)}%)`);
+    }
     
     const result = await calculateMFEMAE(signal as any);
     
@@ -224,8 +243,27 @@ async function backfillMFEMAE(options: { dryRun: boolean; limit?: number }) {
       updated++;
     }
     
-    // Rate limiting: pause between requests
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // Smart rate limiting: pause between requests
+    // Every N signals, take a longer pause to ensure we don't hit limits
+    batchCount++;
+    if (batchCount >= batchSize) {
+      const status = binanceRateLimiter.getStatus();
+      console.log(`\n⏸️ [Backfill] Batch of ${batchSize} completed. Rate limiter: ${status.weightUsed}/${status.weightLimit} (${status.percentage.toFixed(1)}%)`);
+      
+      // If we're above 80% of limit, wait for next minute
+      if (status.percentage > 80) {
+        console.log(`⚠️ [Backfill] Approaching rate limit (${status.percentage.toFixed(1)}%), waiting for reset...`);
+        await binanceRateLimiter.waitForNextMinute();
+      } else {
+        // Normal pause between batches (5 seconds)
+        console.log(`⏸️ [Backfill] Pausing 5s before next batch...`);
+        await new Promise(resolve => setTimeout(resolve, 5000));
+      }
+      batchCount = 0;
+    } else {
+      // Short pause between individual requests (500ms)
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
   }
   
   console.log('\n✅ Backfill complete!');
@@ -245,9 +283,11 @@ const args = process.argv.slice(2);
 const dryRun = args.includes('--dry-run');
 const limitIndex = args.indexOf('--limit');
 const limit = limitIndex >= 0 ? parseInt(args[limitIndex + 1]) : undefined;
+const batchSizeIndex = args.indexOf('--batch-size');
+const batchSize = batchSizeIndex >= 0 ? parseInt(args[batchSizeIndex + 1]) : 50; // Default: 50 signals/batch
 
 // Run backfill
-backfillMFEMAE({ dryRun, limit })
+backfillMFEMAE({ dryRun, limit, batchSize })
   .then(() => {
     console.log('\n✅ Script completed successfully');
     process.exit(0);
