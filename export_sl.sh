@@ -1,0 +1,81 @@
+#!/bin/bash
+# Скрипт для экспорта SL_HIT сигналов с ВСЕМИ полями
+
+OUTPUT_FILE="${1:-stoplosses_export.csv}"
+
+echo "📊 Экспортирую SL_HIT сигналы в файл: $OUTPUT_FILE"
+echo ""
+
+psql $DATABASE_URL << 'SQL' > "$OUTPUT_FILE"
+\pset format csv
+\pset tuples_only off
+
+SELECT 
+  id,
+  symbol,
+  timeframe,
+  direction,
+  pattern_type,
+  entry_price,
+  sl_price,
+  tp1_price,
+  tp2_price,
+  tp3_price,
+  exit_type,
+  status,
+  pnl_r,
+  pnl_percent,
+  context_trend_before,
+  context_was_reversal,
+  context_swing_count_20,
+  context_recent_direction,
+  context_distance_from_ema,
+  pattern_score,
+  trend_alignment,
+  clearance_15m,
+  post_sl_outcome,
+  post_sl_max_favorable_r,
+  post_sl_time_to_tp_min,
+  mfe_r,
+  mae_r,
+  created_at as signal_time,
+  time_to_sl_min,
+  atr_15m,
+  free_path_r,
+  clearance_1h,
+  r_available,
+  actual_rr_tp1,
+  actual_rr_tp2,
+  actual_rr_tp3,
+  multi_tf_alignment,
+  confluence_score
+FROM signals
+WHERE status = 'SL_HIT'
+  AND timeframe = '15m'
+ORDER BY created_at DESC;
+SQL
+
+# Убираем первую строку "Output format is csv"
+tail -n +2 "$OUTPUT_FILE" > "${OUTPUT_FILE}.tmp"
+mv "${OUTPUT_FILE}.tmp" "$OUTPUT_FILE"
+
+# Статистика
+total=$(tail -n +2 "$OUTPUT_FILE" | wc -l)
+pattern_score_filled=$(tail -n +2 "$OUTPUT_FILE" | awk -F',' '$20 != "" && $20 != "NULL" {count++} END {print count+0}')
+trend_alignment_filled=$(tail -n +2 "$OUTPUT_FILE" | awk -F',' '$21 != "" && $21 != "NULL" {count++} END {print count+0}')
+clearance_15m_filled=$(tail -n +2 "$OUTPUT_FILE" | awk -F',' '$22 != "" && $22 != "NULL" {count++} END {print count+0}')
+post_sl_outcome_filled=$(tail -n +2 "$OUTPUT_FILE" | awk -F',' '$23 != "" && $23 != "NULL" {count++} END {print count+0}')
+
+echo "✅ Экспорт завершен!"
+echo ""
+echo "📊 Статистика:"
+echo "   Всего SL_HIT: $total"
+echo ""
+echo "📍 Заполненность НОВЫХ полей:"
+echo "   pattern_score:       $pattern_score_filled / $total ($(awk "BEGIN {printf \"%.1f\", $pattern_score_filled/$total*100}")%)"
+echo "   trend_alignment:     $trend_alignment_filled / $total ($(awk "BEGIN {printf \"%.1f\", $trend_alignment_filled/$total*100}")%)"
+echo "   clearance_15m:       $clearance_15m_filled / $total ($(awk "BEGIN {printf \"%.1f\", $clearance_15m_filled/$total*100}")%)"
+echo "   post_sl_outcome:     $post_sl_outcome_filled / $total ($(awk "BEGIN {printf \"%.1f\", $post_sl_outcome_filled/$total*100}")%)"
+echo ""
+echo "📁 Файл: $OUTPUT_FILE"
+
