@@ -24,6 +24,7 @@ import { analyzeContextBeforeSignal } from '../utils/contextAnalyzer.js';
 import { PatternDetector } from '../utils/candleAnalyzer.js';
 import { calculateEMA } from '../utils/candleAnalyzer.js';
 import { findSRChannels } from '../utils/srChannels.js';
+import { binanceRateLimiter } from '../utils/rateLimiter.js';
 
 const binanceClient = new BinanceClient();
 
@@ -406,6 +407,8 @@ async function main() {
     clearance15mRecovered: 0,
   };
   
+  const startTime = Date.now();
+  
   // Backfill CONTEXT data
   if (!postSlOnly) {
     console.log('\n📊 === BACKFILLING CONTEXT DATA ===\n');
@@ -427,7 +430,15 @@ async function main() {
     
     console.log(`Found ${contextSignals.length} signals missing context data\n`);
     
-    for (const signal of contextSignals) {
+    for (let i = 0; i < contextSignals.length; i++) {
+      const signal = contextSignals[i];
+      
+      // Show progress every 10 signals
+      if (i > 0 && i % 10 === 0) {
+        const rateLimiterStatus = binanceRateLimiter.getStatus();
+        console.log(`\n📊 Progress: ${i}/${contextSignals.length} (${Math.round(i/contextSignals.length*100)}%)`);
+        console.log(`   Rate Limiter: ${rateLimiterStatus.weightUsed}/${rateLimiterStatus.weightLimit} (${rateLimiterStatus.percentage.toFixed(1)}%)\n`);
+      }
       stats.contextProcessed++;
       const result = await backfillContextData(signal as any, dryRun);
       if (result) {
@@ -437,8 +448,9 @@ async function main() {
         if ((result as any).clearance15m !== null) stats.clearance15mRecovered++;
       }
       
-      // Rate limit: wait 200ms between requests (more candles = more API calls)
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Rate limit: wait 500ms between signals to avoid hitting Binance weight limit
+      // Each signal makes 2-3 API calls (50 + 300 candles), need buffer time
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
   }
   
@@ -459,15 +471,23 @@ async function main() {
     
     console.log(`Found ${postSlSignals.length} stopped signals missing post-SL data\n`);
     
-    for (const signal of postSlSignals) {
+    for (let i = 0; i < postSlSignals.length; i++) {
+      const signal = postSlSignals[i];
+      
+      // Show progress every 10 signals
+      if (i > 0 && i % 10 === 0) {
+        const rateLimiterStatus = binanceRateLimiter.getStatus();
+        console.log(`\n📊 Progress: ${i}/${postSlSignals.length} (${Math.round(i/postSlSignals.length*100)}%)`);
+        console.log(`   Rate Limiter: ${rateLimiterStatus.weightUsed}/${rateLimiterStatus.weightLimit} (${rateLimiterStatus.percentage.toFixed(1)}%)\n`);
+      }
       stats.postSlProcessed++;
       const result = await backfillPostSlData(signal as any, dryRun);
       if (result) {
         stats.postSlSuccess++;
       }
       
-      // Rate limit: wait 100ms between requests
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Rate limit: wait 300ms between signals (each signal = 1 API call)
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
   }
   
@@ -494,6 +514,13 @@ async function main() {
     console.log(`   Failed: ${stats.postSlProcessed - stats.postSlSuccess}`);
   }
   
+  const endTime = Date.now();
+  const durationSec = Math.round((endTime - startTime) / 1000);
+  const durationMin = Math.floor(durationSec / 60);
+  const durationSecRem = durationSec % 60;
+  
+  console.log(`\n⏱️ Total time: ${durationMin}m ${durationSecRem}s`);
+  console.log(`📊 Average: ${stats.contextProcessed > 0 ? Math.round(durationSec / stats.contextProcessed) : 0}s per signal\n`);
   console.log('\n✅ Backfill complete!\n');
 }
 
