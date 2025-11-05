@@ -1,4 +1,5 @@
 import { USDMClient, WebsocketClient } from 'binance';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 import { liveTradesDB, tradeSettingsDB } from '../mastra/storage/db';
 import type { Signal } from '../mastra/storage/schema';
 
@@ -37,17 +38,26 @@ export class BinanceTradeExecutor {
       console.warn('⚠️ [BinanceTradeExecutor] Please set BINANCE_TRADING_API_KEY and BINANCE_TRADING_API_SECRET');
     }
 
-    // Initialize Binance USD-M Futures client
-    this.client = new USDMClient({
+    // Setup proxy if configured (same as BinanceClient for consistency)
+    const proxyUrl = process.env.PROXY_URL;
+    const clientOptions: any = {
       api_key: this.apiKey,
       api_secret: this.apiSecret,
-    });
+    };
 
-    // Initialize WebSocket client for order updates
-    this.wsClient = new WebsocketClient({
-      api_key: this.apiKey,
-      api_secret: this.apiSecret,
-    });
+    if (proxyUrl) {
+      console.log(`🔒 [BinanceTradeExecutor] Using proxy: ${proxyUrl.replace(/:[^:@]+@/, ':****@')}`);
+      const httpsAgent = new HttpsProxyAgent(proxyUrl);
+      clientOptions.httpsAgent = httpsAgent;
+    } else {
+      console.log('🌐 [BinanceTradeExecutor] No proxy configured, using direct connection');
+    }
+
+    // Initialize Binance USD-M Futures client with proxy
+    this.client = new USDMClient(clientOptions);
+
+    // Initialize WebSocket client for order updates with proxy
+    this.wsClient = new WebsocketClient(clientOptions);
 
     console.log('🚀 [BinanceTradeExecutor] Initialized (using BINANCE_TRADING_API_KEY)');
   }
@@ -119,7 +129,7 @@ export class BinanceTradeExecutor {
         try {
           if (this.listenKey) {
             console.log('🔄 [BinanceTradeExecutor] Renewing user data stream listen key...');
-            await this.client.keepAliveFuturesUserDataListenKey({ listenKey: this.listenKey });
+            await this.client.keepAliveFuturesUserDataListenKey();
             console.log('✅ [BinanceTradeExecutor] Listen key renewed successfully');
           }
         } catch (error: any) {
