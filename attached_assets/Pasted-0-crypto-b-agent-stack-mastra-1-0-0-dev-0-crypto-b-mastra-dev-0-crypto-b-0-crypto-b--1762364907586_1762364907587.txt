@@ -1,0 +1,43 @@
+0|crypto-b | > agent-stack-mastra@1.0.0 dev
+0|crypto-b | > mastra dev
+0|crypto-b | 
+0|crypto-b | ◐ Preparing development environment...
+0|crypto-b | ✓ Initial bundle complete
+0|crypto-b | ◇ Starting Mastra dev server...
+
+0|crypto-bot  | 🌐 [BinanceClient] No proxy configured, using direct connection
+0|crypto-bot  | 🌐 [BinanceTradeExecutor] No proxy configured, using direct connection
+0|crypto-bot  | 🚀 [BinanceTradeExecutor] Initialized (using BINANCE_TRADING_API_KEY)
+0|crypto-bot  | WARN [2025-11-05 17:47:50.766 +0000] (Mastra): Mastra telemetry is deprecated and will be removed on the Nov 4th release. Instead use AI Tracing. More info can be found here: https://github.com/mastra-ai/mastra/issues/8577 and here: https://mastra.ai/en/docs/observability/ai-tracing/overview
+0|crypto-bot  | 🚀 [Scheduler] Starting schedulers...
+0|crypto-bot  | ✅ [Scheduler] All schedulers started successfully
+0|crypto-bot  | 📅 Schedules:
+0|crypto-bot  |   - 15m scan: Every 15 minutes (00, 15, 30, 45) + 10s delay
+0|crypto-bot  |   - 1h scan:  Every hour at :00 + 10s delay
+0|crypto-bot  |   - 4h scan:  Every 4 hours (00, 04, 08, 12, 16, 20) + 10s delay
+0|crypto-bot  |   - Tracker:  Every 1 minute (improved accuracy)
+0|crypto-bot  | ✅ [Mastra] Crypto pattern scanner initialized successfully
+0|crypto-bot  | ✅ [Process] Error handlers initialized - bot will auto-recover from errors
+0|crypto-bot  |  mastra  0.14.1-alpha.0 ready in 4771 ms
+0|crypto-bot  | │ Playground: http://0.0.0.0:5000/
+0|crypto-bot  | │ API:        http://0.0.0.0:5000/api
+0|crypto-bot  | ◯ watching for file changes...
+0|crypto-bot  | ✅ [TelegramBot] Menu commands set successfully
+0|crypto-bot  | ✅ [TelegramBot] Message sent successfully
+0|crypto-bot  | 🔄 [TelegramBot] Starting polling...
+0|crypto-bot  | ✅ [TelegramBot] Webhook deleted, polling enabled
+0|crypto-bot  | ✅ [TelegramBot] Polling started successfully
+0|crypto-bot  | 👀 [SignalTracker] Checking open signals...
+0|crypto-bot  | 📊 [SignalTracker] Found 9 open signals
+0|crypto-bot  | 📈 [BinanceClient] Fetching 2 1m candles for CARVUSDT (including current open candle)...
+0|crypto-bot  | ⏰ [RateLimiter] Resetting weight counter at 2025-11-05T17:48:00.000Z
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 1/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 1/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 1/2400
+0|crypto-bot  | ✅ [BinanceClient] Returning 2 candles (including current open candle)
+0|crypto-bot  | 💰 [BinanceClient] Fetching current price for CARVUSDT...
+0|crypto-bot  | ✅ [RateLimiter] Request allowed: 2/2400
+0|crypto-bot  | 🚀 [RateLimiter] Executing request (weight: 1, total: 2/2400)
+0|crypto-bot  | 📊 [RateLimiter] Binance reports weight used: 2/2400
+0|crypto-bot  | 🔍 [SignalTracker] Checking CARVUSDT (ID: 340): {
+0|crypto-bot  |   currentPrice: '0.19730000',
