@@ -354,9 +354,36 @@ export class BinanceTradeExecutor {
   }
 
   /**
+   * Get maximum allowed leverage for a symbol
+   */
+  private async getMaxLeverage(symbol: string): Promise<number> {
+    try {
+      console.log(`🔍 [BinanceTradeExecutor] Fetching max leverage for ${symbol}...`);
+      
+      const brackets = await this.client.getNotionalAndLeverageBrackets({ symbol });
+      
+      if (!brackets || brackets.length === 0) {
+        console.warn(`⚠️ [BinanceTradeExecutor] No leverage brackets found for ${symbol}, defaulting to 20x`);
+        return 20;
+      }
+
+      // Get the first bracket (lowest position size tier) which has the highest leverage
+      const firstBracket = brackets[0];
+      const maxLeverage = firstBracket.brackets?.[0]?.initialLeverage || 20;
+      
+      console.log(`✅ [BinanceTradeExecutor] ${symbol}: Max leverage = ${maxLeverage}x`);
+      return maxLeverage;
+    } catch (error: any) {
+      console.error(`❌ [BinanceTradeExecutor] Failed to get max leverage for ${symbol}:`, error.message);
+      console.log(`⚠️ [BinanceTradeExecutor] Defaulting to 20x leverage`);
+      return 20;
+    }
+  }
+
+  /**
    * Set leverage and margin type for a symbol
    */
-  private async setupSymbol(symbol: string): Promise<void> {
+  private async setupSymbol(symbol: string): Promise<number> {
     console.log(`🔧 [BinanceTradeExecutor] Setting up ${symbol}...`);
 
     try {
@@ -373,9 +400,21 @@ export class BinanceTradeExecutor {
         }
       }
 
-      // Set leverage to 20x
-      await this.client.setLeverage({ symbol, leverage: this.leverage });
-      console.log(`✅ [BinanceTradeExecutor] ${symbol}: Set leverage to ${this.leverage}x`);
+      // Get max leverage for this symbol
+      const maxLeverage = await this.getMaxLeverage(symbol);
+      
+      // Use minimum of requested leverage and max allowed leverage
+      const actualLeverage = Math.min(this.leverage, maxLeverage);
+      
+      if (actualLeverage < this.leverage) {
+        console.log(`⚠️ [BinanceTradeExecutor] ${symbol}: Requested ${this.leverage}x but max is ${maxLeverage}x, using ${actualLeverage}x`);
+      }
+
+      // Set leverage
+      await this.client.setLeverage({ symbol, leverage: actualLeverage });
+      console.log(`✅ [BinanceTradeExecutor] ${symbol}: Set leverage to ${actualLeverage}x`);
+      
+      return actualLeverage;
     } catch (error: any) {
       console.error(`❌ [BinanceTradeExecutor] Failed to setup ${symbol}:`, error.message);
       throw error;
@@ -481,8 +520,8 @@ export class BinanceTradeExecutor {
    * Open a trade based on a signal
    * Steps:
    * 1. Get account balance
-   * 2. Calculate position size (1% risk)
-   * 3. Set leverage and margin type
+   * 2. Set leverage and margin type (get actual leverage allowed)
+   * 3. Calculate position size (1% risk with actual leverage)
    * 4. Place market order (entry)
    * 5. Place stop-loss order (STOP_MARKET)
    * 6. Place take-profit order (TAKE_PROFIT_MARKET)
@@ -524,7 +563,10 @@ export class BinanceTradeExecutor {
         throw new Error('Zero account balance');
       }
 
-      // Step 2: Calculate position size
+      // Step 2: Setup symbol (leverage + margin type) FIRST to get actual leverage
+      const actualLeverage = await this.setupSymbol(signal.symbol);
+
+      // Step 3: Calculate position size using ACTUAL leverage
       const entryPrice = parseFloat(signal.entryPrice);
       const slPrice = parseFloat(signal.slPrice);
       const tpPrice = parseFloat(signal.tp2Price); // Use TP2 as main target
@@ -533,7 +575,7 @@ export class BinanceTradeExecutor {
         accountBalance,
         entryPrice,
         slPrice,
-        this.leverage
+        actualLeverage  // Use actual leverage, not requested
       );
 
       // Round quantities and prices
@@ -541,15 +583,12 @@ export class BinanceTradeExecutor {
       const roundedSlPrice = await this.roundPrice(signal.symbol, slPrice);
       const roundedTpPrice = await this.roundPrice(signal.symbol, tpPrice);
 
-      // Step 3: Setup symbol (leverage + margin type)
-      await this.setupSymbol(signal.symbol);
-
       // Create live trade record (OPENING status)
       const liveTrade = await liveTradesDB.createLiveTrade({
         signalId: signal.id,
         symbol: signal.symbol,
         direction: signal.direction,
-        leverage: this.leverage,
+        leverage: actualLeverage,  // Use actual leverage, not requested
         marginType: 'ISOLATED',
         accountBalance: accountBalance.toString(),
         riskPercent: this.riskPercent.toString(),

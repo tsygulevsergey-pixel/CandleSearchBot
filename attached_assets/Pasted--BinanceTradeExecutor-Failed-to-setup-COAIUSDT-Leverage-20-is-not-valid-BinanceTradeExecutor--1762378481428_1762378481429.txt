@@ -1,0 +1,55 @@
+ [BinanceTradeExecutor] Failed to setup COAIUSDT: Leverage 20 is not valid
+❌ [BinanceTradeExecutor] Failed to open trade: Leverage 20 is not valid
+{
+  code: -4028,
+  message: 'Leverage 20 is not valid',
+  body: { code: -4028, msg: 'Leverage 20 is not valid' },
+  headers: Object [AxiosHeaders] {
+    'content-type': 'application/json',
+    'content-length': '47',
+    connection: 'keep-alive',
+    date: 'Wed, 05 Nov 2025 21:30:18 GMT',
+    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    server: 'Tengine',
+    'x-mbx-used-weight-1m': '10',
+    'x-response-time': '0ms',
+    'access-control-allow-origin': '*',
+    'x-cache': 'Error from cloudfront',
+    via: '1.1 6e6c4d5f1ea04df775c351cd792cccec.cloudfront.net (CloudFront)',
+    'x-amz-cf-pop': 'FRA60-P14',
+    'x-amz-cf-id': '_c0fhbKSDRlUi1sUZFV40SGtqInavwJZcEeMOWwqTHD8RHgY0H72KQ=='
+  },
+  requestUrl: 'https://fapi.binance.com/fapi/v1/leverage?symbol=COAIUSDT&leverage=20&timestamp=1762378218219&recvWindow=5000&signature=ed42df6f25f985071eead32666a62b4900cab0a3d7fedcb79f119a53b80f4f85',
+  requestBody: undefined,
+  requestOptions: {
+    recvWindow: 5000,
+    syncIntervalMs: 3600000,
+    strictParamValidation: false,
+    disableTimeSync: true,
+    api_key: undefined,
+    api_secret: undefined,
+    httpsAgent: HttpsProxyAgent {
+      _events: [Object: null prototype],
+      _eventsCount: 2,
+      _maxListeners: undefined,
+      options: [Object],
+      requests: [Object: null prototype] {},
+      sockets: [Object: null prototype] {},
+      freeSockets: [Object: null prototype] {},
+      keepAliveMsecs: 1000,
+      keepAlive: false,
+      maxSockets: Infinity,
+      maxFreeSockets: 256,
+      scheduling: 'lifo',
+      maxTotalSockets: Infinity,
+      totalSocketCount: 0,
+      proxy: URL {},
+      proxyHeaders: {},
+      connectOpts: [Object],
+      [Symbol(shapeMode)]: false,
+      [Symbol(kCapture)]: false,
+      [Symbol(AgentBaseInternalState)]: {}
+    }
+  }
+}
+❌ [Scanner] Live trade failed: Leverage 20 is not valid
