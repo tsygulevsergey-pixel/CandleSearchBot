@@ -1,0 +1,100 @@
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# tail -n 100 ~/.pm2/logs/crypto-bot-error.log
+    '{}',
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    'skip',
+    '{"trend_misalignment"}',
+    'v2.0-confluence',
+    0,
+    '{}',
+    'directional'
+  ],
+  cause: error: numeric field overflow
+      at /root/CandleSearchBot/node_modules/pg-pool/index.js:45:11
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+      at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:124:18
+      at async NodePgPreparedQuery.queryWithCache (file:///root/CandleSearchBot/node_modules/drizzle-orm/pg-core/session.js:39:16)
+      at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:117:22
+      at async NearMissSkipDB.createNearMissSkip (file:///root/CandleSearchBot/.mastra/output/statisticsTool.mjs:620:23)
+      at async logNearMissSkip (file:///root/CandleSearchBot/.mastra/output/nearMissLogger.mjs:93:5)
+      at async file:///root/CandleSearchBot/.mastra/output/index.mjs:4743:19
+      at async Promise.all (index 4)
+      at async Scanner.scanTimeframe (file:///root/CandleSearchBot/.mastra/output/index.mjs:4680:9) {
+    length: 164,
+    severity: 'ERROR',
+    code: '22003',
+    detail: 'A field with precision 4, scale 2 must round to an absolute value less than 10^2.',
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'numeric.c',
+    line: '7980',
+    routine: 'apply_typmod'
+  }
+}
+⚠️ [PostSL] No candles found for monitoring period
+💥 [CRITICAL] Uncaught Exception: Error: listen EADDRINUSE: address already in use 0.0.0.0:5000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at wrappedLookupCallback (/root/CandleSearchBot/node_modules/@opentelemetry/instrumentation-dns/build/src/instrumentation.js:131:29)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 5000
+}
+Stack trace: Error: listen EADDRINUSE: address already in use 0.0.0.0:5000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at wrappedLookupCallback (/root/CandleSearchBot/node_modules/@opentelemetry/instrumentation-dns/build/src/instrumentation.js:131:29)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
+❌ [TelegramBot] Polling error: Request failed with status code 409
+❌ [TelegramBot] Polling error: Request failed with status code 409
+❌ [TelegramBot] Polling error: Request failed with status code 409
+⚠️ [PostSL] No candles found for monitoring period
+Killed
+💥 [CRITICAL] Uncaught Exception: Error: listen EADDRINUSE: address already in use 0.0.0.0:5000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at wrappedLookupCallback (/root/CandleSearchBot/node_modules/@opentelemetry/instrumentation-dns/build/src/instrumentation.js:131:29)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+  code: 'EADDRINUSE',
+  errno: -98,
+  syscall: 'listen',
+  address: '0.0.0.0',
+  port: 5000
+}
+Stack trace: Error: listen EADDRINUSE: address already in use 0.0.0.0:5000
+    at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+    at listenInCluster (node:net:1965:12)
+    at doListen (node:net:2139:7)
+    at wrappedLookupCallback (/root/CandleSearchBot/node_modules/@opentelemetry/instrumentation-dns/build/src/instrumentation.js:131:29)
+    at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
