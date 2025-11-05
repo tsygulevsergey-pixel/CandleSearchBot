@@ -1,0 +1,53 @@
+root@ubuntu-s-2vcpu-2gb-fra1-01:~/CandleSearchBot# pm2 logs crypto-bot --lines 50 --err
+[TAILING] Tailing last 50 lines for [crypto-bot] process (change the value with --lines option)
+/root/.pm2/logs/crypto-bot-error.log last 50 lines:
+0|crypto-b |       at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:124:18
+0|crypto-b |       at async NodePgPreparedQuery.queryWithCache (file:///root/CandleSearchBot/node_modules/drizzle-orm/pg-core/session.js:39:16)
+0|crypto-b |       at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:117:22
+0|crypto-b |       at async NearMissSkipDB.createNearMissSkip (file:///root/CandleSearchBot/.mastra/output/statisticsTool.mjs:620:23)
+0|crypto-b |       at async logNearMissSkip (file:///root/CandleSearchBot/.mastra/output/nearMissLogger.mjs:93:5)
+0|crypto-b |       at async file:///root/CandleSearchBot/.mastra/output/index.mjs:4743:19
+0|crypto-b |       at async Promise.all (index 4)
+0|crypto-b |       at async Scanner.scanTimeframe (file:///root/CandleSearchBot/.mastra/output/index.mjs:4680:9) {
+0|crypto-b |     length: 164,
+0|crypto-b |     severity: 'ERROR',
+0|crypto-b |     code: '22003',
+0|crypto-b |     detail: 'A field with precision 4, scale 2 must round to an absolute value less than 10^2.',
+0|crypto-b |     hint: undefined,
+0|crypto-b |     position: undefined,
+0|crypto-b |     internalPosition: undefined,
+0|crypto-b |     internalQuery: undefined,
+0|crypto-b |     where: undefined,
+0|crypto-b |     schema: undefined,
+0|crypto-b |     table: undefined,
+0|crypto-b |     column: undefined,
+0|crypto-b |     dataType: undefined,
+0|crypto-b |     constraint: undefined,
+0|crypto-b |     file: 'numeric.c',
+0|crypto-b |     line: '7980',
+0|crypto-b |     routine: 'apply_typmod'
+0|crypto-b |   }
+0|crypto-b | }
+0|crypto-b | ⚠️ [PostSL] No candles found for monitoring period
+0|crypto-b | 💥 [CRITICAL] Uncaught Exception: Error: listen EADDRINUSE: address already in use 0.0.0.0:5000
+0|crypto-b |     at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+0|crypto-b |     at listenInCluster (node:net:1965:12)
+0|crypto-b |     at doListen (node:net:2139:7)
+0|crypto-b |     at wrappedLookupCallback (/root/CandleSearchBot/node_modules/@opentelemetry/instrumentation-dns/build/src/instrumentation.js:131:29)
+0|crypto-b |     at process.processTicksAndRejections (node:internal/process/task_queues:83:21) {
+0|crypto-b |   code: 'EADDRINUSE',
+0|crypto-b |   errno: -98,
+0|crypto-b |   syscall: 'listen',
+0|crypto-b |   address: '0.0.0.0',
+0|crypto-b |   port: 5000
+0|crypto-b | }
+0|crypto-b | Stack trace: Error: listen EADDRINUSE: address already in use 0.0.0.0:5000
+0|crypto-b |     at Server.setupListenHandle [as _listen2] (node:net:1908:16)
+0|crypto-b |     at listenInCluster (node:net:1965:12)
+0|crypto-b |     at doListen (node:net:2139:7)
+0|crypto-b |     at wrappedLookupCallback (/root/CandleSearchBot/node_modules/@opentelemetry/instrumentation-dns/build/src/instrumentation.js:131:29)
+0|crypto-b |     at process.processTicksAndRejections (node:internal/process/task_queues:83:21)
+0|crypto-b | ❌ [TelegramBot] Polling error: Request failed with status code 409
+0|crypto-b | ❌ [TelegramBot] Polling error: Request failed with status code 409
+0|crypto-b | ❌ [TelegramBot] Polling error: Request failed with status code 409
+0|crypto-b | ⚠️ [PostSL] No candles found for monitoring period
