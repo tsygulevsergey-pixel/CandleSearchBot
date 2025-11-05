@@ -1,0 +1,208 @@
+❌ [NearMissLogger] Error logging skip: DrizzleQueryError: Failed query: insert into "near_miss_skips" ("id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at") values (default, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, default) returning "id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at"
+params: fd0da008-7789-4c87-bcc4-65e4bd131634,BOMEUSDT,15m,SHORT,pinbar_sell,2025-11-05T15:00:18.201Z,0.00000771,0.00000000,0.00000000,above,above,neutral,neutral,[],false,false,false,0.0000,0.0000,0.00000000,0.0000,0.0000,chop,0,0.0000,0.0000,<0.15,,,,,,,,,150.00,{},,,,,,,,,,,,,,,,,,,,skip,{"trend_misalignment"},v2.0-confluence,0,{},directional
+    at NodePgPreparedQuery.queryWithCache (file:///root/CandleSearchBot/node_modules/drizzle-orm/pg-core/session.js:41:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:117:22
+    ... 4 lines matching cause stack trace ...
+    at async Scanner.scanTimeframe (file:///root/CandleSearchBot/.mastra/output/index.mjs:4680:9)
+    at async file:///root/CandleSearchBot/.mastra/output/index.mjs:5605:11
+    at async Timeout._onTimeout (/root/CandleSearchBot/node_modules/node-cron/dist/esm/scheduler/runner.js:70:44) {
+  query: 'insert into "near_miss_skips" ("id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at") values (default, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, default) returning "id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at"',
+  params: [
+    'fd0da008-7789-4c87-bcc4-65e4bd131634',
+    'BOMEUSDT',
+    '15m',
+    'SHORT',
+    'pinbar_sell',
+    '2025-11-05T15:00:18.201Z',
+    '0.00000771',
+    '0.00000000',
+    '0.00000000',
+    'above',
+    'above',
+    'neutral',
+    'neutral',
+    '[]',
+    false,
+    false,
+    false,
+    '0.0000',
+    '0.0000',
+    '0.00000000',
+    '0.0000',
+    '0.0000',
+    'chop',
+    '0',
+    '0.0000',
+    '0.0000',
+    '<0.15',
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    '150.00',
+    '{}',
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    'skip',
+    '{"trend_misalignment"}',
+    'v2.0-confluence',
+    0,
+    '{}',
+    'directional'
+  ],
+  cause: error: numeric field overflow
+      at /root/CandleSearchBot/node_modules/pg-pool/index.js:45:11
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+      at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:124:18
+      at async NodePgPreparedQuery.queryWithCache (file:///root/CandleSearchBot/node_modules/drizzle-orm/pg-core/session.js:39:16)
+      at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:117:22
+      at async NearMissSkipDB.createNearMissSkip (file:///root/CandleSearchBot/.mastra/output/statisticsTool.mjs:620:23)
+      at async logNearMissSkip (file:///root/CandleSearchBot/.mastra/output/nearMissLogger.mjs:93:5)
+      at async file:///root/CandleSearchBot/.mastra/output/index.mjs:4743:19
+      at async Promise.all (index 17)
+      at async Scanner.scanTimeframe (file:///root/CandleSearchBot/.mastra/output/index.mjs:4680:9) {
+    length: 164,
+    severity: 'ERROR',
+    code: '22003',
+    detail: 'A field with precision 4, scale 2 must round to an absolute value less than 10^2.',
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'numeric.c',
+    line: '7980',
+    routine: 'apply_typmod'
+  }
+}
+❌ [NearMissLogger] Error logging skip: DrizzleQueryError: Failed query: insert into "near_miss_skips" ("id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at") values (default, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, default) returning "id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at"
+params: 42c12256-ee05-44ec-b707-a51ccd49fadc,SPKUSDT,15m,SHORT,pinbar_sell,2025-11-05T15:00:20.959Z,0.00025500,0.00000000,0.00000000,above,above,neutral,neutral,[],false,false,false,0.0000,0.0000,0.00000000,0.0000,0.0000,chop,0,0.0000,0.0000,<0.15,,,,,,,,,135.00,{},,,,,,,,,,,,,,,,,,,,skip,{"trend_misalignment"},v2.0-confluence,0,{},directional
+    at NodePgPreparedQuery.queryWithCache (file:///root/CandleSearchBot/node_modules/drizzle-orm/pg-core/session.js:41:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:117:22
+    ... 4 lines matching cause stack trace ...
+    at async Scanner.scanTimeframe (file:///root/CandleSearchBot/.mastra/output/index.mjs:4680:9)
+    at async file:///root/CandleSearchBot/.mastra/output/index.mjs:5605:11
+    at async Timeout._onTimeout (/root/CandleSearchBot/node_modules/node-cron/dist/esm/scheduler/runner.js:70:44) {
+  query: 'insert into "near_miss_skips" ("id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at") values (default, $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40, $41, $42, $43, $44, $45, $46, $47, $48, $49, $50, $51, $52, $53, $54, $55, $56, $57, $58, $59, $60, $61, $62, default) returning "id", "signal_id", "symbol", "entry_tf", "side", "pattern_type", "ts", "atr_15m", "atr_1h", "atr_4h", "ema200_1h_pos", "vwap_1h_pos", "trend_bias", "btc_trend_state", "zones", "in_h4_zone", "near_h4_support", "near_h4_resistance", "dist_to_dir_h1_zone_atr", "dist_to_dir_h4_zone_atr", "free_path_pts", "free_path_atr15", "free_path_r", "arrival_pattern", "zone_touch_count_bucket", "zone_thickness_atr15", "signal_bar_size_atr15", "signal_bar_size_bucket", "confirm_type", "confirm_wait_bars_15m", "clearance_15m", "clearance_1h", "r_available", "zone_test_count_24h", "veto_reason", "sl_buffer_atr15", "pattern_score", "pattern_score_factors", "swing_extreme_price", "sl_buffer_atr", "round_number_adjusted", "min_distance_from_zone", "tp1_limited_by_zone", "tp2_limited_by_zone", "tp3_limited_by_zone", "nearest_resistance_distance_r", "actual_rr_tp1", "actual_rr_tp2", "actual_rr_tp3", "dynamic_min_rr", "dynamic_min_rr_adjustments", "dynamic_min_rr_reasoning", "trend_alignment", "multi_tf_alignment", "atr_volatility", "rr_validation_passed", "rr_validation_message", "decision", "skip_reasons", "ruleset_version", "confluence_score", "confluence_details", "skip_category", "created_at"',
+  params: [
+    '42c12256-ee05-44ec-b707-a51ccd49fadc',
+    'SPKUSDT',
+    '15m',
+    'SHORT',
+    'pinbar_sell',
+    '2025-11-05T15:00:20.959Z',
+    '0.00025500',
+    '0.00000000',
+    '0.00000000',
+    'above',
+    'above',
+    'neutral',
+    'neutral',
+    '[]',
+    false,
+    false,
+    false,
+    '0.0000',
+    '0.0000',
+    '0.00000000',
+    '0.0000',
+    '0.0000',
+    'chop',
+    '0',
+    '0.0000',
+    '0.0000',
+    '<0.15',
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    '135.00',
+    '{}',
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    'skip',
+    '{"trend_misalignment"}',
+    'v2.0-confluence',
+    0,
+    '{}',
+    'directional'
+  ],
+  cause: error: numeric field overflow
+      at /root/CandleSearchBot/node_modules/pg-pool/index.js:45:11
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+      at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:124:18
+      at async NodePgPreparedQuery.queryWithCache (file:///root/CandleSearchBot/node_modules/drizzle-orm/pg-core/session.js:39:16)
+      at async file:///root/CandleSearchBot/node_modules/drizzle-orm/node-postgres/session.js:117:22
+      at async NearMissSkipDB.createNearMissSkip (file:///root/CandleSearchBot/.mastra/output/statisticsTool.mjs:620:23)
+      at async logNearMissSkip (file:///root/CandleSearchBot/.mastra/output/nearMissLogger.mjs:93:5)
+      at async file:///root/CandleSearchBot/.mastra/output/index.mjs:4743:19
+      at async Promise.all (index 6)
+      at async Scanner.scanTimeframe (file:///root/CandleSearchBot/.mastra/output/index.mjs:4680:9) {
+    length: 164,
+    severity: 'ERROR',
+    code: '22003',
+    detail: 'A field with precision 4, scale 2 must round to an absolute value less than 10^2.',
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: 'numeric.c',
+    line: '7980',
+    routine: 'apply_typmod'
+  }
+}
