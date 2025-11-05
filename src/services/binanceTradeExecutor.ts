@@ -28,11 +28,13 @@ export class BinanceTradeExecutor {
   private keepAliveInterval: NodeJS.Timeout | null = null;
 
   constructor() {
-    this.apiKey = process.env.BINANCE_API_KEY || '';
-    this.apiSecret = process.env.BINANCE_API_SECRET || '';
+    // Use separate API keys for trading (with trading permissions)
+    this.apiKey = process.env.BINANCE_TRADING_API_KEY || '';
+    this.apiSecret = process.env.BINANCE_TRADING_API_SECRET || '';
 
     if (!this.apiKey || !this.apiSecret) {
-      console.warn('⚠️ [BinanceTradeExecutor] API keys not configured');
+      console.warn('⚠️ [BinanceTradeExecutor] Trading API keys not configured');
+      console.warn('⚠️ [BinanceTradeExecutor] Please set BINANCE_TRADING_API_KEY and BINANCE_TRADING_API_SECRET');
     }
 
     // Initialize Binance USD-M Futures client
@@ -47,7 +49,7 @@ export class BinanceTradeExecutor {
       api_secret: this.apiSecret,
     });
 
-    console.log('🚀 [BinanceTradeExecutor] Initialized');
+    console.log('🚀 [BinanceTradeExecutor] Initialized (using BINANCE_TRADING_API_KEY)');
   }
 
   /**
