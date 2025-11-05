@@ -90,7 +90,7 @@ export const signals = pgTable('signals', {
   slBufferAtr15: decimal('sl_buffer_atr15', { precision: 10, scale: 4 }),
   
   // Pattern Quality Metrics
-  patternScore: decimal('pattern_score', { precision: 4, scale: 2 }), // 0-10
+  patternScore: decimal('pattern_score', { precision: 6, scale: 2 }), // 0-10 (supports up to 9999.99)
   patternScoreFactors: jsonb('pattern_score_factors'), // {tailBodyRatio, motherBarSize, etc}
   
   // Stop Loss Metrics
@@ -217,7 +217,7 @@ export const nearMissSkips = pgTable('near_miss_skips', {
   slBufferAtr15: decimal('sl_buffer_atr15', { precision: 10, scale: 4 }),
   
   // Pattern Quality Metrics
-  patternScore: decimal('pattern_score', { precision: 4, scale: 2 }), // 0-10
+  patternScore: decimal('pattern_score', { precision: 6, scale: 2 }), // 0-10 (supports up to 9999.99)
   patternScoreFactors: jsonb('pattern_score_factors'), // {tailBodyRatio, motherBarSize, etc}
   
   // Stop Loss Metrics
