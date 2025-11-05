@@ -665,7 +665,7 @@ export class RiskCalculator {
    * 🎯 SPECIAL METHOD FOR 15M TIMEFRAME
    * 
    * Simpler logic for scalping on 15m:
-   * - SL: max of pattern candles + 0.3% ATR
+   * - SL: max of pattern candles + 0.6x ATR buffer (increased from 0.3 for fewer false stops)
    * - TP: 2R (single level, no TP1/TP3)
    * 
    * @returns Simple risk profile with only TP2 (2R)
@@ -687,27 +687,28 @@ export class RiskCalculator {
     const patternHigh = Math.max(...patternCandles.map((c) => Number(c.high)));
     const patternLow = Math.min(...patternCandles.map((c) => Number(c.low)));
 
-    // Calculate SL: max/min of pattern + 0.3x ATR buffer
-    const atrBuffer = atrToPrice(atr15m, 0.30);
+    // Calculate SL: max/min of pattern + 0.6x ATR buffer (increased from 0.3 to reduce false stops)
+    const atrBuffer = atrToPrice(atr15m, 0.60);
     let sl: number;
 
     if (direction === 'LONG') {
       sl = patternLow - atrBuffer;
-      logger.log(`📉 [15m LONG] SL = patternLow (${patternLow.toFixed(8)}) - 0.3×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+      logger.log(`📉 [15m LONG] SL = patternLow (${patternLow.toFixed(8)}) - 0.6×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
     } else {
       sl = patternHigh + atrBuffer;
-      logger.log(`📈 [15m SHORT] SL = patternHigh (${patternHigh.toFixed(8)}) + 0.3×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+      logger.log(`📈 [15m SHORT] SL = patternHigh (${patternHigh.toFixed(8)}) + 0.6×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
     }
 
     // Calculate TP: dynamic R based on SL size
     const riskR = Math.abs(entryPrice - sl);
     const slPercent = (riskR / entryPrice) * 100;
     
-    // ✅ DYNAMIC TP: If SL >= 3%, use 1.8R instead of 2R (tighter TP for wider SL)
-    const tpMultiplier = slPercent >= 3.0 ? 1.8 : 2.0;
+    // ✅ DYNAMIC TP: If SL >= 6%, use 1.8R instead of 2R (tighter TP for very wide SL)
+    // Note: Threshold increased from 3% to 6% due to larger SL buffer (0.6 ATR vs 0.3 ATR)
+    const tpMultiplier = slPercent >= 6.0 ? 1.8 : 2.0;
     const tp2 = direction === 'LONG' ? entryPrice + riskR * tpMultiplier : entryPrice - riskR * tpMultiplier;
 
-    logger.log(`🎯 [15m TP Logic] SL = ${slPercent.toFixed(2)}% → TP multiplier = ${tpMultiplier}R ${slPercent >= 3.0 ? '(wide SL, reduced TP)' : '(normal)'}`);
+    logger.log(`🎯 [15m TP Logic] SL = ${slPercent.toFixed(2)}% → TP multiplier = ${tpMultiplier}R ${slPercent >= 6.0 ? '(wide SL, reduced TP)' : '(normal)'}`);
 
     // Set TP1 and TP3 same as TP2 (for compatibility with existing schema)
     const tp1 = tp2;
@@ -736,9 +737,9 @@ export class RiskCalculator {
       riskR: riskR.toFixed(8),
       slPercent: `${slPercent.toFixed(2)}%`,
       tp2R: `${tpMultiplier}R`,
-      note: slPercent >= 3.0 
-        ? 'Wide SL (≥3%) → Reduced TP to 1.8R for better win rate'
-        : 'Normal SL (<3%) → Standard 2R target',
+      note: slPercent >= 6.0 
+        ? 'Very wide SL (≥6%) → Reduced TP to 1.8R for better win rate'
+        : 'Normal SL (<6%) → Standard 2R target',
     });
 
     return profile;
