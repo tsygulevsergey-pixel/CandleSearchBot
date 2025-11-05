@@ -18,7 +18,11 @@ export class BinanceRateLimiter {
     const lastResetMinute = Math.floor(this.lastResetTime / 60000) * 60000;
 
     if (currentMinute > lastResetMinute) {
-      console.log(`⏰ [RateLimiter] Resetting weight counter at ${new Date(currentMinute).toISOString()}`);
+      try {
+        console.log(`⏰ [RateLimiter] Resetting weight counter at ${new Date(currentMinute).toISOString()}`);
+      } catch (e: any) {
+        if (e.code !== 'EPIPE') throw e;
+      }
       this.weightUsed = 0;
       this.lastResetTime = currentMinute;
     }
@@ -30,7 +34,11 @@ export class BinanceRateLimiter {
     const nextMinute = currentMinute + 60000;
     const waitTime = nextMinute - now;
 
-    console.log(`⏸️ [RateLimiter] Waiting ${waitTime}ms until next minute reset (${new Date(nextMinute).toISOString()})`);
+    try {
+      console.log(`⏸️ [RateLimiter] Waiting ${waitTime}ms until next minute reset (${new Date(nextMinute).toISOString()})`);
+    } catch (e: any) {
+      if (e.code !== 'EPIPE') throw e;
+    }
     await new Promise(resolve => setTimeout(resolve, waitTime));
     this.resetIfNeeded();
   }
@@ -39,7 +47,12 @@ export class BinanceRateLimiter {
     const usedWeight = headers['x-mbx-used-weight'] || headers['x-mbx-used-weight-1m'];
     if (usedWeight) {
       const newWeight = parseInt(usedWeight, 10);
-      console.log(`📊 [RateLimiter] Binance reports weight used: ${newWeight}/${this.weightLimit}`);
+      try {
+        console.log(`📊 [RateLimiter] Binance reports weight used: ${newWeight}/${this.weightLimit}`);
+      } catch (e: any) {
+        // Ignore EPIPE errors when stdout is closed
+        if (e.code !== 'EPIPE') throw e;
+      }
       this.weightUsed = newWeight;
     }
   }
@@ -48,10 +61,14 @@ export class BinanceRateLimiter {
     this.resetIfNeeded();
     const wouldExceed = (this.weightUsed + requestWeight) > this.weightLimit;
     
-    if (wouldExceed) {
-      console.log(`⚠️ [RateLimiter] Would exceed limit: ${this.weightUsed + requestWeight}/${this.weightLimit}`);
-    } else {
-      console.log(`✅ [RateLimiter] Request allowed: ${this.weightUsed + requestWeight}/${this.weightLimit}`);
+    try {
+      if (wouldExceed) {
+        console.log(`⚠️ [RateLimiter] Would exceed limit: ${this.weightUsed + requestWeight}/${this.weightLimit}`);
+      } else {
+        console.log(`✅ [RateLimiter] Request allowed: ${this.weightUsed + requestWeight}/${this.weightLimit}`);
+      }
+    } catch (e: any) {
+      if (e.code !== 'EPIPE') throw e;
     }
     
     return !wouldExceed;
@@ -65,7 +82,11 @@ export class BinanceRateLimiter {
     }
 
     this.weightUsed += requestWeight;
-    console.log(`🚀 [RateLimiter] Executing request (weight: ${requestWeight}, total: ${this.weightUsed}/${this.weightLimit})`);
+    try {
+      console.log(`🚀 [RateLimiter] Executing request (weight: ${requestWeight}, total: ${this.weightUsed}/${this.weightLimit})`);
+    } catch (e: any) {
+      if (e.code !== 'EPIPE') throw e;
+    }
 
     try {
       const result = await requestFn();
