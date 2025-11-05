@@ -166,3 +166,66 @@ scheduler.start();
 })();
 
 console.log('✅ [Mastra] Crypto pattern scanner initialized successfully');
+
+// ========================================
+// АВТОМАТИЧЕСКИЙ РЕСТАРТ ПРИ ОШИБКАХ
+// ========================================
+
+// Обработчик необработанных исключений
+process.on('uncaughtException', (error) => {
+  console.error('💥 [CRITICAL] Uncaught Exception:', error);
+  console.error('Stack trace:', error.stack);
+  
+  // Логируем в Telegram
+  telegramBot.sendMessage(
+    `🚨 КРИТИЧЕСКАЯ ОШИБКА!\n\n` +
+    `Тип: uncaughtException\n` +
+    `Сообщение: ${error.message}\n\n` +
+    `Процесс продолжает работу...`
+  ).catch(() => {});
+  
+  // НЕ завершаем процесс - продолжаем работу
+  console.log('⚠️ [Process] Process continues running despite error');
+});
+
+// Обработчик необработанных промисов
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('💥 [CRITICAL] Unhandled Rejection at:', promise);
+  console.error('Reason:', reason);
+  
+  // Логируем в Telegram
+  telegramBot.sendMessage(
+    `🚨 ОШИБКА PROMISE!\n\n` +
+    `Тип: unhandledRejection\n` +
+    `Причина: ${reason}\n\n` +
+    `Процесс продолжает работу...`
+  ).catch(() => {});
+  
+  // НЕ завершаем процесс
+  console.log('⚠️ [Process] Process continues running despite rejection');
+});
+
+// Обработчик SIGTERM (graceful shutdown)
+process.on('SIGTERM', () => {
+  console.log('🛑 [Process] SIGTERM received, shutting down gracefully...');
+  
+  telegramBot.sendMessage('🔴 Бот остановлен (SIGTERM)').catch(() => {});
+  
+  // Даём время закрыть соединения
+  setTimeout(() => {
+    process.exit(0);
+  }, 5000);
+});
+
+// Обработчик SIGINT (Ctrl+C)
+process.on('SIGINT', () => {
+  console.log('🛑 [Process] SIGINT received, shutting down gracefully...');
+  
+  telegramBot.sendMessage('🔴 Бот остановлен (SIGINT)').catch(() => {});
+  
+  setTimeout(() => {
+    process.exit(0);
+  }, 5000);
+});
+
+console.log('✅ [Process] Error handlers initialized - bot will auto-recover from errors');
