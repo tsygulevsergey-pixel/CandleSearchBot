@@ -2,7 +2,7 @@ import { binanceClient } from '../utils/binanceClient';
 import { patternDetector, calculateATR, analyzeSRZonesTV } from '../utils/candleAnalyzer';
 import { riskCalculator } from '../utils/riskCalculator';
 import { calculateDynamicRiskProfile } from '../utils/dynamicRiskCalculator';
-import { signalDB } from '../mastra/storage/db';
+import { signalDB, tradeSettingsDB } from '../mastra/storage/db';
 import { getCoinCluster, getCoinsByFamily, getFamilyId } from '../utils/marketClusters';
 import { processMLIntegration, extractMLContextFields } from './mlIntegration';
 import { enrichMLContextWithRiskProfile } from './mlLogger';
@@ -15,6 +15,7 @@ import {
   type ConfluenceFactors 
 } from '../utils/confluenceScoring';
 import { detectTrend, isPatternWithTrend } from '../utils/trendDetector';
+import { binanceTradeExecutor } from './binanceTradeExecutor';
 import axios from 'axios';
 
 export class Scanner {
@@ -324,6 +325,27 @@ export class Scanner {
                   contextRecentDirection: contextAnalysis.recentDirection,
                   contextDistanceFromEma: contextAnalysis.distanceFromEma.toString(),
                 });
+                
+                // ✅ NEW: Execute real trade on Binance if trading is enabled (15m only)
+                const tradingEnabled = await tradeSettingsDB.getTradingEnabled();
+                if (tradingEnabled && timeframe === '15m') {
+                  console.log(`💸 [Scanner] Trading enabled, opening live trade for signal ${signal.id}...`);
+                  
+                  // Execute trade asynchronously (don't block telegram notification)
+                  binanceTradeExecutor.openTrade(signal)
+                    .then((result) => {
+                      if (result.success) {
+                        console.log(`✅ [Scanner] Live trade opened: ${result.entryOrderId}`);
+                      } else {
+                        console.error(`❌ [Scanner] Live trade failed: ${result.error}`);
+                      }
+                    })
+                    .catch((error: any) => {
+                      console.error(`❌ [Scanner] Live trade error:`, error.message);
+                    });
+                } else {
+                  console.log(`ℹ️ [Scanner] Trading disabled or not 15m, skipping live trade`);
+                }
                 
                 signalsFound++;
                 const elapsedSinceClose = Math.max(0, (Date.now() - lastCandle.closeTime) / 1000).toFixed(1);

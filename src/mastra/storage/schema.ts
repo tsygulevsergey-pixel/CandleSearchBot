@@ -29,6 +29,17 @@ export const trendAlignmentEnum = pgEnum('trend_alignment', ['with', 'against', 
 export const atrVolatilityEnum = pgEnum('atr_volatility', ['low', 'normal', 'high']);
 export const skipCategoryEnum = pgEnum('skip_category', ['volume', 'pattern_geometry', 'directional', 'confluence', 'rr', 'veto', 'bad_context']);
 
+// Enums for live trading
+export const liveTradesStatusEnum = pgEnum('live_trades_status', [
+  'OPENING', // Order being placed
+  'OPEN', // Position open with SL/TP set
+  'TP_HIT', // Take profit hit
+  'SL_HIT', // Stop loss hit  
+  'CLOSING', // Being closed manually
+  'CLOSED', // Manually closed
+  'ERROR', // Error occurred
+]);
+
 // Main signals table (existing + new fields for ENTER trades)
 export const signals = pgTable('signals', {
   id: serial('id').primaryKey(),
@@ -287,6 +298,59 @@ export const parquetExports = pgTable('parquet_exports', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 
+// Trade settings (global toggle for live trading)
+export const tradeSettings = pgTable('trade_settings', {
+  id: serial('id').primaryKey(),
+  tradingEnabled: boolean('trading_enabled').default(false).notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedBy: text('updated_by'), // Telegram user who changed the setting
+});
+
+// Live trades tracking (real positions on Binance)
+export const liveTrades = pgTable('live_trades', {
+  id: serial('id').primaryKey(),
+  signalId: integer('signal_id').notNull(), // FK to signals.id
+  
+  // Binance order IDs
+  entryOrderId: text('entry_order_id'), // Market order ID
+  slOrderId: text('sl_order_id'), // Stop-loss order ID
+  tpOrderId: text('tp_order_id'), // Take-profit order ID
+  
+  // Trade details
+  symbol: text('symbol').notNull(),
+  direction: signalDirectionEnum('direction').notNull(),
+  leverage: integer('leverage').notNull().default(20),
+  marginType: text('margin_type').notNull().default('ISOLATED'), // ISOLATED or CROSS
+  
+  // Position sizing
+  accountBalance: decimal('account_balance', { precision: 18, scale: 8 }), // USDT balance at entry
+  riskPercent: decimal('risk_percent', { precision: 5, scale: 2 }).default('1.00'), // % of balance to risk
+  riskAmount: decimal('risk_amount', { precision: 18, scale: 8 }), // USDT amount at risk
+  positionSize: decimal('position_size', { precision: 18, scale: 8 }), // Quantity in base asset
+  positionValueUsdt: decimal('position_value_usdt', { precision: 18, scale: 8 }), // Total value in USDT
+  
+  // Price levels
+  entryPrice: decimal('entry_price', { precision: 18, scale: 8 }),
+  slPrice: decimal('sl_price', { precision: 18, scale: 8 }),
+  tpPrice: decimal('tp_price', { precision: 18, scale: 8 }),
+  
+  // Exit details
+  exitPrice: decimal('exit_price', { precision: 18, scale: 8 }),
+  exitType: text('exit_type'), // 'TP', 'SL', 'MANUAL', 'ERROR'
+  realizedPnlUsdt: decimal('realized_pnl_usdt', { precision: 18, scale: 8 }),
+  realizedPnlPercent: decimal('realized_pnl_percent', { precision: 10, scale: 4 }),
+  
+  // Status
+  status: liveTradesStatusEnum('status').default('OPENING').notNull(),
+  errorMessage: text('error_message'),
+  
+  // Timestamps
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  openedAt: timestamp('opened_at'),
+  closedAt: timestamp('closed_at'),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
 // Type exports
 export type Signal = typeof signals.$inferSelect;
 export type NewSignal = typeof signals.$inferInsert;
@@ -298,3 +362,7 @@ export type Tracking1mShadow = typeof tracking1mShadow.$inferSelect;
 export type NewTracking1mShadow = typeof tracking1mShadow.$inferInsert;
 export type ParquetExport = typeof parquetExports.$inferSelect;
 export type NewParquetExport = typeof parquetExports.$inferInsert;
+export type TradeSetting = typeof tradeSettings.$inferSelect;
+export type NewTradeSetting = typeof tradeSettings.$inferInsert;
+export type LiveTrade = typeof liveTrades.$inferSelect;
+export type NewLiveTrade = typeof liveTrades.$inferInsert;

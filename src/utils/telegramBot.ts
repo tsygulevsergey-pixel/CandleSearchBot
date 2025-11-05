@@ -1,5 +1,6 @@
 import axios from 'axios';
-import { signalDB } from '../mastra/storage/db';
+import { signalDB, tradeSettingsDB, liveTradesDB } from '../mastra/storage/db';
+import { binanceTradeExecutor } from '../services/binanceTradeExecutor';
 
 export class TelegramBot {
   private botToken: string;
@@ -44,6 +45,10 @@ export class TelegramBot {
       { command: 'stats_date', description: '📅 Статистика по датам' },
       { command: 'help', description: '❓ Помощь' },
       { command: 'status', description: '📈 Статус сканера' },
+      { command: 'trade_on', description: '🟢 Включить торговлю' },
+      { command: 'trade_off', description: '🔴 Выключить торговлю' },
+      { command: 'trade_status', description: '💼 Статус торговли' },
+      { command: 'balance', description: '💰 Баланс счета' },
     ];
 
     try {
@@ -111,6 +116,18 @@ export class TelegramBot {
           break;
         case '/stats':
           await this.handleStatsCommand(chatId);
+          break;
+        case '/trade_on':
+          await this.handleTradeOnCommand(chatId);
+          break;
+        case '/trade_off':
+          await this.handleTradeOffCommand(chatId);
+          break;
+        case '/trade_status':
+          await this.handleTradeStatusCommand(chatId);
+          break;
+        case '/balance':
+          await this.handleBalanceCommand(chatId);
           break;
         default:
           await this.sendMessage('❓ Неизвестная команда. Используйте /help', chatId);
@@ -533,6 +550,173 @@ ${avgPnlEmoji} <b>Средний PnL: ${parseFloat(avgPnl) >= 0 ? '+' : ''}${avg
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private async handleTradeOnCommand(chatId: string): Promise<void> {
+    console.log('🟢 [TelegramBot] Enabling live trading...');
+    
+    try {
+      const username = chatId;
+      await tradeSettingsDB.setTradingEnabled(true, username);
+      
+      const message = `
+✅ <b>ТОРГОВЛЯ ВКЛЮЧЕНА</b>
+
+Теперь бот будет открывать реальные сделки на Binance по сигналам 15m.
+
+⚠️ <b>ВНИМАНИЕ:</b>
+• Убедитесь, что у вас настроены API ключи Binance
+• Рекомендуется протестировать на демо-счете
+• Используйте только ту сумму, которую готовы потерять
+• Следите за открытыми позициями через /trade_status
+
+💡 <b>Настройки риска:</b>
+• Риск на сделку: 1% от депозита
+• Кредитное плечо: 20x
+• Тип маржи: ISOLATED
+
+Удачной торговли! 📈
+      `.trim();
+      
+      await this.sendMessage(message, chatId);
+      console.log('✅ [TelegramBot] Live trading enabled successfully');
+    } catch (error: any) {
+      console.error('❌ [TelegramBot] Failed to enable trading:', error.message);
+      await this.sendMessage('❌ Не удалось включить торговлю. Проверьте логи сервера.', chatId);
+    }
+  }
+
+  private async handleTradeOffCommand(chatId: string): Promise<void> {
+    console.log('🔴 [TelegramBot] Disabling live trading...');
+    
+    try {
+      const username = chatId;
+      await tradeSettingsDB.setTradingEnabled(false, username);
+      
+      const message = `
+🔴 <b>ТОРГОВЛЯ ВЫКЛЮЧЕНА</b>
+
+Бот больше не будет открывать новые сделки на Binance.
+
+ℹ️ <b>Важно:</b>
+• Уже открытые позиции останутся активными
+• Мониторинг открытых позиций продолжится
+• SL и TP будут работать для существующих сделок
+
+📊 Проверьте текущие позиции: /trade_status
+💰 Проверьте баланс: /balance
+
+Торговля остановлена. ✋
+      `.trim();
+      
+      await this.sendMessage(message, chatId);
+      console.log('✅ [TelegramBot] Live trading disabled successfully');
+    } catch (error: any) {
+      console.error('❌ [TelegramBot] Failed to disable trading:', error.message);
+      await this.sendMessage('❌ Не удалось выключить торговлю. Проверьте логи сервера.', chatId);
+    }
+  }
+
+  private async handleTradeStatusCommand(chatId: string): Promise<void> {
+    console.log('💼 [TelegramBot] Fetching trade status...');
+    
+    try {
+      const tradingEnabled = await tradeSettingsDB.getTradingEnabled();
+      const openTrades = await liveTradesDB.getOpenLiveTrades();
+      const stats = await liveTradesDB.getLiveTradeStats();
+      
+      const statusEmoji = tradingEnabled ? '🟢' : '🔴';
+      const statusText = tradingEnabled ? 'ВКЛЮЧЕНА' : 'ВЫКЛЮЧЕНА';
+      
+      let message = `
+💼 <b>СТАТУС ТОРГОВЛИ</b>
+
+${statusEmoji} <b>Статус:</b> ${statusText}
+
+📊 <b>Статистика:</b>
+• Всего сделок: ${stats.total}
+• Открыто: ${stats.open}
+• Закрыто: ${stats.closed}
+• Ошибок: ${stats.errors}
+• Total PnL: ${stats.totalPnlUsdt >= 0 ? '+' : ''}${stats.totalPnlUsdt.toFixed(2)} USDT
+`;
+
+      if (openTrades.length > 0) {
+        message += `\n🔓 <b>Открытые позиции (${openTrades.length}):</b>\n`;
+        
+        for (const trade of openTrades) {
+          const directionEmoji = trade.direction === 'LONG' ? '🟢' : '🔴';
+          const entryPrice = trade.entryPrice ? parseFloat(trade.entryPrice as any).toFixed(4) : 'N/A';
+          const slPrice = trade.slPrice ? parseFloat(trade.slPrice as any).toFixed(4) : 'N/A';
+          const tpPrice = trade.tpPrice ? parseFloat(trade.tpPrice as any).toFixed(4) : 'N/A';
+          const positionSize = trade.positionSize ? parseFloat(trade.positionSize as any).toFixed(6) : 'N/A';
+          
+          message += `\n${directionEmoji} <b>${trade.symbol}</b> ${trade.direction}`;
+          message += `\n  • Entry: <code>${entryPrice}</code>`;
+          message += `\n  • SL: <code>${slPrice}</code> | TP: <code>${tpPrice}</code>`;
+          message += `\n  • Size: ${positionSize}`;
+          message += `\n  • Leverage: ${trade.leverage}x`;
+          message += `\n  • Status: ${trade.status}\n`;
+        }
+      } else {
+        message += `\n✅ Нет открытых позиций\n`;
+      }
+
+      message += `\n💡 <b>Управление:</b>`;
+      message += `\n• Включить торговлю: /trade_on`;
+      message += `\n• Выключить торговлю: /trade_off`;
+      message += `\n• Проверить баланс: /balance`;
+      
+      await this.sendMessage(message.trim(), chatId);
+      console.log('✅ [TelegramBot] Trade status sent successfully');
+    } catch (error: any) {
+      console.error('❌ [TelegramBot] Failed to get trade status:', error.message);
+      await this.sendMessage('❌ Не удалось получить статус торговли. Проверьте логи сервера.', chatId);
+    }
+  }
+
+  private async handleBalanceCommand(chatId: string): Promise<void> {
+    console.log('💰 [TelegramBot] Fetching account balance...');
+    
+    try {
+      await binanceTradeExecutor.initialize();
+      const balance = await binanceTradeExecutor.getAccountBalance();
+      
+      const message = `
+💰 <b>БАЛАНС НА BINANCE FUTURES</b>
+
+💵 <b>Доступно:</b> <code>$${balance.toFixed(2)} USDT</code>
+
+📊 <b>Расчет риска (1% на сделку):</b>
+• Риск на сделку: <code>$${(balance * 0.01).toFixed(2)} USDT</code>
+• Кредитное плечо: 20x
+• Макс. размер позиции: <code>$${(balance * 0.01 * 20).toFixed(2)} USDT</code>
+
+ℹ️ <b>Примечание:</b>
+Это ваш доступный баланс для торговли на фьючерсах.
+
+📈 Проверить позиции: /trade_status
+      `.trim();
+      
+      await this.sendMessage(message, chatId);
+      console.log(`✅ [TelegramBot] Balance sent: $${balance.toFixed(2)} USDT`);
+    } catch (error: any) {
+      console.error('❌ [TelegramBot] Failed to get balance:', error.message);
+      
+      let errorMessage = '❌ Не удалось получить баланс счета.\n\n';
+      
+      if (error.message.includes('API')) {
+        errorMessage += '⚠️ <b>Возможные причины:</b>\n';
+        errorMessage += '• API ключи Binance не настроены\n';
+        errorMessage += '• Неверные API ключи\n';
+        errorMessage += '• Проблема с подключением к Binance\n\n';
+        errorMessage += '💡 Проверьте переменные окружения BINANCE_API_KEY и BINANCE_API_SECRET';
+      } else {
+        errorMessage += `Ошибка: ${error.message}`;
+      }
+      
+      await this.sendMessage(errorMessage, chatId);
+    }
   }
 
   async startPolling(): Promise<void> {

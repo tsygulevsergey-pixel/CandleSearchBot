@@ -7,6 +7,8 @@ import {
   shadowEvaluations,
   tracking1mShadow,
   parquetExports,
+  tradeSettings,
+  liveTrades,
   type Signal, 
   type NewSignal,
   type NearMissSkip,
@@ -17,6 +19,10 @@ import {
   type NewTracking1mShadow,
   type ParquetExport,
   type NewParquetExport,
+  type TradeSetting,
+  type NewTradeSetting,
+  type LiveTrade,
+  type NewLiveTrade,
 } from './schema';
 import { calculateTradeOutcome } from '../../utils/tradeOutcomes';
 
@@ -577,8 +583,170 @@ export class Tracking1mShadowDB {
   }
 }
 
+/**
+ * Database operations for Trade Settings (global trading toggle)
+ */
+export class TradeSettingsDB {
+  async getTradingEnabled(): Promise<boolean> {
+    const [settings] = await db.select().from(tradeSettings).limit(1);
+    return settings?.tradingEnabled ?? false;
+  }
+
+  async setTradingEnabled(enabled: boolean, updatedBy: string = 'system'): Promise<void> {
+    const existing = await db.select().from(tradeSettings).limit(1);
+    
+    if (existing.length > 0) {
+      await db.update(tradeSettings)
+        .set({ 
+          tradingEnabled: enabled,
+          updatedAt: new Date(),
+          updatedBy 
+        })
+        .where(eq(tradeSettings.id, existing[0].id));
+    } else {
+      await db.insert(tradeSettings).values({ 
+        tradingEnabled: enabled,
+        updatedBy 
+      });
+    }
+    
+    console.log(`🔄 [TradeSettingsDB] Trading ${enabled ? 'enabled' : 'disabled'} by ${updatedBy}`);
+  }
+
+  async getSettings(): Promise<TradeSetting | null> {
+    const [settings] = await db.select().from(tradeSettings).limit(1);
+    return settings || null;
+  }
+}
+
+/**
+ * Database operations for Live Trades (real positions on Binance)
+ */
+export class LiveTradesDB {
+  async createLiveTrade(trade: NewLiveTrade): Promise<LiveTrade> {
+    const [newTrade] = await db.insert(liveTrades).values(trade).returning();
+    console.log(`✅ [LiveTradesDB] Created live trade ${newTrade.id} for signal ${trade.signalId}`);
+    return newTrade;
+  }
+
+  async updateLiveTrade(id: number, updates: Partial<NewLiveTrade>): Promise<void> {
+    await db.update(liveTrades)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(liveTrades.id, id));
+    console.log(`📝 [LiveTradesDB] Updated live trade ${id}`);
+  }
+
+  async getLiveTradeBySignalId(signalId: number): Promise<LiveTrade | null> {
+    const [trade] = await db.select().from(liveTrades)
+      .where(eq(liveTrades.signalId, signalId))
+      .limit(1);
+    return trade || null;
+  }
+
+  async getLiveTradeByEntryOrderId(orderId: string): Promise<LiveTrade | null> {
+    const [trade] = await db.select().from(liveTrades)
+      .where(eq(liveTrades.entryOrderId, orderId))
+      .limit(1);
+    return trade || null;
+  }
+
+  async getLiveTradeBySlOrderId(orderId: string): Promise<LiveTrade | null> {
+    const [trade] = await db.select().from(liveTrades)
+      .where(eq(liveTrades.slOrderId, orderId))
+      .limit(1);
+    return trade || null;
+  }
+
+  async getLiveTradeByTpOrderId(orderId: string): Promise<LiveTrade | null> {
+    const [trade] = await db.select().from(liveTrades)
+      .where(eq(liveTrades.tpOrderId, orderId))
+      .limit(1);
+    return trade || null;
+  }
+
+  async getOpenLiveTrades(): Promise<LiveTrade[]> {
+    return await db.select().from(liveTrades)
+      .where(eq(liveTrades.status, 'OPEN'));
+  }
+
+  async getAllOpenAndPendingTrades(): Promise<LiveTrade[]> {
+    return await db.select().from(liveTrades)
+      .where(or(
+        eq(liveTrades.status, 'OPEN'),
+        eq(liveTrades.status, 'OPENING')
+      ));
+  }
+
+  async closeLiveTrade(
+    id: number,
+    exitPrice: string,
+    exitType: string,
+    realizedPnlUsdt: string,
+    realizedPnlPercent: string
+  ): Promise<void> {
+    await db.update(liveTrades)
+      .set({
+        status: 'CLOSED',
+        exitPrice,
+        exitType,
+        realizedPnlUsdt,
+        realizedPnlPercent,
+        closedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(liveTrades.id, id));
+    console.log(`🔒 [LiveTradesDB] Closed live trade ${id}, PnL: ${realizedPnlUsdt} USDT (${realizedPnlPercent}%)`);
+  }
+
+  async setTradeError(id: number, errorMessage: string): Promise<void> {
+    await db.update(liveTrades)
+      .set({
+        status: 'ERROR',
+        errorMessage,
+        updatedAt: new Date(),
+      })
+      .where(eq(liveTrades.id, id));
+    console.error(`❌ [LiveTradesDB] Trade ${id} error: ${errorMessage}`);
+  }
+
+  async getLiveTradeStats(): Promise<{
+    total: number;
+    open: number;
+    closed: number;
+    errors: number;
+    totalPnlUsdt: number;
+  }> {
+    const allTrades = await db.select().from(liveTrades);
+    
+    const stats = {
+      total: allTrades.length,
+      open: 0,
+      closed: 0,
+      errors: 0,
+      totalPnlUsdt: 0,
+    };
+
+    allTrades.forEach(trade => {
+      if (trade.status === 'OPEN' || trade.status === 'OPENING') {
+        stats.open++;
+      } else if (trade.status === 'CLOSED' || trade.status === 'TP_HIT' || trade.status === 'SL_HIT') {
+        stats.closed++;
+        if (trade.realizedPnlUsdt) {
+          stats.totalPnlUsdt += parseFloat(trade.realizedPnlUsdt);
+        }
+      } else if (trade.status === 'ERROR') {
+        stats.errors++;
+      }
+    });
+
+    return stats;
+  }
+}
+
 // Export instances
 export const nearMissSkipDB = new NearMissSkipDB();
 export const shadowEvaluationDB = new ShadowEvaluationDB();
 export const parquetExportDB = new ParquetExportDB();
 export const tracking1mShadowDB = new Tracking1mShadowDB();
+export const tradeSettingsDB = new TradeSettingsDB();
+export const liveTradesDB = new LiveTradesDB();
