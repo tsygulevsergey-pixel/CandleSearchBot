@@ -1,0 +1,60 @@
+❌ [BinanceTradeExecutor] Failed to open trade: Order's position side does not match user's setting.
+{
+  code: -4061,
+  message: "Order's position side does not match user's setting.",
+  body: {
+    code: -4061,
+    msg: "Order's position side does not match user's setting."
+  },
+  headers: Object [AxiosHeaders] {
+    'content-type': 'application/json',
+    'content-length': '75',
+    connection: 'keep-alive',
+    date: 'Thu, 06 Nov 2025 10:00:20 GMT',
+    'access-control-allow-methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    server: 'Tengine',
+    'x-mbx-used-weight-1m': '-1',
+    'x-mbx-order-count-10s': '1',
+    'x-mbx-order-count-1m': '1',
+    'x-response-time': '2ms',
+    'access-control-allow-origin': '*',
+    'x-cache': 'Error from cloudfront',
+    via: '1.1 def78bd9f6b4ff6109111fdb39be66f6.cloudfront.net (CloudFront)',
+    'x-amz-cf-pop': 'FRA60-P14',
+    'x-amz-cf-id': 'FmVVXK2z1dVLfkKCB7YdcWXnQHAGolbpNbeo9TIUY2KSTXdMPNpr5A=='
+  },
+  requestUrl: 'https://fapi.binance.com/fapi/v1/order?symbol=ZEREBROUSDT&side=SELL&type=MARKET&quantity=604&positionSide=SHORT&newClientOrderId=x-15PC4ZJyKtihVfmqeEU9GyW6DO2iyA&timestamp=1762423220792&recvWindow=5000&signature=b507acae854388c1cde084655c7ae62af53846d87bd0b192a54cba782d3dbd56',
+  requestBody: undefined,
+  requestOptions: {
+    recvWindow: 5000,
+    syncIntervalMs: 3600000,
+    strictParamValidation: false,
+    disableTimeSync: true,
+    api_key: undefined,
+    api_secret: undefined,
+    httpsAgent: HttpsProxyAgent {
+      _events: [Object: null prototype],
+      _eventsCount: 2,
+      _maxListeners: undefined,
+      options: [Object],
+      requests: [Object: null prototype] {},
+      sockets: [Object: null prototype] {},
+      freeSockets: [Object: null prototype] {},
+      keepAliveMsecs: 1000,
+      keepAlive: false,
+      maxSockets: Infinity,
+      maxFreeSockets: 256,
+      scheduling: 'lifo',
+      maxTotalSockets: Infinity,
+      totalSocketCount: 0,
+      proxy: URL {},
+      proxyHeaders: {},
+      connectOpts: [Object],
+      [Symbol(shapeMode)]: false,
+      [Symbol(kCapture)]: false,
+      [Symbol(AgentBaseInternalState)]: {}
+    }
+  }
+}
+❌ [LiveTradesDB] Trade 21 error: Order's position side does not match user's setting.
+❌ [Scanner] Live trade failed: Order's position side does not match user's setting.

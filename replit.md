@@ -122,7 +122,7 @@ pm2 restart all
 
 ## 🔴 КРИТИЧЕСКИЙ БАГ-ФИКС (06.11.2025):
 
-### 🐛 Проблема: TP срабатывал, но позиция оставалась открытой
+### 🐛 БАГ #1: TP срабатывал, но позиция оставалась открытой
 
 **Причина**: В TP и SL ордерах **отсутствовал параметр `reduceOnly: 'true'`**
 
@@ -135,22 +135,70 @@ pm2 restart all
 ```
 
 **Исправление:**
-- ✅ Добавлен `reduceOnly: 'true'` к SL ордеру (строка 757 в binanceTradeExecutor.ts)
-- ✅ Добавлен `reduceOnly: 'true'` к TP ордеру (строка 778 в binanceTradeExecutor.ts)
+- ✅ Добавлен `reduceOnly: 'true'` к SL ордеру
+- ✅ Добавлен `reduceOnly: 'true'` к TP ордеру
 - ✅ Теперь TP/SL ордера **только закрывают** позицию, **не открывают новую**
 
-**Уже было исправлено ранее:**
-- ✅ `positionSide: 'LONG'/'SHORT'` во всех ордерах (предотвращает путаницу направления)
-- ✅ Position Mode установлен в One-way (упрощённая модель)
+---
+
+### 🐛 БАГ #2: Ошибка -4061 "Order's position side does not match user's setting"
+
+**Причина**: Бот пытался установить One-way Mode силой, но Binance **не позволяет переключать режим** при открытых позициях!
+
+**Что происходило:**
+```
+1. На аккаунте Binance есть открытые позиции
+2. Бот пытается: setPositionMode({ dualSidePosition: 'false' })
+3. Binance отказывает: "Cannot change while positions open"
+4. Аккаунт остается в текущем режиме
+5. Бот посылает positionSide: 'SHORT' (для Hedge Mode)
+6. ❌ ОШИБКА -4061: "не соответствует настройкам"
+```
+
+**В чем разница режимов:**
+
+**One-way Mode** (dualSidePosition: false):
+- Только одна позиция на символ (LONG ИЛИ SHORT)
+- `positionSide` НЕ нужен (или use 'BOTH')
+- BUY открывает LONG, SELL открывает SHORT
+- Рекомендуется для большинства трейдеров
+
+**Hedge Mode** (dualSidePosition: true):
+- Можно держать LONG + SHORT одновременно
+- `positionSide` ОБЯЗАТЕЛЕН: 'LONG' или 'SHORT'
+- Нужно явно указывать какую сторону открываете/закрываете
+
+**Исправление:**
+- ✅ Автоматическое определение текущего Position Mode
+- ✅ Умная адаптация:
+  - **Hedge Mode**: Используем `positionSide: 'LONG'/'SHORT'`
+  - **One-way Mode**: НЕ указываем `positionSide` вообще
+- ✅ Попытка переключения на One-way только если нет открытых позиций
+- ✅ Логи показывают в каком режиме работает бот
+
+**Логи при следующей сделке:**
+```
+🔧 [BinanceTradeExecutor] Detecting Position Mode...
+✅ [BinanceTradeExecutor] Already in One-way Mode (optimal)
+📊 [BinanceTradeExecutor] Operating in: One-way Mode
+
+📤 [BinanceTradeExecutor] Placing SELL market order (One-way Mode, no positionSide) for 604 ZEREBROUSDT...
+📤 [BinanceTradeExecutor] Placing SL order at 0.04638910 (One-way Mode)...
+📤 [BinanceTradeExecutor] Placing TP order at 0.04414180 (One-way Mode)...
+✅ [BinanceTradeExecutor] Trade opened successfully!
+```
+
+**Дополнительные исправления:**
+- ✅ `positionSide: 'LONG'/'SHORT'` в Hedge Mode (если есть открытые позиции)
 - ✅ Динамическая проверка max leverage для каждой пары
 - ✅ Автоувеличение риска 1%→10% если позиция меньше минимума Binance
 
 **Развёртывание на продакшн:**
 ```bash
 cd /root/CandleSearchBot
-# Скопируй изменения с Replit
+# Скопируй файл src/services/binanceTradeExecutor.ts с Replit
 pm2 restart crypto-bot
-pm2 logs crypto-bot --lines 50
+pm2 logs crypto-bot --lines 100
 ```
 
 ---

@@ -21,6 +21,9 @@ export class BinanceTradeExecutor {
   private leverage: number = 20;
   private riskPercent: number = 1.0; // 1% risk per trade
   
+  // Position Mode: true = Hedge Mode, false = One-way Mode
+  private isHedgeMode: boolean = false;
+  
   // Order tracking for auto-cancellation
   private orderPairs: Map<string, { slOrderId: string; tpOrderId: string; symbol: string }> = new Map();
   
@@ -106,33 +109,64 @@ export class BinanceTradeExecutor {
   }
 
   /**
-   * Set Position Mode to One-way (prevents LONG/SHORT confusion)
+   * Detect and configure Position Mode
    * 
    * One-way Mode (dualSidePosition: false):
    *  - Can only hold one position per symbol (either LONG or SHORT)
    *  - BUY opens LONG, SELL opens SHORT
-   *  - Recommended for most traders
+   *  - positionSide should NOT be specified (or use 'BOTH')
    * 
    * Hedge Mode (dualSidePosition: true):
    *  - Can hold both LONG and SHORT positions simultaneously
-   *  - Requires explicit positionSide parameter
+   *  - positionSide MUST be 'LONG' or 'SHORT'
    */
   private async setPositionMode(): Promise<void> {
     try {
-      console.log('🔧 [BinanceTradeExecutor] Setting Position Mode to One-way...');
+      console.log('🔧 [BinanceTradeExecutor] Detecting Position Mode...');
       
-      // Set to One-way mode (dualSidePosition: "false")
-      await this.client.setPositionMode({ dualSidePosition: 'false' });
-      
-      console.log('✅ [BinanceTradeExecutor] Position Mode set to One-way');
-    } catch (error: any) {
-      // Error -4059 means position mode is already set correctly
-      if (error.code === -4059 || error.message?.includes('No need to change position side')) {
-        console.log('ℹ️ [BinanceTradeExecutor] Position Mode already set to One-way');
-      } else {
-        console.error('❌ [BinanceTradeExecutor] Failed to set Position Mode:', error.message);
-        // Don't throw - this is not critical, we use positionSide parameter anyway
+      // Try to set One-way mode to detect current mode
+      try {
+        await this.client.setPositionMode({ dualSidePosition: 'false' });
+        this.isHedgeMode = false;
+        console.log('✅ [BinanceTradeExecutor] Position Mode set to One-way');
+      } catch (error: any) {
+        // Error -4059: "No need to change position side" = already One-way
+        if (error.code === -4059 || error.message?.includes('No need to change position side')) {
+          this.isHedgeMode = false;
+          console.log('✅ [BinanceTradeExecutor] Already in One-way Mode (optimal)');
+        }
+        // Error -4046: "Cannot change position side" = has open positions, likely Hedge Mode
+        else if (error.code === -4046 || error.message?.includes('open positions')) {
+          this.isHedgeMode = true;
+          console.log('⚠️ [BinanceTradeExecutor] Cannot switch to One-way Mode: Open positions exist');
+          console.log('ℹ️ [BinanceTradeExecutor] Will operate in Hedge Mode');
+        }
+        // Other errors - try to detect from account info
+        else {
+          console.warn('⚠️ [BinanceTradeExecutor] Failed to detect mode:', error.message);
+          
+          // Try to get account info to detect mode
+          try {
+            const accountInfo = await this.client.getAccountInformation();
+            // Check if account has positions with positionSide field
+            const positions = accountInfo.positions || [];
+            const hasPositionSide = positions.some((p: any) => p.positionSide && p.positionSide !== 'BOTH');
+            this.isHedgeMode = hasPositionSide;
+            console.log(`📊 [BinanceTradeExecutor] Detected from account: ${this.isHedgeMode ? 'Hedge Mode' : 'One-way Mode'}`);
+          } catch (infoError: any) {
+            console.warn('⚠️ [BinanceTradeExecutor] Could not detect mode from account info:', infoError.message);
+            console.log('ℹ️ [BinanceTradeExecutor] Defaulting to One-way Mode behavior');
+            this.isHedgeMode = false;
+          }
+        }
       }
+      
+      console.log(`📊 [BinanceTradeExecutor] Operating in: ${this.isHedgeMode ? 'Hedge Mode' : 'One-way Mode'}`);
+      
+    } catch (error: any) {
+      console.error('❌ [BinanceTradeExecutor] Failed to configure Position Mode:', error.message);
+      console.log('ℹ️ [BinanceTradeExecutor] Defaulting to One-way Mode behavior');
+      this.isHedgeMode = false;
     }
   }
 
@@ -714,23 +748,30 @@ export class BinanceTradeExecutor {
 
       // Step 5: Place market order (entry)
       console.log(`\n🎯 [BinanceTradeExecutor] DIRECTION CHECK:`);
+      console.log(`   Position Mode: ${this.isHedgeMode ? 'Hedge Mode' : 'One-way Mode'}`);
       console.log(`   Signal Direction: ${signal.direction}`);
       console.log(`   Expected Entry Side: ${signal.direction === 'LONG' ? 'BUY' : 'SELL'}`);
       console.log(`   Expected Exit Side (SL/TP): ${signal.direction === 'LONG' ? 'SELL' : 'BUY'}`);
-      console.log(`   Position Side: ${signal.direction}`);
       
       const side = signal.direction === 'LONG' ? 'BUY' : 'SELL';
-      const positionSide = signal.direction; // LONG or SHORT
       
-      console.log(`\n📤 [BinanceTradeExecutor] Placing ${side} market order (positionSide: ${positionSide}) for ${roundedQuantity} ${signal.symbol}...`);
-
-      const marketOrder = await this.client.submitNewOrder({
+      // In Hedge Mode: positionSide MUST be 'LONG' or 'SHORT'
+      // In One-way Mode: positionSide should NOT be specified
+      const orderParams: any = {
         symbol: signal.symbol,
         side,
         type: 'MARKET',
         quantity: roundedQuantity,
-        positionSide, // ✅ КРИТИЧНО: указываем что это LONG или SHORT позиция
-      });
+      };
+      
+      if (this.isHedgeMode) {
+        orderParams.positionSide = signal.direction; // 'LONG' or 'SHORT'
+        console.log(`\n📤 [BinanceTradeExecutor] Placing ${side} market order (Hedge Mode, positionSide: ${signal.direction}) for ${roundedQuantity} ${signal.symbol}...`);
+      } else {
+        console.log(`\n📤 [BinanceTradeExecutor] Placing ${side} market order (One-way Mode, no positionSide) for ${roundedQuantity} ${signal.symbol}...`);
+      }
+
+      const marketOrder = await this.client.submitNewOrder(orderParams);
 
       console.log(`✅ [BinanceTradeExecutor] Market order filled:`, {
         orderId: marketOrder.orderId,
@@ -742,19 +783,26 @@ export class BinanceTradeExecutor {
 
       // Step 6: Place stop-loss order
       const slSide = signal.direction === 'LONG' ? 'SELL' : 'BUY';
-      console.log(`📤 [BinanceTradeExecutor] Placing SL order at ${roundedSlPrice} (positionSide: ${positionSide})...`);
-
-      const slOrder = await this.client.submitNewOrder({
+      
+      const slOrderParams: any = {
         symbol: signal.symbol,
         side: slSide,
         type: 'STOP_MARKET',
         quantity: roundedQuantity,
         stopPrice: roundedSlPrice,
-        positionSide, // ✅ КРИТИЧНО: указываем что закрываем LONG или SHORT
         reduceOnly: 'true', // ✅ КРИТИЧНО: только закрывает позицию, не открывает новую
         workingType: 'MARK_PRICE', // Use mark price to avoid manipulation
         priceProtect: 'TRUE', // Prevent execution at extreme prices
-      });
+      };
+      
+      if (this.isHedgeMode) {
+        slOrderParams.positionSide = signal.direction; // 'LONG' or 'SHORT'
+        console.log(`📤 [BinanceTradeExecutor] Placing SL order at ${roundedSlPrice} (Hedge Mode, positionSide: ${signal.direction})...`);
+      } else {
+        console.log(`📤 [BinanceTradeExecutor] Placing SL order at ${roundedSlPrice} (One-way Mode)...`);
+      }
+
+      const slOrder = await this.client.submitNewOrder(slOrderParams);
 
       console.log(`✅ [BinanceTradeExecutor] SL order placed:`, {
         orderId: slOrder.orderId,
@@ -763,19 +811,26 @@ export class BinanceTradeExecutor {
 
       // Step 7: Place take-profit order
       const tpSide = signal.direction === 'LONG' ? 'SELL' : 'BUY';
-      console.log(`📤 [BinanceTradeExecutor] Placing TP order at ${roundedTpPrice} (positionSide: ${positionSide})...`);
-
-      const tpOrder = await this.client.submitNewOrder({
+      
+      const tpOrderParams: any = {
         symbol: signal.symbol,
         side: tpSide,
         type: 'TAKE_PROFIT_MARKET',
         quantity: roundedQuantity,
         stopPrice: roundedTpPrice,
-        positionSide, // ✅ КРИТИЧНО: указываем что закрываем LONG или SHORT
         reduceOnly: 'true', // ✅ КРИТИЧНО: только закрывает позицию, не открывает новую
         workingType: 'MARK_PRICE',
         priceProtect: 'TRUE',
-      });
+      };
+      
+      if (this.isHedgeMode) {
+        tpOrderParams.positionSide = signal.direction; // 'LONG' or 'SHORT'
+        console.log(`📤 [BinanceTradeExecutor] Placing TP order at ${roundedTpPrice} (Hedge Mode, positionSide: ${signal.direction})...`);
+      } else {
+        console.log(`📤 [BinanceTradeExecutor] Placing TP order at ${roundedTpPrice} (One-way Mode)...`);
+      }
+
+      const tpOrder = await this.client.submitNewOrder(tpOrderParams);
 
       console.log(`✅ [BinanceTradeExecutor] TP order placed:`, {
         orderId: tpOrder.orderId,
