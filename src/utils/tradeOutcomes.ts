@@ -41,6 +41,9 @@ interface TradeParams {
   // NEW: Dynamic strategy parameters (optional - if not provided, uses defaults)
   customPercents?: { p1: number; p2: number; p3: number }; // Custom partial close %s
   actualTpR?: { tp1R: number; tp2R: number; tp3R: number }; // Actual TP levels in R units
+  
+  // NEW: Trailing stop flag (for 1.0R → 0.5R trailing stop logic)
+  trailingActivated?: boolean; // If true, BE_HIT = +0.5R instead of 0R
 }
 
 /**
@@ -132,6 +135,7 @@ export function calculateTradeOutcome(params: TradeParams): TradeOutcome {
     partialClosed,
     customPercents,  // NEW: dynamic %s
     actualTpR,       // NEW: actual TP levels in R
+    trailingActivated, // NEW: trailing stop flag
   } = params;
 
   const entryPrice = parseFloat(entryStr);
@@ -218,26 +222,37 @@ export function calculateTradeOutcome(params: TradeParams): TradeOutcome {
     outcomeType = 'BE_HIT';
     breakeven = true;
 
-    // BE_HIT: Breakeven hit after partial close
-    // Calculate based on how much was already closed (using custom or default %s)
-    const closedAtTP1 = p1;
-    const closedAtTP2 = p1 + p2;
-    
-    if (partialClosed === closedAtTP1) {
-      // After TP1: p1% at tp1R + remaining at 0R
-      pnlR = (p1 / 100) * tp1R + ((100 - p1) / 100) * 0;
-      description = `Breakeven после TP1 (${p1}% прибыль)`;
-      console.log(`⚖️ [TradeOutcomes] BE_HIT after TP1: ${p1}%×${tp1R.toFixed(2)}R + ${100-p1}%×0R = ${pnlR.toFixed(2)}R`);
-    } else if (partialClosed === closedAtTP2) {
-      // After TP2: p1% at tp1R + p2% at tp2R + remaining at 0R
-      pnlR = (p1 / 100) * tp1R + (p2 / 100) * tp2R + (p3 / 100) * 0;
-      description = `Breakeven после TP2 (${closedAtTP2}% прибыль)`;
-      console.log(`⚖️ [TradeOutcomes] BE_HIT after TP2: ${p1}%×${tp1R.toFixed(2)}R + ${p2}%×${tp2R.toFixed(2)}R + ${p3}%×0R = ${pnlR.toFixed(2)}R`);
-    } else {
-      // Unknown: assume after TP1 (safest assumption)
-      pnlR = (p1 / 100) * tp1R;
-      description = 'Breakeven сработал (частичная прибыль)';
-      console.log(`⚖️ [TradeOutcomes] BE_HIT (default): ${p1}%×${tp1R.toFixed(2)}R = ${pnlR.toFixed(2)}R`);
+    // ✅ NEW: Trailing Stop 1.0R → 0.5R logic
+    // If trailing stop was activated (at 1.0R profit), BE_HIT = +0.5R (protected profit)
+    // This is for 15m SCALP_15M strategy only (partialClosed = 0, no TP1/TP2 before)
+    if (trailingActivated && partialClosed === 0) {
+      pnlR = 0.5; // Trailing stop at +0.5R
+      description = 'Trailing Stop сработал (+0.5R защищено)';
+      console.log(`🔥 [TradeOutcomes] TRAILING STOP HIT: 100% × +0.5R = ${pnlR.toFixed(2)}R`);
+    }
+    // Standard BE_HIT logic (after partial close at TP1/TP2)
+    else {
+      // BE_HIT: Breakeven hit after partial close
+      // Calculate based on how much was already closed (using custom or default %s)
+      const closedAtTP1 = p1;
+      const closedAtTP2 = p1 + p2;
+      
+      if (partialClosed === closedAtTP1) {
+        // After TP1: p1% at tp1R + remaining at 0R
+        pnlR = (p1 / 100) * tp1R + ((100 - p1) / 100) * 0;
+        description = `Breakeven после TP1 (${p1}% прибыль)`;
+        console.log(`⚖️ [TradeOutcomes] BE_HIT after TP1: ${p1}%×${tp1R.toFixed(2)}R + ${100-p1}%×0R = ${pnlR.toFixed(2)}R`);
+      } else if (partialClosed === closedAtTP2) {
+        // After TP2: p1% at tp1R + p2% at tp2R + remaining at 0R
+        pnlR = (p1 / 100) * tp1R + (p2 / 100) * tp2R + (p3 / 100) * 0;
+        description = `Breakeven после TP2 (${closedAtTP2}% прибыль)`;
+        console.log(`⚖️ [TradeOutcomes] BE_HIT after TP2: ${p1}%×${tp1R.toFixed(2)}R + ${p2}%×${tp2R.toFixed(2)}R + ${p3}%×0R = ${pnlR.toFixed(2)}R`);
+      } else {
+        // Unknown: assume after TP1 (safest assumption)
+        pnlR = (p1 / 100) * tp1R;
+        description = 'Breakeven сработал (частичная прибыль)';
+        console.log(`⚖️ [TradeOutcomes] BE_HIT (default): ${p1}%×${tp1R.toFixed(2)}R = ${pnlR.toFixed(2)}R`);
+      }
     }
   }
 

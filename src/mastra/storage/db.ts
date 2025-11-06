@@ -227,6 +227,26 @@ export class SignalDB {
   }
 
   /**
+   * Update trailing stop for a signal (1.0R → 0.5R trailing stop logic)
+   * Called when MFE reaches 1.0R to protect +0.5R profit
+   */
+  async updateTrailingStop(
+    id: number,
+    newSl: string,
+    trailingActivated: boolean
+  ): Promise<void> {
+    console.log(`🔥 [SignalDB] Updating trailing stop for signal ${id}: SL=${newSl}, trailing=${trailingActivated}`);
+    
+    await db.update(signals).set({
+      currentSl: newSl,
+      trailingActivated,
+      updatedAt: new Date(),
+    }).where(eq(signals.id, id));
+    
+    console.log(`✅ [SignalDB] Trailing stop updated successfully`);
+  }
+
+  /**
    * Get statistics for signals created on specific dates
    * @param dates - Array of date strings in YYYY-MM-DD format, e.g., ['2025-11-01', '2025-11-04']
    */

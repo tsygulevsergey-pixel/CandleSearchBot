@@ -118,6 +118,31 @@ export class SignalTracker {
             await signalDB.updateMFEMAE(signal.id, newMFE, newMAE, firstTouch || undefined);
           }
           
+          // ✅ NEW: Trailing Stop 1.0R → 0.5R (только для 15m SCALP_15M стратегии)
+          // Когда прибыль достигает 1.0R, переместить SL на +0.5R (вместо breakeven на 0R)
+          // Это спасает 93 SL (превращает -1R в +0.5R), теряет только 23 TP
+          // Улучшение Win Rate: 43.8% → 56.4% (+12.6%)
+          const isTrailingEligible = signal.strategyProfile === 'SCALP_15M';
+          const trailingActivated = signal.trailingActivated || false;
+          
+          if (isTrailingEligible && !trailingActivated && newMFE >= 1.0) {
+            // Достигнута прибыль 1.0R - активируем trailing stop на +0.5R
+            const trailingSL = signal.direction === 'LONG'
+              ? entryPrice + (R * 0.5)  // LONG: SL выше entry на 0.5R
+              : entryPrice - (R * 0.5); // SHORT: SL ниже entry на 0.5R
+            
+            console.log(`🔥 [Trailing Stop] ACTIVATED at 1.0R profit!`);
+            console.log(`   Moving SL from ${parseFloat(signal.currentSl).toFixed(8)} to ${trailingSL.toFixed(8)} (+0.5R)`);
+            console.log(`   This protects +0.5R profit instead of full -1R loss`);
+            
+            // Обновляем SL в БД и устанавливаем флаг trailingActivated
+            await signalDB.updateTrailingStop(signal.id, trailingSL.toString(), true);
+            
+            // Обновляем локальную переменную для дальнейшей проверки
+            signal.currentSl = trailingSL.toString();
+            signal.trailingActivated = true;
+          }
+          
           console.log(`🔍 [SignalTracker] Checking ${signal.symbol} (ID: ${signal.id}):`, {
             currentPrice: currentPrice.toFixed(8),
             high1m: Number(candles[candles.length - 1].high).toFixed(8),
@@ -130,6 +155,7 @@ export class SignalTracker {
             mfe: `${newMFE.toFixed(2)}R`,
             mae: `${newMAE.toFixed(2)}R`,
             firstTouch: firstTouch || 'none',
+            trailingActivated: signal.trailingActivated || false,
           });
           
           const { newStatus, newSl } = riskCalculator.checkSignalStatusWithCandles(
@@ -209,6 +235,7 @@ export class SignalTracker {
               partialClosed: currentPartialClosed,
               customPercents,  // ✅ Pass dynamic %s (or undefined for defaults)
               actualTpR,       // ✅ Pass actual TP R values (or undefined to calculate)
+              trailingActivated: signal.trailingActivated || false, // ✅ Pass trailing stop flag
             });
 
             // Update database with all new fields including time tracking

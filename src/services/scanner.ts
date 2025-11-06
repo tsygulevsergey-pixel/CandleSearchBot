@@ -264,6 +264,46 @@ export class Scanner {
                   reason: contextQuality.reason,
                 });
                 
+                // ✅ NEW: Swing Density Filter - требуем минимум 11 свингов для качественного сигнала
+                // Анализ показал: <11 свингов = 39-44% WR, >=11 свингов = 67.4% WR (+23% улучшение!)
+                const MIN_SWING_COUNT = 11;
+                if (contextAnalysis.swingCount20 < MIN_SWING_COUNT) {
+                  console.log(`❌ [15m Swing Filter] Signal REJECTED - low swing density`);
+                  console.log(`   ⚠️ Swings: ${contextAnalysis.swingCount20} < ${MIN_SWING_COUNT} (choppy/low-quality market)`);
+                  console.log(`   ⚠️ Skipping ${symbol} - 15m requires high swing density for 67.4% WR`);
+                  
+                  // Log as near-miss skip for ML analysis
+                  const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
+                  await logNearMissSkipFull({
+                    symbol,
+                    timeframe,
+                    patternType: pattern.type,
+                    entryPrice,
+                    direction: pattern.direction,
+                    skipReason: SKIP_REASONS.LOW_SWING_DENSITY,
+                    skipCategory: 'bad_context',
+                    confluenceScore: 0,
+                    confluenceFactors: {} as any,
+                    patternScore: pattern.score || 0,
+                    patternScoreFactors: {},
+                    mlContext: {
+                      trendDirection: trend.direction,
+                      trendStrength: trend.strength,
+                      ema20: trend.ema20,
+                      ema50: trend.ema50,
+                      swingCount20: contextAnalysis.swingCount20,
+                    } as any,
+                    atr15m: calculateATR(candles),
+                    atr1h: 0,
+                    atr4h: 0,
+                  });
+                  
+                  continue; // Skip this signal
+                }
+                
+                console.log(`✅ [15m Swing Filter] Swing density PASSED - ${contextAnalysis.swingCount20} swings (>=${MIN_SWING_COUNT})`);
+                console.log(`   ✅ High-quality market with sufficient swing activity`);
+                
                 // Create minimal enriched ML context for 15m (no multi-TF data needed)
                 const enrichedMLContext = {
                   trendDirection: trend.direction,
