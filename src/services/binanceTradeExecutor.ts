@@ -77,6 +77,9 @@ export class BinanceTradeExecutor {
       // Test connection
       await this.testConnection();
       
+      // Set Position Mode to One-way (default, recommended for beginners)
+      await this.setPositionMode();
+      
       // Setup WebSocket for order updates
       await this.setupWebSocket();
       
@@ -99,6 +102,37 @@ export class BinanceTradeExecutor {
     } catch (error: any) {
       console.error('❌ [BinanceTradeExecutor] Connection test failed:', error.message);
       throw new Error(`Failed to connect to Binance: ${error.message}`);
+    }
+  }
+
+  /**
+   * Set Position Mode to One-way (prevents LONG/SHORT confusion)
+   * 
+   * One-way Mode (dualSidePosition: false):
+   *  - Can only hold one position per symbol (either LONG or SHORT)
+   *  - BUY opens LONG, SELL opens SHORT
+   *  - Recommended for most traders
+   * 
+   * Hedge Mode (dualSidePosition: true):
+   *  - Can hold both LONG and SHORT positions simultaneously
+   *  - Requires explicit positionSide parameter
+   */
+  private async setPositionMode(): Promise<void> {
+    try {
+      console.log('🔧 [BinanceTradeExecutor] Setting Position Mode to One-way...');
+      
+      // Set to One-way mode (dualSidePosition: "false")
+      await this.client.setPositionMode({ dualSidePosition: 'false' });
+      
+      console.log('✅ [BinanceTradeExecutor] Position Mode set to One-way');
+    } catch (error: any) {
+      // Error -4059 means position mode is already set correctly
+      if (error.code === -4059 || error.message?.includes('No need to change position side')) {
+        console.log('ℹ️ [BinanceTradeExecutor] Position Mode already set to One-way');
+      } else {
+        console.error('❌ [BinanceTradeExecutor] Failed to set Position Mode:', error.message);
+        // Don't throw - this is not critical, we use positionSide parameter anyway
+      }
     }
   }
 
@@ -683,15 +717,19 @@ export class BinanceTradeExecutor {
       console.log(`   Signal Direction: ${signal.direction}`);
       console.log(`   Expected Entry Side: ${signal.direction === 'LONG' ? 'BUY' : 'SELL'}`);
       console.log(`   Expected Exit Side (SL/TP): ${signal.direction === 'LONG' ? 'SELL' : 'BUY'}`);
+      console.log(`   Position Side: ${signal.direction}`);
       
       const side = signal.direction === 'LONG' ? 'BUY' : 'SELL';
-      console.log(`\n📤 [BinanceTradeExecutor] Placing ${side} market order for ${roundedQuantity} ${signal.symbol}...`);
+      const positionSide = signal.direction; // LONG or SHORT
+      
+      console.log(`\n📤 [BinanceTradeExecutor] Placing ${side} market order (positionSide: ${positionSide}) for ${roundedQuantity} ${signal.symbol}...`);
 
       const marketOrder = await this.client.submitNewOrder({
         symbol: signal.symbol,
         side,
         type: 'MARKET',
         quantity: roundedQuantity,
+        positionSide, // ✅ КРИТИЧНО: указываем что это LONG или SHORT позиция
       });
 
       console.log(`✅ [BinanceTradeExecutor] Market order filled:`, {
@@ -702,9 +740,9 @@ export class BinanceTradeExecutor {
 
       const filledPrice = parseFloat(String(marketOrder.avgPrice || entryPrice));
 
-      // Step 5: Place stop-loss order
+      // Step 6: Place stop-loss order
       const slSide = signal.direction === 'LONG' ? 'SELL' : 'BUY';
-      console.log(`📤 [BinanceTradeExecutor] Placing SL order at ${roundedSlPrice}...`);
+      console.log(`📤 [BinanceTradeExecutor] Placing SL order at ${roundedSlPrice} (positionSide: ${positionSide})...`);
 
       const slOrder = await this.client.submitNewOrder({
         symbol: signal.symbol,
@@ -712,6 +750,7 @@ export class BinanceTradeExecutor {
         type: 'STOP_MARKET',
         quantity: roundedQuantity,
         stopPrice: roundedSlPrice,
+        positionSide, // ✅ КРИТИЧНО: указываем что закрываем LONG или SHORT
         workingType: 'MARK_PRICE', // Use mark price to avoid manipulation
         priceProtect: 'TRUE', // Prevent execution at extreme prices
       });
@@ -721,9 +760,9 @@ export class BinanceTradeExecutor {
         stopPrice: roundedSlPrice,
       });
 
-      // Step 6: Place take-profit order
+      // Step 7: Place take-profit order
       const tpSide = signal.direction === 'LONG' ? 'SELL' : 'BUY';
-      console.log(`📤 [BinanceTradeExecutor] Placing TP order at ${roundedTpPrice}...`);
+      console.log(`📤 [BinanceTradeExecutor] Placing TP order at ${roundedTpPrice} (positionSide: ${positionSide})...`);
 
       const tpOrder = await this.client.submitNewOrder({
         symbol: signal.symbol,
@@ -731,6 +770,7 @@ export class BinanceTradeExecutor {
         type: 'TAKE_PROFIT_MARKET',
         quantity: roundedQuantity,
         stopPrice: roundedTpPrice,
+        positionSide, // ✅ КРИТИЧНО: указываем что закрываем LONG или SHORT
         workingType: 'MARK_PRICE',
         priceProtect: 'TRUE',
       });
