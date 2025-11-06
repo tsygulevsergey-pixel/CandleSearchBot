@@ -245,14 +245,6 @@ export function isGoodContext(
     };
   }
   
-  // BAD: Choppy recent direction (no clear trend in last 10 candles)
-  if (context.recentDirection === 'choppy') {
-    return {
-      isGood: false,
-      reason: 'Choppy рынок - нет чёткого направления (последние 10 свечей)',
-    };
-  }
-  
   // GOOD: Aligns with trend and recent direction
   return {
     isGood: true,
