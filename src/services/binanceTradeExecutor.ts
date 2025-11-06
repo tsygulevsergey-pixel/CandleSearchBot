@@ -458,6 +458,35 @@ export class BinanceTradeExecutor {
   }
 
   /**
+   * Get minimum notional (minimum position value in USDT) for a symbol
+   */
+  private async getMinNotional(symbol: string): Promise<number> {
+    try {
+      const exchangeInfo = await this.client.getExchangeInfo();
+      const symbolInfo = exchangeInfo.symbols.find((s: any) => s.symbol === symbol);
+      
+      if (!symbolInfo) {
+        throw new Error(`Symbol ${symbol} not found in exchange info`);
+      }
+
+      // Check MIN_NOTIONAL filter
+      const minNotionalFilter = symbolInfo.filters.find((f: any) => f.filterType === 'MIN_NOTIONAL') as any;
+      if (minNotionalFilter) {
+        const minNotional = parseFloat(minNotionalFilter.notional);
+        console.log(`💰 [BinanceTradeExecutor] ${symbol}: Min notional = $${minNotional.toFixed(2)}`);
+        return minNotional;
+      }
+
+      // Fallback to $5
+      console.log(`⚠️ [BinanceTradeExecutor] ${symbol}: No MIN_NOTIONAL filter, using $5 default`);
+      return 5;
+    } catch (error: any) {
+      console.error(`❌ [BinanceTradeExecutor] Failed to get min notional:`, error.message);
+      return 5; // Fallback
+    }
+  }
+
+  /**
    * Round quantity to symbol's step size
    */
   private async roundQuantity(symbol: string, quantity: number): Promise<number> {
@@ -566,20 +595,67 @@ export class BinanceTradeExecutor {
       // Step 2: Setup symbol (leverage + margin type) FIRST to get actual leverage
       const actualLeverage = await this.setupSymbol(signal.symbol);
 
-      // Step 3: Calculate position size using ACTUAL leverage
+      // Step 3: Get minimum notional
+      const minNotional = await this.getMinNotional(signal.symbol);
+
+      // Step 4: Calculate position size with adaptive risk%
       const entryPrice = parseFloat(signal.entryPrice);
       const slPrice = parseFloat(signal.slPrice);
       const tpPrice = parseFloat(signal.tp2Price); // Use TP2 as main target
 
-      const { positionSize, riskAmount, positionValueUsdt } = this.calculatePositionSize(
-        accountBalance,
-        entryPrice,
-        slPrice,
-        actualLeverage  // Use actual leverage, not requested
-      );
+      let currentRiskPercent = this.riskPercent;
+      let positionSize: number = 0;
+      let riskAmount: number = 0;
+      let positionValueUsdt: number = 0;
+      let roundedQuantity: number = 0;
 
-      // Round quantities and prices
-      const roundedQuantity = await this.roundQuantity(signal.symbol, positionSize);
+      // Try increasing risk% until we meet minimum notional
+      const maxRiskPercent = 10; // Don't risk more than 10%
+      
+      console.log(`🎯 [BinanceTradeExecutor] Calculating position size with min notional $${minNotional.toFixed(2)}...`);
+      
+      let meetsMinimum = false;
+      
+      while (currentRiskPercent <= maxRiskPercent) {
+        // Calculate with current risk%
+        const originalRiskPercent = this.riskPercent;
+        this.riskPercent = currentRiskPercent;
+        
+        const result = this.calculatePositionSize(
+          accountBalance,
+          entryPrice,
+          slPrice,
+          actualLeverage
+        );
+        
+        positionSize = result.positionSize;
+        riskAmount = result.riskAmount;
+        positionValueUsdt = result.positionValueUsdt;
+        
+        // Restore original
+        this.riskPercent = originalRiskPercent;
+
+        // Round and check notional
+        roundedQuantity = await this.roundQuantity(signal.symbol, positionSize);
+        const actualNotional = roundedQuantity * entryPrice;
+
+        console.log(`📊 [BinanceTradeExecutor] Risk ${currentRiskPercent}%: Position value $${actualNotional.toFixed(2)} (min: $${minNotional.toFixed(2)})`);
+
+        if (actualNotional >= minNotional) {
+          console.log(`✅ [BinanceTradeExecutor] Position meets minimum notional with ${currentRiskPercent}% risk`);
+          meetsMinimum = true;
+          break;
+        }
+
+        // Increase risk by 1%
+        currentRiskPercent += 1;
+      }
+      
+      if (!meetsMinimum) {
+        throw new Error(`Cannot meet minimum notional $${minNotional} even with ${maxRiskPercent}% risk. Account too small.`);
+      }
+
+      // Round prices
       const roundedSlPrice = await this.roundPrice(signal.symbol, slPrice);
       const roundedTpPrice = await this.roundPrice(signal.symbol, tpPrice);
 
@@ -591,7 +667,7 @@ export class BinanceTradeExecutor {
         leverage: actualLeverage,  // Use actual leverage, not requested
         marginType: 'ISOLATED',
         accountBalance: accountBalance.toString(),
-        riskPercent: this.riskPercent.toString(),
+        riskPercent: currentRiskPercent.toString(),  // Use actual risk%, not default
         riskAmount: riskAmount.toString(),
         positionSize: roundedQuantity.toString(),
         positionValueUsdt: positionValueUsdt.toString(),
@@ -602,9 +678,14 @@ export class BinanceTradeExecutor {
 
       console.log(`📝 [BinanceTradeExecutor] Created live trade record ID: ${liveTrade.id}`);
 
-      // Step 4: Place market order (entry)
+      // Step 5: Place market order (entry)
+      console.log(`\n🎯 [BinanceTradeExecutor] DIRECTION CHECK:`);
+      console.log(`   Signal Direction: ${signal.direction}`);
+      console.log(`   Expected Entry Side: ${signal.direction === 'LONG' ? 'BUY' : 'SELL'}`);
+      console.log(`   Expected Exit Side (SL/TP): ${signal.direction === 'LONG' ? 'SELL' : 'BUY'}`);
+      
       const side = signal.direction === 'LONG' ? 'BUY' : 'SELL';
-      console.log(`📤 [BinanceTradeExecutor] Placing ${side} market order for ${roundedQuantity} ${signal.symbol}...`);
+      console.log(`\n📤 [BinanceTradeExecutor] Placing ${side} market order for ${roundedQuantity} ${signal.symbol}...`);
 
       const marketOrder = await this.client.submitNewOrder({
         symbol: signal.symbol,
