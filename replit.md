@@ -120,6 +120,41 @@ pm2 restart all
 3. Fine-tune pattern scoring weights
 4. Expand market clustering to more symbols
 
+## 🔴 КРИТИЧЕСКИЙ БАГ-ФИКС (06.11.2025):
+
+### 🐛 Проблема: TP срабатывал, но позиция оставалась открытой
+
+**Причина**: В TP и SL ордерах **отсутствовал параметр `reduceOnly: 'true'`**
+
+**Что происходило без `reduceOnly`:**
+```
+1. Открывается LONG: BUY 0.5 BTC @ 100,000
+2. TP срабатывает @ 105,000: SELL 0.5 BTC
+3. ❌ БЕЗ reduceOnly: SELL открывает SHORT позицию на 0.5 BTC!
+4. Итог: Вместо закрытия LONG, открылась новая SHORT позиция
+```
+
+**Исправление:**
+- ✅ Добавлен `reduceOnly: 'true'` к SL ордеру (строка 757 в binanceTradeExecutor.ts)
+- ✅ Добавлен `reduceOnly: 'true'` к TP ордеру (строка 778 в binanceTradeExecutor.ts)
+- ✅ Теперь TP/SL ордера **только закрывают** позицию, **не открывают новую**
+
+**Уже было исправлено ранее:**
+- ✅ `positionSide: 'LONG'/'SHORT'` во всех ордерах (предотвращает путаницу направления)
+- ✅ Position Mode установлен в One-way (упрощённая модель)
+- ✅ Динамическая проверка max leverage для каждой пары
+- ✅ Автоувеличение риска 1%→10% если позиция меньше минимума Binance
+
+**Развёртывание на продакшн:**
+```bash
+cd /root/CandleSearchBot
+# Скопируй изменения с Replit
+pm2 restart crypto-bot
+pm2 logs crypto-bot --lines 50
+```
+
+---
+
 ## 🆕 Новые функции (04.11.2025):
 
 ### 📊 Context Tracking & Post-SL Analysis

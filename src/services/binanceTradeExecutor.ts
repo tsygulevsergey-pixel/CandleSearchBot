@@ -751,6 +751,7 @@ export class BinanceTradeExecutor {
         quantity: roundedQuantity,
         stopPrice: roundedSlPrice,
         positionSide, // ✅ КРИТИЧНО: указываем что закрываем LONG или SHORT
+        reduceOnly: 'true', // ✅ КРИТИЧНО: только закрывает позицию, не открывает новую
         workingType: 'MARK_PRICE', // Use mark price to avoid manipulation
         priceProtect: 'TRUE', // Prevent execution at extreme prices
       });
@@ -771,6 +772,7 @@ export class BinanceTradeExecutor {
         quantity: roundedQuantity,
         stopPrice: roundedTpPrice,
         positionSide, // ✅ КРИТИЧНО: указываем что закрываем LONG или SHORT
+        reduceOnly: 'true', // ✅ КРИТИЧНО: только закрывает позицию, не открывает новую
         workingType: 'MARK_PRICE',
         priceProtect: 'TRUE',
       });
