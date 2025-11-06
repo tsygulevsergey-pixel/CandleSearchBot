@@ -162,13 +162,13 @@ export class Scanner {
                 console.log(`   📊 EMA20: ${trend.ema20.toFixed(8)}, EMA50: ${trend.ema50.toFixed(8)}`);
                 console.log(`   📊 Swing: ${trend.details.swingStructure}, EMA aligned: ${trend.details.emaAlignment}, Price vs EMA: ${trend.details.priceVsEma}`);
                 
-                // Step 2: Check if pattern aligns with trend (minStrength=60)
-                console.log(`📊 [15m Trend Filter] Step 2: Checking pattern alignment with trend (minStrength=60)...`);
-                const isAligned = isPatternWithTrend(pattern.direction, trend, 60);
+                // Step 2: Check if pattern aligns with trend (minStrength=50 - allows pullbacks!)
+                console.log(`📊 [15m Trend Filter] Step 2: Checking pattern alignment with trend (minStrength=50)...`);
+                const isAligned = isPatternWithTrend(pattern.direction, trend, 50);
                 
                 if (!isAligned) {
                   console.log(`❌ [15m Trend Filter] Signal REJECTED - pattern NOT aligned with trend`);
-                  console.log(`   ⚠️ Pattern: ${pattern.direction}, Trend: ${trend.direction} (${trend.strength}%), Required: 60%`);
+                  console.log(`   ⚠️ Pattern: ${pattern.direction}, Trend: ${trend.direction} (${trend.strength}%), Required: 50%`);
                   console.log(`   ⚠️ Skipping ${symbol} - 15m patterns MUST align with trend (LONG+UPTREND or SHORT+DOWNTREND)`);
                   
                   // Log as near-miss skip for ML analysis

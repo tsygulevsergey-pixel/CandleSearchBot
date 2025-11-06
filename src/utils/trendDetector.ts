@@ -145,57 +145,73 @@ export function detectTrend(candles: Candle[], currentPrice?: number): TrendResu
   // Analyze swing structure
   const swingStructure = analyzeSwingStructure(candles, 15);
 
-  // Determine trend based on multiple factors
+  // ✅ SOFTENED TREND LOGIC: Use only EMA20 vs EMA50 (no price position check)
+  // This allows catching pullbacks IN trend (best entry points!)
   let direction: 'UPTREND' | 'DOWNTREND' | 'SIDEWAYS' = 'SIDEWAYS';
   let strength = 0;
 
-  // Factor 1: EMA alignment
+  // Factor 1: EMA alignment (PRIMARY FACTOR)
   const emaAlignedUp = ema20 > ema50;
   const emaAlignedDown = ema20 < ema50;
+  
+  // Calculate EMA separation (how strong is the trend)
+  const emaSeparation = Math.abs((ema20 - ema50) / ema50) * 100; // in %
 
-  // Factor 2: Price vs EMAs
+  // Factor 2: Price position (OPTIONAL - for strength boost only)
   const priceAboveEma20 = price > ema20;
   const priceBelowEma20 = price < ema20;
   const priceAboveEma50 = price > ema50;
   const priceBelowEma50 = price < ema50;
 
-  // Factor 3: Swing structure
+  // Factor 3: Swing structure (OPTIONAL - for strength boost only)
   const swingUp = swingStructure === 'HH/HL';
   const swingDown = swingStructure === 'LH/LL';
 
-  // Combine factors for UPTREND
-  if (emaAlignedUp && priceAboveEma20 && priceAboveEma50) {
+  // ✅ UPTREND: EMA20 > EMA50 (price can be anywhere - allows pullbacks!)
+  if (emaAlignedUp && emaSeparation > 0.2) {
     direction = 'UPTREND';
-    strength = 60; // Base strength
+    strength = 50; // Base strength for EMA alignment
 
-    // Boost strength if swing structure confirms
+    // Boost strength based on EMA separation
+    if (emaSeparation > 1.0) {
+      strength += 20; // Strong separation
+    } else if (emaSeparation > 0.5) {
+      strength += 10; // Moderate separation
+    }
+
+    // Boost if price above EMAs (trend continuation)
+    if (priceAboveEma20 && priceAboveEma50) {
+      strength += 10;
+    }
+
+    // Boost if swing structure confirms
     if (swingUp) {
-      strength += 30;
-    }
-
-    // Boost if price is significantly above EMAs
-    const priceVsEma20Pct = ((price - ema20) / ema20) * 100;
-    if (priceVsEma20Pct > 1) {
       strength += 10;
     }
   }
-  // Combine factors for DOWNTREND
-  else if (emaAlignedDown && priceBelowEma20 && priceBelowEma50) {
+  // ✅ DOWNTREND: EMA20 < EMA50 (price can be anywhere - allows pullbacks!)
+  else if (emaAlignedDown && emaSeparation > 0.2) {
     direction = 'DOWNTREND';
-    strength = 60; // Base strength
+    strength = 50; // Base strength for EMA alignment
 
-    // Boost strength if swing structure confirms
-    if (swingDown) {
-      strength += 30;
+    // Boost strength based on EMA separation
+    if (emaSeparation > 1.0) {
+      strength += 20; // Strong separation
+    } else if (emaSeparation > 0.5) {
+      strength += 10; // Moderate separation
     }
 
-    // Boost if price is significantly below EMAs
-    const priceVsEma20Pct = ((ema20 - price) / ema20) * 100;
-    if (priceVsEma20Pct > 1) {
+    // Boost if price below EMAs (trend continuation)
+    if (priceBelowEma20 && priceBelowEma50) {
+      strength += 10;
+    }
+
+    // Boost if swing structure confirms
+    if (swingDown) {
       strength += 10;
     }
   }
-  // SIDEWAYS: Mixed signals
+  // SIDEWAYS: EMAs too close (< 0.2% separation)
   else {
     direction = 'SIDEWAYS';
     strength = 0;
@@ -210,9 +226,11 @@ export function detectTrend(candles: Candle[], currentPrice?: number): TrendResu
     price: price.toFixed(2),
     ema20: ema20.toFixed(2),
     ema50: ema50.toFixed(2),
+    emaSeparation: `${emaSeparation.toFixed(2)}%`, // ✅ NEW: Show EMA separation
     emaAlignment: emaAlignedUp ? 'UP' : emaAlignedDown ? 'DOWN' : 'NEUTRAL',
     pricePosition: priceAboveEma20 ? 'ABOVE EMA20' : 'BELOW EMA20',
     swingStructure,
+    note: direction !== 'SIDEWAYS' ? '✅ Pullbacks allowed!' : 'EMAs too close',
   });
 
   return {
