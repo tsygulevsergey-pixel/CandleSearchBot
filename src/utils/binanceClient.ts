@@ -160,7 +160,44 @@ export class BinanceClient {
 
     binanceRateLimiter.updateWeightFromResponse(response.headers);
 
-    return parseFloat(response.data.price);
+    const price = parseFloat(response.data.price);
+    
+    // ✅ CRITICAL: Validate price to prevent MFE/MAE corruption
+    // If price is 0, NaN, or Infinity, it will corrupt MFE calculations and prevent trailing stop activation
+    if (price <= 0 || isNaN(price) || !isFinite(price)) {
+      console.error(`❌ [BinanceClient] INVALID price from API: ${price} for ${symbol}`);
+      console.error(`   ⚠️ This will corrupt MFE/MAE calculations - using fallback price`);
+      
+      // Fallback: Get mid-price from recent 1m candle (more reliable than ticker)
+      try {
+        console.log(`🔄 [BinanceClient] Attempting fallback: fetching recent 1m candle for ${symbol}...`);
+        const candles = await this.getKlines(symbol, '1m', 1, true);
+        
+        if (candles.length === 0) {
+          throw new Error(`No candles available for ${symbol}`);
+        }
+        
+        const lastCandle = candles[candles.length - 1];
+        const fallbackPrice = (parseFloat(lastCandle.high) + parseFloat(lastCandle.low)) / 2;
+        
+        // Validate fallback price
+        if (fallbackPrice <= 0 || isNaN(fallbackPrice) || !isFinite(fallbackPrice)) {
+          throw new Error(`Fallback price also invalid: ${fallbackPrice}`);
+        }
+        
+        console.log(`✅ [BinanceClient] Using fallback mid-price: ${fallbackPrice} for ${symbol}`);
+        console.log(`   📊 Candle: H=${lastCandle.high}, L=${lastCandle.low}, Mid=${fallbackPrice}`);
+        
+        return fallbackPrice;
+      } catch (fallbackError: any) {
+        console.error(`❌ [BinanceClient] Fallback price fetch FAILED: ${fallbackError.message}`);
+        console.error(`   ⚠️ CRITICAL: No valid price available for ${symbol} - throwing error`);
+        throw new Error(`Failed to get valid price for ${symbol}: API returned ${price}, fallback failed: ${fallbackError.message}`);
+      }
+    }
+    
+    console.log(`✅ [BinanceClient] Valid price: ${price} for ${symbol}`);
+    return price;
   }
 }
 
