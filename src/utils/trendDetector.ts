@@ -145,8 +145,10 @@ export function detectTrend(candles: Candle[], currentPrice?: number): TrendResu
   // Analyze swing structure
   const swingStructure = analyzeSwingStructure(candles, 15);
 
-  // ✅ SOFTENED TREND LOGIC: Use only EMA20 vs EMA50 (no price position check)
-  // This allows catching pullbacks IN trend (best entry points!)
+  // ✅ BALANCED TREND LOGIC: EMA alignment + price above at least ONE EMA
+  // UPTREND: (EMA20 > EMA50) AND (Price > EMA20 OR Price > EMA50)
+  // DOWNTREND: (EMA20 < EMA50) AND (Price < EMA20 OR Price < EMA50)
+  // This allows pullbacks to ONE EMA while filtering price below BOTH EMAs
   let direction: 'UPTREND' | 'DOWNTREND' | 'SIDEWAYS' = 'SIDEWAYS';
   let strength = 0;
 
@@ -157,7 +159,7 @@ export function detectTrend(candles: Candle[], currentPrice?: number): TrendResu
   // Calculate EMA separation (how strong is the trend)
   const emaSeparation = Math.abs((ema20 - ema50) / ema50) * 100; // in %
 
-  // Factor 2: Price position (OPTIONAL - for strength boost only)
+  // Factor 2: Price position (REQUIRED for trend direction)
   const priceAboveEma20 = price > ema20;
   const priceBelowEma20 = price < ema20;
   const priceAboveEma50 = price > ema50;
@@ -167,8 +169,8 @@ export function detectTrend(candles: Candle[], currentPrice?: number): TrendResu
   const swingUp = swingStructure === 'HH/HL';
   const swingDown = swingStructure === 'LH/LL';
 
-  // ✅ UPTREND: EMA20 > EMA50 (price can be anywhere - allows pullbacks!)
-  if (emaAlignedUp && emaSeparation > 0.2) {
+  // ✅ UPTREND: EMA20 > EMA50 AND price above at least ONE EMA
+  if (emaAlignedUp && emaSeparation > 0.2 && (priceAboveEma20 || priceAboveEma50)) {
     direction = 'UPTREND';
     strength = 50; // Base strength for EMA alignment
 
@@ -179,7 +181,7 @@ export function detectTrend(candles: Candle[], currentPrice?: number): TrendResu
       strength += 10; // Moderate separation
     }
 
-    // Boost if price above EMAs (trend continuation)
+    // Boost if price above BOTH EMAs (clean trend continuation)
     if (priceAboveEma20 && priceAboveEma50) {
       strength += 10;
     }
@@ -189,8 +191,8 @@ export function detectTrend(candles: Candle[], currentPrice?: number): TrendResu
       strength += 10;
     }
   }
-  // ✅ DOWNTREND: EMA20 < EMA50 (price can be anywhere - allows pullbacks!)
-  else if (emaAlignedDown && emaSeparation > 0.2) {
+  // ✅ DOWNTREND: EMA20 < EMA50 AND price below at least ONE EMA
+  else if (emaAlignedDown && emaSeparation > 0.2 && (priceBelowEma20 || priceBelowEma50)) {
     direction = 'DOWNTREND';
     strength = 50; // Base strength for EMA alignment
 
@@ -201,7 +203,7 @@ export function detectTrend(candles: Candle[], currentPrice?: number): TrendResu
       strength += 10; // Moderate separation
     }
 
-    // Boost if price below EMAs (trend continuation)
+    // Boost if price below BOTH EMAs (clean trend continuation)
     if (priceBelowEma20 && priceBelowEma50) {
       strength += 10;
     }
@@ -211,7 +213,7 @@ export function detectTrend(candles: Candle[], currentPrice?: number): TrendResu
       strength += 10;
     }
   }
-  // SIDEWAYS: EMAs too close (< 0.2% separation)
+  // SIDEWAYS: EMAs too close OR price violates BOTH EMA checks
   else {
     direction = 'SIDEWAYS';
     strength = 0;
@@ -226,11 +228,14 @@ export function detectTrend(candles: Candle[], currentPrice?: number): TrendResu
     price: price.toFixed(2),
     ema20: ema20.toFixed(2),
     ema50: ema50.toFixed(2),
-    emaSeparation: `${emaSeparation.toFixed(2)}%`, // ✅ NEW: Show EMA separation
+    emaSeparation: `${emaSeparation.toFixed(2)}%`,
     emaAlignment: emaAlignedUp ? 'UP' : emaAlignedDown ? 'DOWN' : 'NEUTRAL',
-    pricePosition: priceAboveEma20 ? 'ABOVE EMA20' : 'BELOW EMA20',
+    priceVsEma20: priceAboveEma20 ? 'ABOVE' : 'BELOW',
+    priceVsEma50: priceAboveEma50 ? 'ABOVE' : 'BELOW',
     swingStructure,
-    note: direction !== 'SIDEWAYS' ? '✅ Pullbacks allowed!' : 'EMAs too close',
+    note: direction !== 'SIDEWAYS' 
+      ? '✅ Price above at least ONE EMA - pullback allowed!' 
+      : 'EMAs too close OR price below both EMAs',
   });
 
   return {
@@ -240,7 +245,10 @@ export function detectTrend(candles: Candle[], currentPrice?: number): TrendResu
     ema50,
     details: {
       emaAlignment: direction === 'UPTREND' ? emaAlignedUp : emaAlignedDown,
-      priceVsEma: direction === 'UPTREND' ? priceAboveEma20 : priceBelowEma20,
+      // ✅ FIX: priceVsEma should reflect new OR condition (at least ONE EMA)
+      priceVsEma: direction === 'UPTREND' 
+        ? (priceAboveEma20 || priceAboveEma50)  // UPTREND: price above at least one EMA
+        : (priceBelowEma20 || priceBelowEma50), // DOWNTREND: price below at least one EMA
       swingStructure,
     },
   };
