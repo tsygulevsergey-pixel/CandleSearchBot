@@ -900,10 +900,10 @@ export class BinanceTradeExecutor {
     direction: 'LONG' | 'SHORT';
     newSlPrice: number;
     quantity: number;
-    liveTradeId: number;
+    signalId: number;
     correlationId: string;
   }): Promise<{ success: boolean; newSlOrderId?: string; error?: string }> {
-    const { symbol, direction, newSlPrice, quantity, liveTradeId, correlationId } = params;
+    const { symbol, direction, newSlPrice, quantity, signalId, correlationId } = params;
     
     console.log(`\n${'='.repeat(80)}`);
     console.log(`🔄 [BinanceTradeExecutor][${correlationId}] Updating Trailing Stop...`);
@@ -911,24 +911,25 @@ export class BinanceTradeExecutor {
     console.log(`   Direction: ${direction}`);
     console.log(`   New SL Price: ${newSlPrice.toFixed(8)}`);
     console.log(`   Quantity: ${quantity}`);
+    console.log(`   Signal ID: ${signalId}`);
     console.log(`${'='.repeat(80)}\n`);
     
     try {
       // Step 1: Get old SL order ID from database
-      const liveTrade = await liveTradesDB.getLiveTrade(liveTradeId);
+      const liveTrade = await liveTradesDB.getLiveTradeBySignalId(signalId);
       if (!liveTrade) {
-        throw new Error(`Live trade ${liveTradeId} not found in database`);
+        throw new Error(`Live trade for signal ${signalId} not found in database`);
       }
       
       const oldSlOrderId = liveTrade.slOrderId;
       if (!oldSlOrderId) {
-        throw new Error(`No SL order ID found for live trade ${liveTradeId}`);
+        throw new Error(`No SL order ID found for signal ${signalId}`);
       }
       
-      console.log(`📝 [BinanceTradeExecutor][${correlationId}] Found old SL order: ${oldSlOrderId}`);
+      console.log(`📝 [BinanceTradeExecutor][${correlationId}] Found live trade ${liveTrade.id}, old SL order: ${oldSlOrderId}`);
       
       // Step 2: Round SL price to valid precision
-      const roundedSlPrice = this.roundPriceToStep(symbol, newSlPrice);
+      const roundedSlPrice = await this.roundPrice(symbol, newSlPrice);
       console.log(`📏 [BinanceTradeExecutor][${correlationId}] Rounded SL: ${roundedSlPrice} (from ${newSlPrice})`);
       
       // Step 3: Cancel old SL order
@@ -982,11 +983,11 @@ export class BinanceTradeExecutor {
       });
       
       // Step 5: Update database with new SL order ID
-      console.log(`💾 [BinanceTradeExecutor][${correlationId}] Updating live trade in DB...`);
-      await liveTradesDB.updateLiveTrade(liveTradeId, {
+      console.log(`💾 [BinanceTradeExecutor][${correlationId}] Updating live trade ${liveTrade.id} in DB...`);
+      await liveTradesDB.updateLiveTrade(liveTrade.id, {
         slOrderId: newSlOrderId,
       });
-      console.log(`✅ [BinanceTradeExecutor][${correlationId}] Live trade updated in DB`);
+      console.log(`✅ [BinanceTradeExecutor][${correlationId}] Live trade ${liveTrade.id} updated in DB`);
       
       // Step 6: Update orderPairs Map (for auto-cancellation tracking)
       const entryOrderId = liveTrade.entryOrderId;
