@@ -56,6 +56,25 @@ export class BinanceClient {
   async getTradingPairs(): Promise<string[]> {
     console.log('📊 [BinanceClient] Fetching trading pairs from Binance...');
     
+    // Step 1: Get exchangeInfo to filter only TRADING pairs (excludes delisted coins)
+    const exchangeInfoResponse = await binanceRateLimiter.executeRequest(10, async () => {
+      return await axiosInstance.get(`${BINANCE_FUTURES_API}/fapi/v1/exchangeInfo`);
+    });
+    binanceRateLimiter.updateWeightFromResponse(exchangeInfoResponse.headers);
+    
+    const activeSymbols = new Set(
+      exchangeInfoResponse.data.symbols
+        .filter((s: any) => 
+          s.status === 'TRADING' && 
+          s.contractType === 'PERPETUAL' &&
+          s.symbol.endsWith('USDT')
+        )
+        .map((s: any) => s.symbol)
+    );
+    
+    console.log(`✅ [BinanceClient] Found ${activeSymbols.size} active USDT perpetual futures`);
+    
+    // Step 2: Get 24hr tickers for volume filtering
     const response = await binanceRateLimiter.executeRequest(40, async () => {
       return await axiosInstance.get(`${BINANCE_FUTURES_API}/fapi/v1/ticker/24hr`);
     });
@@ -64,11 +83,11 @@ export class BinanceClient {
 
     const tickers: Ticker24hr[] = response.data;
     const usdtPairs = tickers
-      .filter((ticker) => ticker.symbol.endsWith('USDT'))
-      .filter((ticker) => parseFloat(ticker.quoteVolume) > 10_000_000) // More pairs to scan
+      .filter((ticker) => activeSymbols.has(ticker.symbol)) // Only active TRADING pairs
+      .filter((ticker) => parseFloat(ticker.quoteVolume) > 10_000_000) // Volume > 10M
       .map((ticker) => ticker.symbol);
 
-    console.log(`✅ [BinanceClient] Found ${usdtPairs.length} USDT pairs with volume > 10M`);
+    console.log(`✅ [BinanceClient] Found ${usdtPairs.length} active USDT pairs with volume > 10M`);
     return usdtPairs;
   }
 
