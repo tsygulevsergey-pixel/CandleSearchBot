@@ -53,19 +53,7 @@ export interface Ticker24hr {
 }
 
 export class BinanceClient {
-  private cachedPairs: string[] = [];
-  private cacheTimestamp: number = 0;
-  private CACHE_TTL = 60 * 60 * 1000; // 1 hour cache
-
   async getTradingPairs(): Promise<string[]> {
-    // Check cache validity (1 hour TTL)
-    const now = Date.now();
-    if (this.cachedPairs.length > 0 && (now - this.cacheTimestamp) < this.CACHE_TTL) {
-      const cacheAge = Math.floor((now - this.cacheTimestamp) / 1000 / 60);
-      console.log(`💾 [BinanceClient] Using cached trading pairs (${this.cachedPairs.length} pairs, age: ${cacheAge} min)`);
-      return this.cachedPairs;
-    }
-
     console.log('📊 [BinanceClient] Fetching trading pairs from Binance...');
     
     // Step 1: Get exchangeInfo to filter only TRADING pairs (excludes delisted coins)
@@ -100,12 +88,6 @@ export class BinanceClient {
       .map((ticker) => ticker.symbol);
 
     console.log(`✅ [BinanceClient] Found ${usdtPairs.length} active USDT pairs with volume > 10M`);
-    
-    // Update cache
-    this.cachedPairs = usdtPairs;
-    this.cacheTimestamp = now;
-    console.log(`💾 [BinanceClient] Trading pairs cached for 1 hour`);
-    
     return usdtPairs;
   }
 
