@@ -63,6 +63,7 @@ export const signals = pgTable('signals', {
   partialClosed: decimal('partial_closed', { precision: 5, scale: 2 }).default('0.00'),
   beActivated: boolean('be_activated').default(false),
   trailingActivated: boolean('trailing_activated').default(false),
+  trailingAlertSent: boolean('trailing_alert_sent').default(false), // NEW: Track if "no live trade" alert was sent
   
   // Exit tracking
   exitType: text('exit_type'),

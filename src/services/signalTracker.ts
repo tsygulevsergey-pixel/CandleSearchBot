@@ -193,8 +193,11 @@ export class SignalTracker {
               console.error(`   ⚠️ Cannot update SL on Binance - skipping trailing stop activation`);
               console.error(`   ⚠️ This prevents DB/Binance inconsistency!`);
               
-              // Send Telegram alert for ops team
-              const alertMessage = `
+              // ✅ NEW: Send Telegram alert ONLY ONCE (not every minute)
+              if (!signal.trailingAlertSent) {
+                console.log(`📨 [SignalTracker][${correlationId}] Sending trailing stop blocked alert (first time only)...`);
+                
+                const alertMessage = `
 ⚠️ <b>TRAILING STOP ACTIVATION BLOCKED</b> ⚠️
 
 💎 <b>Symbol:</b> ${signal.symbol}
@@ -209,9 +212,20 @@ export class SignalTracker {
 
 🚨 <b>Action Required:</b> Investigate why live trade record is missing
 ⚠️ <b>Status:</b> Trailing stop NOT activated to prevent inconsistency
-              `.trim();
-              
-              await this.sendTelegramMessage(alertMessage);
+                `.trim();
+                
+                // Send as reply to original signal message (if available)
+                await this.sendTelegramMessage(alertMessage, signal.telegramMessageId || undefined);
+                
+                // Mark alert as sent to prevent spam
+                await signalDB.updateSignal(signal.id, {
+                  trailingAlertSent: true,
+                });
+                
+                console.log(`✅ [SignalTracker][${correlationId}] Alert sent and marked - will not send again`);
+              } else {
+                console.log(`⏭️ [SignalTracker][${correlationId}] Alert already sent previously - skipping to prevent spam`);
+              }
               
               // ✅ SHORT-CIRCUIT: Skip both DB update AND local state update
               // This prevents marking trailingActivated when Binance wasn't touched
