@@ -890,6 +890,139 @@ export class BinanceTradeExecutor {
   }
 
   /**
+   * Update trailing stop on Binance (modify live SL order)
+   * Called when SignalTracker activates trailing stop at 1.0R
+   * 
+   * @returns { success: boolean; newSlOrderId?: string; error?: string }
+   */
+  async updateTrailingStop(params: {
+    symbol: string;
+    direction: 'LONG' | 'SHORT';
+    newSlPrice: number;
+    quantity: number;
+    liveTradeId: number;
+    correlationId: string;
+  }): Promise<{ success: boolean; newSlOrderId?: string; error?: string }> {
+    const { symbol, direction, newSlPrice, quantity, liveTradeId, correlationId } = params;
+    
+    console.log(`\n${'='.repeat(80)}`);
+    console.log(`🔄 [BinanceTradeExecutor][${correlationId}] Updating Trailing Stop...`);
+    console.log(`   Symbol: ${symbol}`);
+    console.log(`   Direction: ${direction}`);
+    console.log(`   New SL Price: ${newSlPrice.toFixed(8)}`);
+    console.log(`   Quantity: ${quantity}`);
+    console.log(`${'='.repeat(80)}\n`);
+    
+    try {
+      // Step 1: Get old SL order ID from database
+      const liveTrade = await liveTradesDB.getLiveTrade(liveTradeId);
+      if (!liveTrade) {
+        throw new Error(`Live trade ${liveTradeId} not found in database`);
+      }
+      
+      const oldSlOrderId = liveTrade.slOrderId;
+      if (!oldSlOrderId) {
+        throw new Error(`No SL order ID found for live trade ${liveTradeId}`);
+      }
+      
+      console.log(`📝 [BinanceTradeExecutor][${correlationId}] Found old SL order: ${oldSlOrderId}`);
+      
+      // Step 2: Round SL price to valid precision
+      const roundedSlPrice = this.roundPriceToStep(symbol, newSlPrice);
+      console.log(`📏 [BinanceTradeExecutor][${correlationId}] Rounded SL: ${roundedSlPrice} (from ${newSlPrice})`);
+      
+      // Step 3: Cancel old SL order
+      console.log(`❌ [BinanceTradeExecutor][${correlationId}] Cancelling old SL order ${oldSlOrderId}...`);
+      
+      const cancelParams: any = {
+        symbol,
+        orderId: parseInt(oldSlOrderId),
+      };
+      
+      if (this.isHedgeMode) {
+        cancelParams.positionSide = direction; // Required in Hedge Mode
+      }
+      
+      try {
+        await this.client.cancelOrder(cancelParams);
+        console.log(`✅ [BinanceTradeExecutor][${correlationId}] Old SL order cancelled successfully`);
+      } catch (cancelError: any) {
+        // Order might already be filled/cancelled - this is OK if position is still open
+        console.warn(`⚠️ [BinanceTradeExecutor][${correlationId}] Failed to cancel old SL: ${cancelError.message}`);
+        console.warn(`   Continuing with new SL order placement...`);
+      }
+      
+      // Step 4: Place new SL order
+      const slSide = direction === 'LONG' ? 'SELL' : 'BUY';
+      
+      const slOrderParams: any = {
+        symbol,
+        side: slSide,
+        type: 'STOP_MARKET',
+        quantity,
+        stopPrice: roundedSlPrice,
+        reduceOnly: 'true', // CRITICAL: only close position, don't open new one
+        workingType: 'MARK_PRICE', // Use mark price to avoid manipulation
+        priceProtect: 'TRUE', // Prevent execution at extreme prices
+      };
+      
+      if (this.isHedgeMode) {
+        slOrderParams.positionSide = direction; // 'LONG' or 'SHORT'
+        console.log(`📤 [BinanceTradeExecutor][${correlationId}] Placing new SL at ${roundedSlPrice} (Hedge Mode)...`);
+      } else {
+        console.log(`📤 [BinanceTradeExecutor][${correlationId}] Placing new SL at ${roundedSlPrice} (One-way Mode)...`);
+      }
+      
+      const newSlOrder = await this.client.submitNewOrder(slOrderParams);
+      const newSlOrderId = newSlOrder.orderId.toString();
+      
+      console.log(`✅ [BinanceTradeExecutor][${correlationId}] New SL order placed:`, {
+        orderId: newSlOrderId,
+        stopPrice: roundedSlPrice,
+      });
+      
+      // Step 5: Update database with new SL order ID
+      console.log(`💾 [BinanceTradeExecutor][${correlationId}] Updating live trade in DB...`);
+      await liveTradesDB.updateLiveTrade(liveTradeId, {
+        slOrderId: newSlOrderId,
+      });
+      console.log(`✅ [BinanceTradeExecutor][${correlationId}] Live trade updated in DB`);
+      
+      // Step 6: Update orderPairs Map (for auto-cancellation tracking)
+      const entryOrderId = liveTrade.entryOrderId;
+      const tpOrderId = liveTrade.tpOrderId;
+      
+      if (entryOrderId && tpOrderId) {
+        this.orderPairs.set(entryOrderId, {
+          slOrderId: newSlOrderId,
+          tpOrderId,
+          symbol,
+        });
+        console.log(`✅ [BinanceTradeExecutor][${correlationId}] OrderPairs Map updated`);
+      }
+      
+      console.log(`\n${'='.repeat(80)}`);
+      console.log(`✅ [BinanceTradeExecutor][${correlationId}] Trailing Stop Updated Successfully!`);
+      console.log(`   Old SL Order: ${oldSlOrderId}`);
+      console.log(`   New SL Order: ${newSlOrderId} @ ${roundedSlPrice}`);
+      console.log(`${'='.repeat(80)}\n`);
+      
+      return {
+        success: true,
+        newSlOrderId,
+      };
+    } catch (error: any) {
+      console.error(`❌ [BinanceTradeExecutor][${correlationId}] Failed to update trailing stop:`, error.message);
+      console.error(error);
+      
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
    * Cleanup resources on shutdown
    * Clear keepalive interval and close WebSocket connection
    */
