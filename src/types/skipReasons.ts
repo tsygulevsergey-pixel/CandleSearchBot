@@ -41,6 +41,7 @@ export const SKIP_REASONS = {
   // Trend alignment
   COUNTERTREND_WITHOUT_CONFIRM: 'countertrend_without_confirm',
   TREND_MISALIGNMENT: 'trend_misalignment', // 15m pattern not aligned with 15m trend
+  RECENT_DIRECTION_CONFLICT: 'recent_direction_conflict', // Local price movement against signal direction (trend vs recent)
   
   // Optional filters
   LIQUIDITY_SPREAD_ISSUE: 'liquidity_spread_issue',

@@ -267,6 +267,64 @@ export class Scanner {
                 // 📊 DATA COLLECTION: Log swing density for analysis
                 console.log(`📊 [15m Swing Data] ${symbol}: swingCount20=${contextAnalysis.swingCount20}`);
                 
+                // ✅ NEW: Recent Direction Filter - отклонять конфликты (trend vs recent)
+                // Если локальное движение ПРОТИВ направления сигнала → отклонить
+                const isRecentConflict = (
+                  (pattern.direction === 'SHORT' && trend.direction === 'DOWNTREND' && contextAnalysis.recentDirection === 'bullish') ||
+                  (pattern.direction === 'LONG' && trend.direction === 'UPTREND' && contextAnalysis.recentDirection === 'bearish')
+                );
+                
+                if (isRecentConflict) {
+                  console.log(`❌ [Recent Direction Filter] Signal REJECTED - локальное движение против сигнала`);
+                  console.log(`   ⚠️ Signal: ${pattern.direction}, Trend: ${trend.direction}, Recent: ${contextAnalysis.recentDirection}`);
+                  console.log(`   ⚠️ Причина: Вход против локального движения (recent ${contextAnalysis.recentDirection})`);
+                  console.log(`   ⚠️ Скипаем ${symbol} - анализ показал 23.5% таких сигналов заканчиваются SL`);
+                  
+                  // Log as near-miss skip for ML analysis
+                  const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
+                  await logNearMissSkipFull({
+                    symbol,
+                    timeframe,
+                    patternType: pattern.type,
+                    entryPrice,
+                    direction: pattern.direction,
+                    skipReason: SKIP_REASONS.RECENT_DIRECTION_CONFLICT,
+                    skipCategory: 'directional',
+                    confluenceScore: 0,
+                    confluenceFactors: {} as any,
+                    patternScore: pattern.score || 0,
+                    patternScoreFactors: {},
+                    mlContext: {
+                      trendDirection: trend.direction,
+                      trendStrength: trend.strength,
+                      ema20: trend.ema20,
+                      ema50: trend.ema50,
+                      recentDirection: contextAnalysis.recentDirection,
+                    } as any,
+                    atr15m: calculateATR(candles),
+                    atr1h: 0,
+                    atr4h: 0,
+                  });
+                  
+                  continue; // Skip this signal
+                }
+                
+                // ⚠️ WARNING: Choppy market - пропускаем, но помечаем как рискованный
+                const isChoppyMarket = (
+                  (pattern.direction === 'SHORT' && trend.direction === 'DOWNTREND' && contextAnalysis.recentDirection === 'choppy') ||
+                  (pattern.direction === 'LONG' && trend.direction === 'UPTREND' && contextAnalysis.recentDirection === 'choppy')
+                );
+                
+                if (isChoppyMarket) {
+                  console.log(`⚠️ [Recent Direction Warning] CHOPPY market detected - рискованная сделка`);
+                  console.log(`   Signal: ${pattern.direction}, Trend: ${trend.direction}, Recent: choppy`);
+                  console.log(`   💡 Локальная консолидация - сигнал пропускаем, но помечаем как рискованный`);
+                  console.log(`   📊 Анализ: 29.4% choppy сигналов имеют средний MFE 0.32R (хуже обычного)`);
+                }
+                
+                console.log(`✅ [Recent Direction Filter] Signal PASSED - ${isChoppyMarket ? 'CHOPPY (risky)' : 'recent движение согласовано'}`);
+                console.log(`   ✅ Signal: ${pattern.direction}, Trend: ${trend.direction}, Recent: ${contextAnalysis.recentDirection}`);
+                
                 // ❌ TEMPORARILY DISABLED: Swing Density Filter (collecting data first)
                 // Reason: Filter was too strict (≥11 swings = statistically rare for 20 candles)
                 // Architect found: swingCount20 >10 = CHOPPY (contradicts filter logic)
@@ -399,6 +457,11 @@ export class Scanner {
                 const directionText = pattern.direction === 'LONG' ? '🟢 LONG' : '🔴 SHORT';
                 const patternName = pattern.type.replace('_', ' ').toUpperCase();
                 
+                // ✅ Add choppy market warning to Telegram message
+                const choppyWarning = isChoppyMarket 
+                  ? `\n\n⚠️ <b>ПРЕДУПРЕЖДЕНИЕ:</b> Локальная консолидация (CHOPPY)\n📊 Рискованная сделка - цена может застрять в диапазоне`
+                  : '';
+                
                 const message = `
 🚨 <b>15M TREND SIGNAL ⚡</b> 🚨
 
@@ -417,7 +480,7 @@ export class Scanner {
 📊 <b>ATR (15m):</b> ${riskProfile.atr15m.toFixed(2)}%
 ⏱️ <b>Задержка:</b> ${elapsedSinceClose}s
 
-🎯 <b>Стратегия:</b> Trend-based scalping (15m)
+🎯 <b>Стратегия:</b> Trend-based scalping (15m)${choppyWarning}
               `.trim();
                 
                 const messageId = await this.sendTelegramMessage(message);
