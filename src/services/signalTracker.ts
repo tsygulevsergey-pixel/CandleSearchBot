@@ -63,6 +63,15 @@ export class SignalTracker {
 
           const currentPrice = await binanceClient.getCurrentPrice(signal.symbol);
           
+          // 🔍 DIAGNOSTIC: Validate currentPrice for trailing stop debugging
+          const correlationId = `${signal.symbol}_${signal.id}`;
+          if (currentPrice <= 0 || isNaN(currentPrice)) {
+            console.error(`❌ [SignalTracker][${correlationId}] CRITICAL: Invalid currentPrice=${currentPrice}`);
+            console.error(`   ⚠️ This will corrupt MFE/MAE calculations and prevent trailing stop activation!`);
+            console.error(`   ⚠️ Skipping this signal until valid price is available`);
+            continue; // Skip this signal to prevent corruption
+          }
+          
           // ✅ Smart TP3 detection: if tp2 and tp3 are equal (or very close), treat as single-level TP
           // This prevents TP3_HIT misdetection for 15m scalp signals where tp1=tp2=tp3=2R
           const tp2Value = parseFloat(signal.tp2Price);
@@ -86,11 +95,31 @@ export class SignalTracker {
             currentExcursion = (entryPrice - currentPrice) / R;
           }
           
+          // 🔍 DIAGNOSTIC: Log MFE calculation inputs and result
+          console.log(`📊 [SignalTracker][${correlationId}] MFE Calculation:`, {
+            currentPrice: currentPrice.toFixed(8),
+            entryPrice: entryPrice.toFixed(8),
+            slPrice: slPrice.toFixed(8),
+            R: R.toFixed(8),
+            direction: signal.direction,
+            currentExcursion: `${currentExcursion.toFixed(3)}R`,
+          });
+          
           // Update MFE (max profit) and MAE (max loss)
           const currentMFE = signal.mfeR ? parseFloat(signal.mfeR as any) : 0;
           const currentMAE = signal.maeR ? parseFloat(signal.maeR as any) : 0;
           const newMFE = Math.max(currentMFE, currentExcursion);
           const newMAE = Math.min(currentMAE, currentExcursion);
+          
+          // 🔍 DIAGNOSTIC: Log MFE/MAE updates
+          if (newMFE !== currentMFE || newMAE !== currentMAE) {
+            console.log(`📈 [SignalTracker][${correlationId}] MFE/MAE Updated:`, {
+              oldMFE: `${currentMFE.toFixed(3)}R`,
+              newMFE: `${newMFE.toFixed(3)}R`,
+              oldMAE: `${currentMAE.toFixed(3)}R`,
+              newMAE: `${newMAE.toFixed(3)}R`,
+            });
+          }
           
           // Update first_touch if not set and any level touched
           let firstTouch = signal.firstTouch;
@@ -125,22 +154,44 @@ export class SignalTracker {
           const isTrailingEligible = signal.strategyProfile === 'SCALP_15M';
           const trailingActivated = signal.trailingActivated || false;
           
+          // 🔍 DIAGNOSTIC: Log trailing stop eligibility check
+          console.log(`🔍 [SignalTracker][${correlationId}] Trailing Stop Check:`, {
+            strategyProfile: signal.strategyProfile,
+            isTrailingEligible,
+            trailingActivated,
+            newMFE: `${newMFE.toFixed(3)}R`,
+            threshold: '1.0R',
+            willActivate: isTrailingEligible && !trailingActivated && newMFE >= 1.0,
+          });
+          
           if (isTrailingEligible && !trailingActivated && newMFE >= 1.0) {
             // Достигнута прибыль 1.0R - активируем trailing stop на +0.5R
             const trailingSL = signal.direction === 'LONG'
               ? entryPrice + (R * 0.5)  // LONG: SL выше entry на 0.5R
               : entryPrice - (R * 0.5); // SHORT: SL ниже entry на 0.5R
             
-            console.log(`🔥 [Trailing Stop] ACTIVATED at 1.0R profit!`);
-            console.log(`   Moving SL from ${parseFloat(signal.currentSl).toFixed(8)} to ${trailingSL.toFixed(8)} (+0.5R)`);
-            console.log(`   This protects +0.5R profit instead of full -1R loss`);
+            console.log(`🔥 [Trailing Stop][${correlationId}] ACTIVATED at ${newMFE.toFixed(3)}R profit!`);
+            console.log(`   📍 Entry: ${entryPrice.toFixed(8)}`);
+            console.log(`   📍 Current Price: ${currentPrice.toFixed(8)}`);
+            console.log(`   📍 Old SL: ${parseFloat(signal.currentSl).toFixed(8)}`);
+            console.log(`   📍 New SL: ${trailingSL.toFixed(8)} (+0.5R from entry)`);
+            console.log(`   💰 Profit Protection: -1R loss → +0.5R profit guaranteed`);
+            console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
             
-            // Обновляем SL в БД и устанавливаем флаг trailingActivated
-            await signalDB.updateTrailingStop(signal.id, trailingSL.toString(), true);
+            // 🔍 DIAGNOSTIC: Log DB update attempt
+            console.log(`💾 [SignalTracker][${correlationId}] Updating trailing stop in DB...`);
+            try {
+              await signalDB.updateTrailingStop(signal.id, trailingSL.toString(), true);
+              console.log(`✅ [SignalTracker][${correlationId}] Trailing stop updated in DB successfully`);
+            } catch (dbError: any) {
+              console.error(`❌ [SignalTracker][${correlationId}] DB update failed:`, dbError.message);
+              throw dbError; // Re-throw to prevent false positive
+            }
             
-            // Обновляем локальную переменную для дальнейшей проверки
+            // 🔍 DIAGNOSTIC: Log local state update
             signal.currentSl = trailingSL.toString();
             signal.trailingActivated = true;
+            console.log(`✅ [SignalTracker][${correlationId}] Local state updated: currentSl=${signal.currentSl}, trailingActivated=true`);
           }
           
           console.log(`🔍 [SignalTracker] Checking ${signal.symbol} (ID: ${signal.id}):`, {
