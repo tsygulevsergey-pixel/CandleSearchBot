@@ -198,20 +198,20 @@ export class SignalTracker {
                 console.log(`📨 [SignalTracker][${correlationId}] Sending trailing stop blocked alert (first time only)...`);
                 
                 const alertMessage = `
-⚠️ <b>TRAILING STOP ACTIVATION BLOCKED</b> ⚠️
+⚠️ <b>АКТИВАЦИЯ TRAILING STOP ЗАБЛОКИРОВАНА</b> ⚠️
 
-💎 <b>Symbol:</b> ${signal.symbol}
-📊 <b>Signal ID:</b> ${signal.id}
-💰 <b>MFE:</b> ${newMFE.toFixed(3)}R (reached 1.0R threshold)
+💎 <b>Символ:</b> ${signal.symbol}
+📊 <b>ID Сигнала:</b> ${signal.id}
+💰 <b>MFE:</b> ${newMFE.toFixed(3)}R (достиг порога 1.0R)
 
-❌ <b>Issue:</b> No live trade record found in database
-🔧 <b>Possible Causes:</b>
-  - Trade opened manually (not by bot)
-  - Database drift/corruption
-  - Paper trading signal (trading disabled)
+❌ <b>Проблема:</b> Нет записи live trade в базе данных
+🔧 <b>Возможные причины:</b>
+  - Сделка открыта вручную (не ботом)
+  - Рассинхронизация базы данных
+  - Paper trading (торговля выключена)
 
-🚨 <b>Action Required:</b> Investigate why live trade record is missing
-⚠️ <b>Status:</b> Trailing stop NOT activated to prevent inconsistency
+🚨 <b>Требуется:</b> Проверить почему отсутствует запись live trade
+⚠️ <b>Статус:</b> Trailing stop НЕ активирован для предотвращения рассинхронизации
                 `.trim();
                 
                 // Send as reply to original signal message (if available)
@@ -252,16 +252,16 @@ export class SignalTracker {
               
               // Send Telegram alert
               const alertMessage = `
-⚠️ <b>TRAILING STOP UPDATE FAILED</b> ⚠️
+⚠️ <b>ОШИБКА ОБНОВЛЕНИЯ TRAILING STOP</b> ⚠️
 
-💎 <b>Symbol:</b> ${signal.symbol}
-📊 <b>Signal ID:</b> ${signal.id}
-💰 <b>MFE:</b> ${newMFE.toFixed(3)}R (reached 1.0R threshold)
+💎 <b>Символ:</b> ${signal.symbol}
+📊 <b>ID Сигнала:</b> ${signal.id}
+💰 <b>MFE:</b> ${newMFE.toFixed(3)}R (достиг порога 1.0R)
 
-❌ <b>Binance API Error:</b> ${binanceResult.error}
+❌ <b>Ошибка Binance API:</b> ${binanceResult.error}
 
-🔧 <b>Status:</b> Original SL unchanged (${parseFloat(signal.currentSl).toFixed(8)})
-⚠️ <b>Action Required:</b> Monitor position manually or check API connectivity
+🔧 <b>Статус:</b> Исходный SL без изменений (${parseFloat(signal.currentSl).toFixed(8)})
+⚠️ <b>Требуется:</b> Проверить позицию вручную или проверить подключение к API
               `.trim();
               
               await this.sendTelegramMessage(alertMessage);
@@ -447,7 +447,7 @@ export class SignalTracker {
             const message = `
 ${statusEmoji} <b>ОБНОВЛЕНИЕ СИГНАЛА</b> ${statusEmoji}
 
-🆔 Signal ID: ${signal.id}
+🆔 <b>ID Сигнала:</b> ${signal.id}
 💎 <b>Монета:</b> ${signal.symbol}
 📊 <b>Направление:</b> ${directionText}
 ⏰ <b>Таймфрейм:</b> ${signal.timeframe}
