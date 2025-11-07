@@ -264,8 +264,14 @@ export class Scanner {
                   reason: contextQuality.reason,
                 });
                 
-                // ✅ NEW: Swing Density Filter - требуем минимум 11 свингов для качественного сигнала
-                // Анализ показал: <11 свингов = 39-44% WR, >=11 свингов = 67.4% WR (+23% улучшение!)
+                // 📊 DATA COLLECTION: Log swing density for analysis
+                console.log(`📊 [15m Swing Data] ${symbol}: swingCount20=${contextAnalysis.swingCount20}`);
+                
+                // ❌ TEMPORARILY DISABLED: Swing Density Filter (collecting data first)
+                // Reason: Filter was too strict (≥11 swings = statistically rare for 20 candles)
+                // Architect found: swingCount20 >10 = CHOPPY (contradicts filter logic)
+                // Action: Collecting live data to determine realistic threshold (expected: 6-8)
+                /*
                 const MIN_SWING_COUNT = 11;
                 if (contextAnalysis.swingCount20 < MIN_SWING_COUNT) {
                   console.log(`❌ [15m Swing Filter] Signal REJECTED - low swing density`);
@@ -303,6 +309,7 @@ export class Scanner {
                 
                 console.log(`✅ [15m Swing Filter] Swing density PASSED - ${contextAnalysis.swingCount20} swings (>=${MIN_SWING_COUNT})`);
                 console.log(`   ✅ High-quality market with sufficient swing activity`);
+                */
                 
                 // Create minimal enriched ML context for 15m (no multi-TF data needed)
                 const enrichedMLContext = {
