@@ -315,7 +315,8 @@ export class SignalTracker {
             tp2Value,
             tp3ForCheck, // ✅ null if tp3=tp2 (single-level), prevents TP3_HIT misdetection
             signal.direction,
-            signal.status
+            signal.status,
+            signal.trailingActivated || false // ✅ Pass trailing stop flag for BE_HIT detection
           );
 
           if (newStatus !== signal.status) {

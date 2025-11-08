@@ -516,7 +516,8 @@ export class RiskCalculator {
     tp2: number,
     tp3: number | null,
     direction: 'LONG' | 'SHORT',
-    currentStatus: string
+    currentStatus: string,
+    trailingActivated?: boolean
   ): { newStatus: string; newSl?: number } {
     // Check high/low of ALL recent candles (including current open candle)
     // Priority: TP3 > TP2 > TP1 > SL (if multiple hit in same candle, highest TP takes precedence)
@@ -579,6 +580,21 @@ export class RiskCalculator {
           console.log(`⚠️ [RiskCalculator] Both TP1 and SL hit in same candle! Prioritizing TP1`);
           return { newStatus: 'TP1_HIT', newSl: entryPrice };
         }
+        
+        // ✅ NEW: Check if BE_HIT instead of SL_HIT
+        // Case 1: Trailing stop activated (SL = entry + 0.5R) → BE_HIT with +0.5R profit
+        if (trailingActivated) {
+          console.log(`🔥 [RiskCalculator] TRAILING STOP HIT (BE_HIT)! low=${low.toFixed(8)} <= sl=${currentSl.toFixed(8)}, trailingActivated=true`);
+          return { newStatus: 'BE_HIT' };
+        }
+        
+        // Case 2: Standard breakeven (SL = entry after TP1/TP2) → BE_HIT with partial profit
+        if (Math.abs(currentSl - entryPrice) < 0.00000001) { // Float comparison with tolerance
+          console.log(`⚖️ [RiskCalculator] BREAKEVEN HIT! low=${low.toFixed(8)} <= sl=${currentSl.toFixed(8)} (equals entry=${entryPrice.toFixed(8)})`);
+          return { newStatus: 'BE_HIT' };
+        }
+        
+        // Case 3: Regular stop loss
         console.log(`🛑 [RiskCalculator] SL HIT! low=${low.toFixed(8)} <= sl=${currentSl.toFixed(8)}`);
         return { newStatus: 'SL_HIT' };
       }
@@ -620,6 +636,21 @@ export class RiskCalculator {
           console.log(`⚠️ [RiskCalculator] Both TP1 and SL hit in same candle! Prioritizing TP1`);
           return { newStatus: 'TP1_HIT', newSl: entryPrice };
         }
+        
+        // ✅ NEW: Check if BE_HIT instead of SL_HIT
+        // Case 1: Trailing stop activated (SL = entry - 0.5R for SHORT) → BE_HIT with +0.5R profit
+        if (trailingActivated) {
+          console.log(`🔥 [RiskCalculator] TRAILING STOP HIT (BE_HIT)! high=${high.toFixed(8)} >= sl=${currentSl.toFixed(8)}, trailingActivated=true`);
+          return { newStatus: 'BE_HIT' };
+        }
+        
+        // Case 2: Standard breakeven (SL = entry after TP1/TP2) → BE_HIT with partial profit
+        if (Math.abs(currentSl - entryPrice) < 0.00000001) { // Float comparison with tolerance
+          console.log(`⚖️ [RiskCalculator] BREAKEVEN HIT! high=${high.toFixed(8)} >= sl=${currentSl.toFixed(8)} (equals entry=${entryPrice.toFixed(8)})`);
+          return { newStatus: 'BE_HIT' };
+        }
+        
+        // Case 3: Regular stop loss
         console.log(`🛑 [RiskCalculator] SL HIT! high=${high.toFixed(8)} >= sl=${currentSl.toFixed(8)}`);
         return { newStatus: 'SL_HIT' };
       }
