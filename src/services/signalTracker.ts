@@ -319,6 +319,53 @@ export class SignalTracker {
           if (newStatus !== signal.status) {
             console.log(`🔄 [SignalTracker] Status change detected: ${signal.status} → ${newStatus}`);
 
+            // ✅ CRITICAL: Check if live trade exists before closing signal
+            // Prevents fake TP/SL messages for signals without real trades
+            const isFinalStatus = ['TP1_HIT', 'TP2_HIT', 'TP3_HIT', 'SL_HIT', 'BE_HIT'].includes(newStatus);
+            
+            if (isFinalStatus) {
+              const liveTrade = await liveTradesDB.getLiveTradeBySignalId(signal.id);
+              
+              if (!liveTrade) {
+                console.error(`❌ [SignalTracker] CRITICAL: Signal #${signal.id} reached ${newStatus} but NO LIVE TRADE exists!`);
+                console.error(`   ⚠️ This is a PAPER/THEORETICAL result, not a real trade`);
+                console.error(`   ⚠️ Skipping status update to prevent fake statistics`);
+                
+                // Send one-time alert to admin
+                if (!signal.trailingAlertSent) {
+                  const alertMessage = `
+⚠️ <b>ТЕОРЕТИЧЕСКИЙ СИГНАЛ БЕЗ СДЕЛКИ</b> ⚠️
+
+💎 <b>Символ:</b> ${signal.symbol}
+📊 <b>ID Сигнала:</b> ${signal.id}
+📈 <b>Статус:</b> ${newStatus} (теоретический)
+💰 <b>Текущая цена:</b> ${currentPrice.toFixed(8)}
+
+❌ <b>Проблема:</b> Нет live trade в базе данных
+🔧 <b>Причины:</b>
+  - Сделка не открылась (ошибка API, баланс, и т.д.)
+  - Сигнал создан вручную
+  - Бот был выключен при создании сигнала
+
+⚠️ <b>Действие:</b> Сигнал НЕ обновлен, НЕ попадет в статистику
+🔍 <b>Проверьте логи:</b> pm2 logs crypto-bot | grep "Signal #${signal.id}"
+                  `.trim();
+                  
+                  await this.sendTelegramMessage(alertMessage, signal.telegramMessageId || undefined);
+                  
+                  // Mark to prevent spam
+                  await signalDB.updateSignal(signal.id, {
+                    trailingAlertSent: true,
+                  });
+                }
+                
+                // Skip status update - DO NOT mark as closed
+                continue;
+              }
+              
+              console.log(`✅ [SignalTracker] Live trade #${liveTrade.id} found for signal #${signal.id} - proceeding with closure`);
+            }
+
             // ✅ NEW: Calculate time to TP/SL in minutes
             const signalCreatedAt = new Date(signal.createdAt).getTime();
             const now = Date.now();
