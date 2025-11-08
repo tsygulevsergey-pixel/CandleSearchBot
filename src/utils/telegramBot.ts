@@ -765,6 +765,9 @@ ${statusEmoji} <b>Статус:</b> ${statusText}
       // Execute deletion
       const result = await signalDB.clearAllData();
       
+      const avgPnlR = statsBefore.avgPnlR ?? 0;
+      const winRate = statsBefore.winRate ?? 0;
+      
       const message = `
 ✅ <b>ДАННЫЕ УСПЕШНО УДАЛЕНЫ</b>
 
@@ -777,8 +780,8 @@ ${statusEmoji} <b>Статус:</b> ${statusText}
 
 📊 <b>Была статистика:</b>
 • Всего сигналов: ${statsBefore.total}
-• Win Rate: ${statsBefore.winRate}%
-• Средний PnL: ${statsBefore.avgPnlR.toFixed(2)}R
+• Win Rate: ${winRate.toFixed(1)}%
+• Средний PnL: ${avgPnlR.toFixed(2)}R
 
 🔄 <b>Статистика обнулена!</b>
 
