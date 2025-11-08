@@ -75,6 +75,14 @@ export const signals = pgTable('signals', {
   // ATR context
   atr15m: decimal('atr_15m', { precision: 18, scale: 8 }),
   atrH4: decimal('atr_h4', { precision: 18, scale: 8 }),
+  atr24h: decimal('atr_24h', { precision: 18, scale: 8 }), // Average ATR over 24h
+  
+  // NEW: Liquidity metrics (for analyzing market quality)
+  spreadPercent: decimal('spread_percent', { precision: 10, scale: 6 }), // Bid-ask spread in %
+  depth1PctBid: decimal('depth_1pct_bid', { precision: 18, scale: 2 }), // Liquidity depth at -1% (USDT)
+  depth1PctAsk: decimal('depth_1pct_ask', { precision: 18, scale: 2 }), // Liquidity depth at +1% (USDT)
+  orderBookImbalance: decimal('order_book_imbalance', { precision: 10, scale: 4 }), // Bid/Ask imbalance ratio
+  volume24hUsdt: decimal('volume_24h_usdt', { precision: 18, scale: 2 }), // 24h volume in USDT
   
   // NEW: ML context fields (for ENTER trades)
   distToDirH1ZoneAtr: decimal('dist_to_dir_h1_zone_atr', { precision: 10, scale: 4 }),
@@ -176,6 +184,14 @@ export const nearMissSkips = pgTable('near_miss_skips', {
   atr15m: decimal('atr_15m', { precision: 18, scale: 8 }).notNull(),
   atr1h: decimal('atr_1h', { precision: 18, scale: 8 }).notNull(),
   atr4h: decimal('atr_4h', { precision: 18, scale: 8 }).notNull(),
+  atr24h: decimal('atr_24h', { precision: 18, scale: 8 }), // Average ATR over 24h
+  
+  // Liquidity metrics
+  spreadPercent: decimal('spread_percent', { precision: 10, scale: 6 }), // Bid-ask spread in %
+  depth1PctBid: decimal('depth_1pct_bid', { precision: 18, scale: 2 }), // Liquidity depth at -1% (USDT)
+  depth1PctAsk: decimal('depth_1pct_ask', { precision: 18, scale: 2 }), // Liquidity depth at +1% (USDT)
+  orderBookImbalance: decimal('order_book_imbalance', { precision: 10, scale: 4 }), // Bid/Ask imbalance ratio
+  volume24hUsdt: decimal('volume_24h_usdt', { precision: 18, scale: 2 }), // 24h volume in USDT
   
   // Trend context
   ema200H1Pos: ema200PositionEnum('ema200_1h_pos').notNull(),

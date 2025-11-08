@@ -384,6 +384,18 @@ export class Scanner {
                   confluenceDetails: {},
                 };
                 
+                // ✅ NEW: Collect liquidity metrics before creating signal
+                console.log(`💧 [Scanner] Collecting liquidity metrics for ${symbol}...`);
+                const liquidityMetrics = await binanceClient.getLiquidityMetrics(symbol);
+                
+                // ✅ Validate liquidity data quality
+                if (liquidityMetrics.spreadPercent === 0 && liquidityMetrics.volume24hUsdt === 0) {
+                  console.warn(`⚠️ [Scanner] WARNING: Failed to fetch liquidity data for ${symbol} - using zeros`);
+                  console.warn(`   ⚠️ Signal will be created but liquidity analysis will be incomplete`);
+                } else {
+                  console.log(`✅ [Scanner] Liquidity collected: spread=${liquidityMetrics.spreadPercent.toFixed(4)}%, depth=$${liquidityMetrics.depth1PctBid.toFixed(0)}, vol24h=$${liquidityMetrics.volume24hUsdt.toFixed(0)}, atr24h=${liquidityMetrics.atr24h.toFixed(8)}`);
+                }
+                
                 // Create signal for 15m (trend-aligned)
                 // ✅ CRITICAL: Set 100% close at TP2 for 15m (not 50/30/20)
                 const signal = await signalDB.createSignal({
@@ -399,6 +411,13 @@ export class Scanner {
                   initialSl: riskProfile.initialSl.toString(),
                   atr15m: riskProfile.atr15m.toString(),
                   atrH4: '0', // Not used for 15m
+                  // ✅ NEW: Liquidity metrics
+                  atr24h: liquidityMetrics.atr24h.toString(),
+                  spreadPercent: liquidityMetrics.spreadPercent.toString(),
+                  depth1PctBid: liquidityMetrics.depth1PctBid.toString(),
+                  depth1PctAsk: liquidityMetrics.depth1PctAsk.toString(),
+                  orderBookImbalance: liquidityMetrics.orderBookImbalance.toString(),
+                  volume24hUsdt: liquidityMetrics.volume24hUsdt.toString(),
                   direction: pattern.direction,
                   status: 'OPEN',
                   // ✅ Single-level TP: 100% close at TP2 (2R)
@@ -724,6 +743,18 @@ export class Scanner {
                 console.warn(`⚠️ [Scanner] Failed to calculate dynamic strategy, using defaults:`, error.message);
               }
 
+              // ✅ NEW: Collect liquidity metrics before creating signal
+              console.log(`💧 [Scanner] Collecting liquidity metrics for ${symbol}...`);
+              const liquidityMetrics = await binanceClient.getLiquidityMetrics(symbol);
+              
+              // ✅ Validate liquidity data quality
+              if (liquidityMetrics.spreadPercent === 0 && liquidityMetrics.volume24hUsdt === 0) {
+                console.warn(`⚠️ [Scanner] WARNING: Failed to fetch liquidity data for ${symbol} - using zeros`);
+                console.warn(`   ⚠️ Signal will be created but liquidity analysis will be incomplete`);
+              } else {
+                console.log(`✅ [Scanner] Liquidity collected: spread=${liquidityMetrics.spreadPercent.toFixed(4)}%, depth=$${liquidityMetrics.depth1PctBid.toFixed(0)}, vol24h=$${liquidityMetrics.volume24hUsdt.toFixed(0)}, atr24h=${liquidityMetrics.atr24h.toFixed(8)}`);
+              }
+
               const signal = await signalDB.createSignal({
                 symbol,
                 timeframe,
@@ -737,6 +768,13 @@ export class Scanner {
                 initialSl: riskProfile.initialSl.toString(),
                 atr15m: riskProfile.atr15m.toString(),
                 atrH4: riskProfile.atr4h.toString(),
+                // ✅ NEW: Liquidity metrics
+                atr24h: liquidityMetrics.atr24h.toString(),
+                spreadPercent: liquidityMetrics.spreadPercent.toString(),
+                depth1PctBid: liquidityMetrics.depth1PctBid.toString(),
+                depth1PctAsk: liquidityMetrics.depth1PctAsk.toString(),
+                orderBookImbalance: liquidityMetrics.orderBookImbalance.toString(),
+                volume24hUsdt: liquidityMetrics.volume24hUsdt.toString(),
                 direction: pattern.direction,
                 status: 'OPEN',
                 // ML context fields (enriched with dynamic risk data)

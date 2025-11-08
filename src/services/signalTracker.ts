@@ -179,56 +179,51 @@ export class SignalTracker {
             console.log(`   💰 Profit Protection: -1R loss → +0.5R profit guaranteed`);
             console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
             
-            // ✅ CRITICAL: Update SL on Binance FIRST, then update DB
-            // If Binance update fails, don't update DB (keep consistency)
-            console.log(`\n📡 [SignalTracker][${correlationId}] Updating SL on Binance...`);
+            // ✅ NEW LOGIC: Always update SL in DB (for paper trading / monitoring)
+            // Only update Binance if live trade exists
+            console.log(`\n📡 [SignalTracker][${correlationId}] Applying trailing stop...`);
             
-            // Get live trade to find position size
+            // Get live trade to check if real position exists
             const liveTrade = await liveTradesDB.getLiveTradeBySignalId(signal.id);
             
             if (!liveTrade || !liveTrade.positionSize) {
-              // ❌ CRITICAL: No live trade found - CANNOT update Binance
-              // Skip trailing stop activation but CONTINUE checking TP/SL status
-              console.error(`❌ [SignalTracker][${correlationId}] CRITICAL: No live trade found for signal ${signal.id}`);
-              console.error(`   ⚠️ Cannot update SL on Binance - skipping trailing stop activation`);
-              console.error(`   ⚠️ Signal will continue to be monitored for TP/SL with original SL`);
+              // ⚠️ No live trade - update DB ONLY (paper trading mode)
+              console.warn(`⚠️ [SignalTracker][${correlationId}] No live trade found - applying trailing in paper mode`);
+              console.warn(`   ✅ Will update SL in DB (for monitoring)`);
+              console.warn(`   ⏭️ Skip Binance update (no real position)`);
               
-              // ✅ NEW: Send Telegram alert ONLY ONCE (not every minute)
+              // ✅ Update DB with new trailing SL (same as real trade would have)
+              console.log(`💾 [SignalTracker][${correlationId}] Updating trailing stop in DB (paper mode)...`);
+              try {
+                await signalDB.updateTrailingStop(signal.id, trailingSL.toString(), true);
+                signal.currentSl = trailingSL.toString();
+                signal.trailingActivated = true;
+                console.log(`✅ [SignalTracker][${correlationId}] Trailing stop updated in DB: ${trailingSL.toFixed(8)}`);
+                console.log(`   ✅ New SL will be used for TP/SL checks below`);
+              } catch (dbError: any) {
+                console.error(`❌ [SignalTracker][${correlationId}] DB update failed:`, dbError.message);
+                // Continue with original SL if DB update fails
+              }
+              
+              // ✅ Send Telegram notification ONCE (informational, not error)
               if (!signal.trailingAlertSent) {
-                console.log(`📨 [SignalTracker][${correlationId}] Sending trailing stop blocked alert (first time only)...`);
-                
                 const alertMessage = `
-⚠️ <b>АКТИВАЦИЯ TRAILING STOP ЗАБЛОКИРОВАНА</b> ⚠️
+📊 <b>TRAILING STOP АКТИВИРОВАН (Paper Mode)</b>
 
 💎 <b>Символ:</b> ${signal.symbol}
 📊 <b>ID Сигнала:</b> ${signal.id}
 💰 <b>MFE:</b> ${newMFE.toFixed(3)}R (достиг порога 1.0R)
 
-❌ <b>Проблема:</b> Нет записи live trade в базе данных
-🔧 <b>Возможные причины:</b>
-  - Сделка открыта вручную (не ботом)
-  - Рассинхронизация базы данных
-  - Paper trading (торговля выключена)
+✅ <b>Новый SL:</b> ${trailingSL.toFixed(8)} (+0.5R от entry)
+🔒 <b>Защита:</b> +0.5R профит гарантирован
 
-🚨 <b>Требуется:</b> Проверить почему отсутствует запись live trade
-⚠️ <b>Статус:</b> Trailing stop НЕ активирован, сигнал продолжает отслеживаться с исходным SL
+ℹ️ <b>Режим:</b> Paper trading (нет live trade)
+⚠️ <b>Внимание:</b> SL на Binance НЕ обновлён (нет реальной позиции)
                 `.trim();
                 
-                // Send as reply to original signal message (if available)
                 await this.sendTelegramMessage(alertMessage, signal.telegramMessageId || undefined);
-                
-                // Mark alert as sent to prevent spam
-                await signalDB.updateSignal(signal.id, {
-                  trailingAlertSent: true,
-                });
-                
-                console.log(`✅ [SignalTracker][${correlationId}] Alert sent and marked - will not send again`);
-              } else {
-                console.log(`⏭️ [SignalTracker][${correlationId}] Alert already sent previously - skipping to prevent spam`);
+                await signalDB.updateSignal(signal.id, { trailingAlertSent: true });
               }
-              
-              // ✅ DON'T use continue - let the signal be checked for TP/SL below
-              // Just skip the trailing stop activation block
             } else {
               // ✅ Live trade exists - proceed with trailing stop activation
               const positionSize = parseFloat(liveTrade.positionSize as string);
