@@ -399,6 +399,52 @@ export class SignalDB {
 
     return stats;
   }
+
+  /**
+   * Clear all signal-related data from the database
+   * WARNING: This is a destructive operation that will delete all signals, trades, and evaluations
+   */
+  async clearAllData(): Promise<{ deletedCounts: { signals: number; nearMissSkips: number; liveTrades: number; shadowEvaluations: number; tracking1m: number } }> {
+    console.log('🗑️ [SignalDB] Starting clearAllData - deleting all signal data...');
+    
+    // Delete in order to respect foreign key constraints
+    // tracking_1m_shadow references shadow_evaluations
+    const deletedTracking1m = await db.delete(tracking1mShadow);
+    const tracking1mCount = deletedTracking1m.rowCount || 0;
+    console.log(`✅ [SignalDB] Deleted ${tracking1mCount} tracking_1m_shadow records`);
+    
+    // shadow_evaluations is independent
+    const deletedShadowEvals = await db.delete(shadowEvaluations);
+    const shadowEvalsCount = deletedShadowEvals.rowCount || 0;
+    console.log(`✅ [SignalDB] Deleted ${shadowEvalsCount} shadow_evaluations records`);
+    
+    // live_trades references signals
+    const deletedLiveTrades = await db.delete(liveTrades);
+    const liveTradesCount = deletedLiveTrades.rowCount || 0;
+    console.log(`✅ [SignalDB] Deleted ${liveTradesCount} live_trades records`);
+    
+    // near_miss_skips is independent
+    const deletedNearMiss = await db.delete(nearMissSkips);
+    const nearMissCount = deletedNearMiss.rowCount || 0;
+    console.log(`✅ [SignalDB] Deleted ${nearMissCount} near_miss_skips records`);
+    
+    // signals (parent table)
+    const deletedSignals = await db.delete(signals);
+    const signalsCount = deletedSignals.rowCount || 0;
+    console.log(`✅ [SignalDB] Deleted ${signalsCount} signals records`);
+    
+    console.log('✅ [SignalDB] clearAllData completed successfully');
+    
+    return {
+      deletedCounts: {
+        signals: signalsCount,
+        nearMissSkips: nearMissCount,
+        liveTrades: liveTradesCount,
+        shadowEvaluations: shadowEvalsCount,
+        tracking1m: tracking1mCount,
+      }
+    };
+  }
 }
 
 export const signalDB = new SignalDB();
@@ -561,52 +607,6 @@ export class ShadowEvaluationDB {
     });
     
     return { mfe, mae };
-  }
-
-  /**
-   * Clear all signal-related data from the database
-   * WARNING: This is a destructive operation that will delete all signals, trades, and evaluations
-   */
-  async clearAllData(): Promise<{ deletedCounts: { signals: number; nearMissSkips: number; liveTrades: number; shadowEvaluations: number; tracking1m: number } }> {
-    console.log('🗑️ [SignalDB] Starting clearAllData - deleting all signal data...');
-    
-    // Delete in order to respect foreign key constraints
-    // tracking_1m_shadow references shadow_evaluations
-    const deletedTracking1m = await db.delete(tracking1mShadow);
-    const tracking1mCount = deletedTracking1m.rowCount || 0;
-    console.log(`✅ [SignalDB] Deleted ${tracking1mCount} tracking_1m_shadow records`);
-    
-    // shadow_evaluations is independent
-    const deletedShadowEvals = await db.delete(shadowEvaluations);
-    const shadowEvalsCount = deletedShadowEvals.rowCount || 0;
-    console.log(`✅ [SignalDB] Deleted ${shadowEvalsCount} shadow_evaluations records`);
-    
-    // live_trades references signals
-    const deletedLiveTrades = await db.delete(liveTrades);
-    const liveTradesCount = deletedLiveTrades.rowCount || 0;
-    console.log(`✅ [SignalDB] Deleted ${liveTradesCount} live_trades records`);
-    
-    // near_miss_skips is independent
-    const deletedNearMiss = await db.delete(nearMissSkips);
-    const nearMissCount = deletedNearMiss.rowCount || 0;
-    console.log(`✅ [SignalDB] Deleted ${nearMissCount} near_miss_skips records`);
-    
-    // signals (parent table)
-    const deletedSignals = await db.delete(signals);
-    const signalsCount = deletedSignals.rowCount || 0;
-    console.log(`✅ [SignalDB] Deleted ${signalsCount} signals records`);
-    
-    console.log('✅ [SignalDB] clearAllData completed successfully');
-    
-    return {
-      deletedCounts: {
-        signals: signalsCount,
-        nearMissSkips: nearMissCount,
-        liveTrades: liveTradesCount,
-        shadowEvaluations: shadowEvalsCount,
-        tracking1m: tracking1mCount,
-      }
-    };
   }
 }
 
