@@ -49,6 +49,7 @@ export class TelegramBot {
       { command: 'trade_off', description: '🔴 Выключить торговлю' },
       { command: 'trade_status', description: '💼 Статус торговли' },
       { command: 'balance', description: '💰 Баланс счета' },
+      { command: 'clearsignals', description: '🗑️ Очистить все данные' },
     ];
 
     try {
@@ -104,6 +105,12 @@ export class TelegramBot {
         return;
       }
 
+      // Check for /clearsignals_confirm command
+      if (command === '/clearsignals_confirm') {
+        await this.handleClearSignalsConfirmCommand(chatId);
+        return;
+      }
+
       switch (command) {
         case '/start':
           await this.handleStartCommand(chatId);
@@ -128,6 +135,9 @@ export class TelegramBot {
           break;
         case '/balance':
           await this.handleBalanceCommand(chatId);
+          break;
+        case '/clearsignals':
+          await this.handleClearSignalsCommand(chatId);
           break;
         default:
           await this.sendMessage('❓ Неизвестная команда. Используйте /help', chatId);
@@ -716,6 +726,71 @@ ${statusEmoji} <b>Статус:</b> ${statusText}
       }
       
       await this.sendMessage(errorMessage, chatId);
+    }
+  }
+
+  private async handleClearSignalsCommand(chatId: string): Promise<void> {
+    console.log('🗑️ [TelegramBot] Clear signals warning requested');
+    
+    const message = `
+⚠️ <b>ВНИМАНИЕ: УДАЛЕНИЕ ВСЕХ ДАННЫХ</b>
+
+Вы собираетесь удалить ВСЕ данные сигналов:
+• Все сигналы (любой статус)
+• Все результаты торговли
+• Все теневые оценки
+• Всю статистику
+• Все пропущенные сигналы (near-miss)
+
+📊 <b>Статистика будет обнулена до 0!</b>
+
+⚠️ <b>ЭТО ДЕЙСТВИЕ НЕОБРАТИМО!</b>
+
+Для подтверждения отправьте команду:
+<code>/clearsignals_confirm</code>
+
+Для отмены - просто не отправляйте команду подтверждения.
+    `.trim();
+    
+    await this.sendMessage(message, chatId);
+  }
+
+  private async handleClearSignalsConfirmCommand(chatId: string): Promise<void> {
+    console.log('🗑️ [TelegramBot] Executing clearAllData...');
+    
+    try {
+      // Get current stats before deletion
+      const statsBefore = await signalDB.getStatistics();
+      
+      // Execute deletion
+      const result = await signalDB.clearAllData();
+      
+      const message = `
+✅ <b>ДАННЫЕ УСПЕШНО УДАЛЕНЫ</b>
+
+🗑️ <b>Удалено записей:</b>
+• Сигналы: ${result.deletedCounts.signals}
+• Реальные сделки: ${result.deletedCounts.liveTrades}
+• Теневые оценки: ${result.deletedCounts.shadowEvaluations}
+• Трекинг 1m: ${result.deletedCounts.tracking1m}
+• Пропущенные сигналы: ${result.deletedCounts.nearMissSkips}
+
+📊 <b>Была статистика:</b>
+• Всего сигналов: ${statsBefore.total}
+• Win Rate: ${statsBefore.winRate}%
+• Средний PnL: ${statsBefore.avgPnlR.toFixed(2)}R
+
+🔄 <b>Статистика обнулена!</b>
+
+Теперь можно начать сбор данных заново с чистого листа.
+Используйте /stats для проверки новой статистики.
+      `.trim();
+      
+      await this.sendMessage(message, chatId);
+      console.log(`✅ [TelegramBot] All data cleared: ${result.deletedCounts.signals} signals, ${result.deletedCounts.liveTrades} trades, ${result.deletedCounts.shadowEvaluations} shadow evals`);
+    } catch (error: any) {
+      console.error('❌ [TelegramBot] Failed to clear data:', error.message);
+      await this.sendMessage('❌ Не удалось удалить данные. Проверьте логи сервера.', chatId);
     }
   }
 
