@@ -309,32 +309,17 @@ export class Scanner {
                   continue; // Skip this signal
                 }
                 
-                // ⚠️ WARNING: Choppy market - пропускаем, но помечаем как рискованный
+                // ✅ FIX: BLOCK choppy markets - статистически убыточно (29.4% имеют MFE 0.32R)
                 const isChoppyMarket = (
                   (pattern.direction === 'SHORT' && trend.direction === 'DOWNTREND' && contextAnalysis.recentDirection === 'choppy') ||
                   (pattern.direction === 'LONG' && trend.direction === 'UPTREND' && contextAnalysis.recentDirection === 'choppy')
                 );
                 
                 if (isChoppyMarket) {
-                  console.log(`⚠️ [Recent Direction Warning] CHOPPY market detected - рискованная сделка`);
+                  console.log(`❌ [Choppy Market Filter] Signal REJECTED - локальная консолидация`);
                   console.log(`   Signal: ${pattern.direction}, Trend: ${trend.direction}, Recent: choppy`);
-                  console.log(`   💡 Локальная консолидация - сигнал пропускаем, но помечаем как рискованный`);
-                  console.log(`   📊 Анализ: 29.4% choppy сигналов имеют средний MFE 0.32R (хуже обычного)`);
-                }
-                
-                console.log(`✅ [Recent Direction Filter] Signal PASSED - ${isChoppyMarket ? 'CHOPPY (risky)' : 'recent движение согласовано'}`);
-                console.log(`   ✅ Signal: ${pattern.direction}, Trend: ${trend.direction}, Recent: ${contextAnalysis.recentDirection}`);
-                
-                // ❌ TEMPORARILY DISABLED: Swing Density Filter (collecting data first)
-                // Reason: Filter was too strict (≥11 swings = statistically rare for 20 candles)
-                // Architect found: swingCount20 >10 = CHOPPY (contradicts filter logic)
-                // Action: Collecting live data to determine realistic threshold (expected: 6-8)
-                /*
-                const MIN_SWING_COUNT = 11;
-                if (contextAnalysis.swingCount20 < MIN_SWING_COUNT) {
-                  console.log(`❌ [15m Swing Filter] Signal REJECTED - low swing density`);
-                  console.log(`   ⚠️ Swings: ${contextAnalysis.swingCount20} < ${MIN_SWING_COUNT} (choppy/low-quality market)`);
-                  console.log(`   ⚠️ Skipping ${symbol} - 15m requires high swing density for 67.4% WR`);
+                  console.log(`   📊 Статистика: 29.4% choppy сигналов имеют средний MFE 0.32R (хуже обычного)`);
+                  console.log(`   ⚠️ Skipping ${symbol} - флэт/консолидация на фоне тренда = высокий риск разворота`);
                   
                   // Log as near-miss skip for ML analysis
                   const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
@@ -344,7 +329,89 @@ export class Scanner {
                     patternType: pattern.type,
                     entryPrice,
                     direction: pattern.direction,
-                    skipReason: SKIP_REASONS.LOW_SWING_DENSITY,
+                    skipReason: 'CHOPPY_MARKET_CONSOLIDATION',
+                    skipCategory: 'bad_context',
+                    confluenceScore: 0,
+                    confluenceFactors: {} as any,
+                    patternScore: pattern.score || 0,
+                    patternScoreFactors: {},
+                    mlContext: {
+                      trendDirection: trend.direction,
+                      trendStrength: trend.strength,
+                      ema20: trend.ema20,
+                      ema50: trend.ema50,
+                      recentDirection: contextAnalysis.recentDirection,
+                      swingCount20: contextAnalysis.swingCount20,
+                    } as any,
+                    atr15m: calculateATR(candles),
+                    atr1h: 0,
+                    atr4h: 0,
+                  });
+                  
+                  continue; // ✅ BLOCK choppy signals
+                }
+                
+                console.log(`✅ [Recent Direction Filter] Signal PASSED - recent движение согласовано`);
+                console.log(`   ✅ Signal: ${pattern.direction}, Trend: ${trend.direction}, Recent: ${contextAnalysis.recentDirection}`);
+                
+                // ✅ FIX: STRICT FILTER - Критически низкая активность (≤5 свингов = очень слабый рынок)
+                const CRITICAL_LOW_SWING_COUNT = 5;
+                if (contextAnalysis.swingCount20 <= CRITICAL_LOW_SWING_COUNT) {
+                  console.log(`❌ [Critical Swing Filter] Signal REJECTED - критически низкая активность рынка`);
+                  console.log(`   ⚠️ Swings: ${contextAnalysis.swingCount20} <= ${CRITICAL_LOW_SWING_COUNT} (мёртвый/замороженный рынок)`);
+                  console.log(`   ⚠️ Skipping ${symbol} - экстремально высокий риск разворота/застревания`);
+                  console.log(`   📊 Пример: BATUSDT (4 свинга) дал SL -1.0R из-за разворота`);
+                  
+                  // Log as near-miss skip for ML analysis
+                  const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
+                  await logNearMissSkipFull({
+                    symbol,
+                    timeframe,
+                    patternType: pattern.type,
+                    entryPrice,
+                    direction: pattern.direction,
+                    skipReason: 'CRITICAL_LOW_SWING_DENSITY',
+                    skipCategory: 'bad_context',
+                    confluenceScore: 0,
+                    confluenceFactors: {} as any,
+                    patternScore: pattern.score || 0,
+                    patternScoreFactors: {},
+                    mlContext: {
+                      trendDirection: trend.direction,
+                      trendStrength: trend.strength,
+                      ema20: trend.ema20,
+                      ema50: trend.ema50,
+                      recentDirection: contextAnalysis.recentDirection,
+                      swingCount20: contextAnalysis.swingCount20,
+                    } as any,
+                    atr15m: calculateATR(candles),
+                    atr1h: 0,
+                    atr4h: 0,
+                  });
+                  
+                  continue; // ✅ BLOCK critically low swing density
+                }
+                
+                // ✅ FIX: ENABLE Swing Density Filter with realistic threshold (≥6 swings)
+                // Reason: Data analysis показал: ≤5 свингов = слабый рынок, высокий риск консолидации
+                // Статистика: BATUSDT имел 4 свинга и дал -1.0R из-за разворота
+                const MIN_SWING_COUNT = 6; // Realistic threshold (was 11 - too strict)
+                
+                if (contextAnalysis.swingCount20 < MIN_SWING_COUNT) {
+                  console.log(`❌ [15m Swing Filter] Signal REJECTED - low swing density`);
+                  console.log(`   ⚠️ Swings: ${contextAnalysis.swingCount20} < ${MIN_SWING_COUNT} (choppy/low-quality market)`);
+                  console.log(`   ⚠️ Skipping ${symbol} - недостаточная активность рынка`);
+                  console.log(`   📊 Требуется минимум ${MIN_SWING_COUNT} свингов для качественного тренда`);
+                  
+                  // Log as near-miss skip for ML analysis
+                  const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
+                  await logNearMissSkipFull({
+                    symbol,
+                    timeframe,
+                    patternType: pattern.type,
+                    entryPrice,
+                    direction: pattern.direction,
+                    skipReason: 'LOW_SWING_DENSITY',
                     skipCategory: 'bad_context',
                     confluenceScore: 0,
                     confluenceFactors: {} as any,
@@ -362,12 +429,11 @@ export class Scanner {
                     atr4h: 0,
                   });
                   
-                  continue; // Skip this signal
+                  continue; // ✅ BLOCK low swing density signals
                 }
                 
                 console.log(`✅ [15m Swing Filter] Swing density PASSED - ${contextAnalysis.swingCount20} swings (>=${MIN_SWING_COUNT})`);
                 console.log(`   ✅ High-quality market with sufficient swing activity`);
-                */
                 
                 // Create minimal enriched ML context for 15m (no multi-TF data needed)
                 const enrichedMLContext = {
