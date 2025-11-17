@@ -928,12 +928,19 @@ export class PatternDetector {
 
   detectPPR(candles: Candle[], timeframe?: string): PatternResult {
     // PPR = Piercing Pattern Reversal (двухсвечный разворотный паттерн)
-    // BULLISH: RED→GREEN, gap down, close >50% body Bar1
-    // BEARISH (Dark Cloud): GREEN→RED, gap up, close <50% body Bar1
+    // BULLISH: RED→GREEN, gap down (optional), close >50% body Bar1
+    // BEARISH (Dark Cloud): GREEN→RED, gap up (optional), close <50% body Bar1
     
-    if (candles.length < 6) return { detected: false };
+    // Нужно минимум 200 свечей для EMA 50/200 trend check
+    if (candles.length < 200) return { detected: false };
 
     console.log(`\n🔍 [PPR - Piercing Pattern Reversal] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
+
+    // ✅ NEW: Check trend FIRST (PPR only works after established trend)
+    const trend = analyzeTrend(candles, timeframe || '15m');
+    
+    console.log(`   📊 Trend Context: ${trend.isUptrend ? 'UPTREND' : trend.isDowntrend ? 'DOWNTREND' : 'NEUTRAL'}`);
+    console.log(`      Price: ${trend.currentPrice.toFixed(2)}, EMA50: ${trend.ema50.toFixed(2)}, EMA200: ${trend.ema200.toFixed(2)}`);
 
     const atr = this.calculateATR(candles, 5);
     console.log(`   📊 ATR=${atr.toFixed(8)}`);
@@ -949,33 +956,40 @@ export class PatternDetector {
     // ========== BULLISH PIERCING PATTERN ==========
     // 1. Bar₁ = RED (медвежья)
     // 2. Bar₂ = GREEN (бычья) ← КРИТИЧНО: должна быть зеленой!
-    // 3. Gap down: Open₂ < Close₁ - tolerance (явный gap с учетом волатильности)
+    // 3. Gap down: OPTIONAL (bonus to score, not required)
     // 4. Close₂ > 50% body Bar₁ (закрытие выше середины тела)
     // 5. Not full engulfing (Close₂ < Open₁)
+    // 6. ✅ NEW: Requires DOWNTREND
     
     if (Bar1.isRed && Bar2.isGreen) {
-      // Professional standard: NO minimum body size in ATR, rely on gap + penetration geometry
-      console.log(`   ✅ BULLISH PPR color sequence: RED→GREEN (ATR size filter REMOVED per pro standards)`);
+      // ✅ NEW: Требуется DOWNTREND
+      if (!trend.isDowntrend) {
+        console.log(`   ❌ BULLISH PPR requires DOWNTREND (current: ${trend.isUptrend ? 'UPTREND' : 'NEUTRAL'})`);
+        return { detected: false };
+      }
+      
+      console.log(`   ✅ BULLISH PPR color sequence: RED→GREEN, DOWNTREND ✅`);
       
       const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
       
-      // Gap check с tolerance: Bar2 должен открыться НИЖЕ Close Bar1 с учетом волатильности
-      // Tolerance = 15% ATR (компромисс между строгостью и гибкостью для крипты)
-      const gapTolerance = 0.15 * atr;
+      // ✅ Gap check с increased tolerance: 25% ATR (было 15%)
+      // ✅ Gap now OPTIONAL - gives bonus to score but doesn't block pattern
+      const gapTolerance = 0.25 * atr;
       const gapThreshold = Bar1.close - gapTolerance;
-      const gapDown = Bar2.open < gapThreshold;
+      const hasGap = Bar2.open < gapThreshold;
       
       const closesAboveMid = Bar2.close > bar1BodyMid;
       const closesWithinBar1Range = Bar2.close < Bar1.open; // Не полное поглощение
       
-      console.log(`   🔍 BULLISH PIERCING candidate (RED→GREEN):`);
-      console.log(`      Gap down (O₂ < C₁-tol): ${Bar2.open.toFixed(8)} < ${gapThreshold.toFixed(8)} = ${gapDown ? '✅' : '❌'} (tolerance=${gapTolerance.toFixed(8)})`);
+      console.log(`   🔍 BULLISH PIERCING candidate (RED→GREEN, DOWNTREND ✅):`);
+      console.log(`      Gap down (O₂ < C₁-tol): ${Bar2.open.toFixed(8)} < ${gapThreshold.toFixed(8)} = ${hasGap ? '✅ BONUS' : '⚪ OPTIONAL'} (tolerance=${gapTolerance.toFixed(8)})`);
       console.log(`      Close above 50% body: ${Bar2.close.toFixed(8)} > ${bar1BodyMid.toFixed(8)} = ${closesAboveMid ? '✅' : '❌'}`);
       console.log(`      Not full engulfing (C₂ < O₁): ${Bar2.close.toFixed(8)} < ${Bar1.open.toFixed(8)} = ${closesWithinBar1Range ? '✅' : '❌'}`);
       
-      if (gapDown && closesAboveMid && closesWithinBar1Range) {
+      // ✅ NEW: Gap is OPTIONAL - only require core conditions
+      if (closesAboveMid && closesWithinBar1Range) {
         const penetration = ((Bar2.close - Bar1.close) / Bar1.body) * 100;
-        console.log(`   ✅✅ [Pattern] PPR BUY detected (Bullish Piercing Pattern, penetration=${penetration.toFixed(1)}%)`);
+        console.log(`   ✅✅ [Pattern] PPR BUY detected (Bullish Piercing Pattern, penetration=${penetration.toFixed(1)}%, gap=${hasGap ? 'YES' : 'NO'})`);
         
         // 📊 SCORING (0-10): PPR BUY
         let score = 6; // Base score
@@ -987,12 +1001,16 @@ export class PatternDetector {
           console.log(`   📊 [Score] Deep penetration ${(penetrationPercent*100).toFixed(1)}% > 70%: +1 point`);
         }
         
-        // 2. Gap size (visible gap already guaranteed by detection)
-        const gapSize = Bar1.close - Bar2.open;
-        const gapToAtrRatio = gapSize / atr;
-        if (gapToAtrRatio > 0.2) {
-          score += 1;
-          console.log(`   📊 [Score] Visible gap ${gapToAtrRatio.toFixed(2)}x ATR > 0.2: +1 point`);
+        // 2. ✅ NEW: Gap size (OPTIONAL - bonus if present)
+        if (hasGap) {
+          const gapSize = Bar1.close - Bar2.open;
+          const gapToAtrRatio = gapSize / atr;
+          if (gapToAtrRatio > 0.2) {
+            score += 1;
+            console.log(`   📊 [Score] Has gap ${gapToAtrRatio.toFixed(2)}x ATR > 0.2: +1 point`);
+          }
+        } else {
+          console.log(`   📊 [Score] No gap (optional, no penalty)`);
         }
         
         // 3. Bar2 strength (large body)
@@ -1027,33 +1045,40 @@ export class PatternDetector {
     // ========== BEARISH DARK CLOUD COVER ==========
     // 1. Bar₁ = GREEN (бычья)
     // 2. Bar₂ = RED (медвежья) ← КРИТИЧНО: должна быть красной!
-    // 3. Gap up: Open₂ > Close₁ + tolerance (явный gap с учетом волатильности)
+    // 3. Gap up: OPTIONAL (bonus to score, not required)
     // 4. Close₂ < 50% body Bar₁ (закрытие ниже середины тела)
     // 5. Not full engulfing (Close₂ > Open₁)
+    // 6. ✅ NEW: Requires UPTREND
     
     if (Bar1.isGreen && Bar2.isRed) {
-      // Professional standard: NO minimum body size in ATR, rely on gap + penetration geometry
-      console.log(`   ✅ BEARISH PPR color sequence: GREEN→RED (ATR size filter REMOVED per pro standards)`);
+      // ✅ NEW: Требуется UPTREND
+      if (!trend.isUptrend) {
+        console.log(`   ❌ BEARISH PPR requires UPTREND (current: ${trend.isDowntrend ? 'DOWNTREND' : 'NEUTRAL'})`);
+        return { detected: false };
+      }
+      
+      console.log(`   ✅ BEARISH PPR color sequence: GREEN→RED, UPTREND ✅`);
       
       const bar1BodyMid = (Bar1.open + Bar1.close) / 2;
       
-      // Gap check с tolerance: Bar2 должен открыться ВЫШЕ Close Bar1 с учетом волатильности
-      // Tolerance = 15% ATR (компромисс между строгостью и гибкостью для крипты)
-      const gapTolerance = 0.15 * atr;
+      // ✅ Gap check с increased tolerance: 25% ATR (было 15%)
+      // ✅ Gap now OPTIONAL - gives bonus to score but doesn't block pattern
+      const gapTolerance = 0.25 * atr;
       const gapThreshold = Bar1.close + gapTolerance;
-      const gapUp = Bar2.open > gapThreshold;
+      const hasGap = Bar2.open > gapThreshold;
       
       const closesBelowMid = Bar2.close < bar1BodyMid;
       const closesWithinBar1Range = Bar2.close > Bar1.open; // Не полное поглощение
       
-      console.log(`   🔍 BEARISH DARK CLOUD candidate (GREEN→RED):`);
-      console.log(`      Gap up (O₂ > C₁+tol): ${Bar2.open.toFixed(8)} > ${gapThreshold.toFixed(8)} = ${gapUp ? '✅' : '❌'} (tolerance=${gapTolerance.toFixed(8)})`);
+      console.log(`   🔍 BEARISH DARK CLOUD candidate (GREEN→RED, UPTREND ✅):`);
+      console.log(`      Gap up (O₂ > C₁+tol): ${Bar2.open.toFixed(8)} > ${gapThreshold.toFixed(8)} = ${hasGap ? '✅ BONUS' : '⚪ OPTIONAL'} (tolerance=${gapTolerance.toFixed(8)})`);
       console.log(`      Close below 50% body: ${Bar2.close.toFixed(8)} < ${bar1BodyMid.toFixed(8)} = ${closesBelowMid ? '✅' : '❌'}`);
       console.log(`      Not full engulfing (C₂ > O₁): ${Bar2.close.toFixed(8)} > ${Bar1.open.toFixed(8)} = ${closesWithinBar1Range ? '✅' : '❌'}`);
       
-      if (gapUp && closesBelowMid && closesWithinBar1Range) {
+      // ✅ NEW: Gap is OPTIONAL - only require core conditions
+      if (closesBelowMid && closesWithinBar1Range) {
         const penetration = ((Bar1.close - Bar2.close) / Bar1.body) * 100;
-        console.log(`   ✅✅ [Pattern] PPR SELL detected (Bearish Dark Cloud Cover, penetration=${penetration.toFixed(1)}%)`);
+        console.log(`   ✅✅ [Pattern] PPR SELL detected (Bearish Dark Cloud Cover, penetration=${penetration.toFixed(1)}%, gap=${hasGap ? 'YES' : 'NO'})`);
         
         // 📊 SCORING (0-10): PPR SELL
         let score = 6; // Base score
@@ -1065,12 +1090,16 @@ export class PatternDetector {
           console.log(`   📊 [Score] Deep penetration ${(penetrationPercent*100).toFixed(1)}% > 70%: +1 point`);
         }
         
-        // 2. Gap size (visible gap already guaranteed by detection)
-        const gapSize = Bar2.open - Bar1.close;
-        const gapToAtrRatio = gapSize / atr;
-        if (gapToAtrRatio > 0.2) {
-          score += 1;
-          console.log(`   📊 [Score] Visible gap ${gapToAtrRatio.toFixed(2)}x ATR > 0.2: +1 point`);
+        // 2. ✅ NEW: Gap size (OPTIONAL - bonus if present)
+        if (hasGap) {
+          const gapSize = Bar2.open - Bar1.close;
+          const gapToAtrRatio = gapSize / atr;
+          if (gapToAtrRatio > 0.2) {
+            score += 1;
+            console.log(`   📊 [Score] Has gap ${gapToAtrRatio.toFixed(2)}x ATR > 0.2: +1 point`);
+          }
+        } else {
+          console.log(`   📊 [Score] No gap (optional, no penalty)`);
         }
         
         // 3. Bar2 strength (large body)
@@ -1107,24 +1136,16 @@ export class PatternDetector {
   }
 
   detectEngulfing(candles: Candle[], timeframe?: string): PatternResult {
-    // Нужно минимум 6 свечей для 2-bar pattern + ATR
-    if (candles.length < 6) return { detected: false };
+    // Нужно минимум 200 свечей для EMA 50/200 trend check
+    if (candles.length < 200) return { detected: false };
 
     console.log(`\n🔍 [Engulfing] Analyzing with ${candles.length} candles (TF: ${timeframe || 'unknown'})...`);
 
-    // Параметры по таймфреймам (REMOVED minBodyATR - following professional standards)
-    const tfParams = {
-      '15m': { gamma: 0.175, bodyRatio: 1.2 },
-      '1h':  { gamma: 0.15,  bodyRatio: 1.2 },
-      '4h':  { gamma: 0.125, bodyRatio: 1.1 },
-    };
+    // ✅ NEW: Check trend FIRST (Engulfing only works after established trend)
+    const trend = analyzeTrend(candles, timeframe || '15m');
     
-    const params = tfParams[timeframe as keyof typeof tfParams] || tfParams['1h'];
-    const { gamma, bodyRatio } = params;
-    
-    const atr = this.calculateATR(candles, 5);
-    
-    console.log(`   📊 ATR=${atr.toFixed(8)}, γ=${gamma}, bodyRatio=${bodyRatio} (no ATR minimum)`);
+    console.log(`   📊 Trend Context: ${trend.isUptrend ? 'UPTREND' : trend.isDowntrend ? 'DOWNTREND' : 'NEUTRAL'}`);
+    console.log(`      Price: ${trend.currentPrice.toFixed(2)}, EMA50: ${trend.ema50.toFixed(2)}, EMA200: ${trend.ema200.toFixed(2)}`);
 
     // Bar₁ и Bar₂ (последние две ЗАКРЫТЫЕ свечи)
     const Bar1 = analyzeCand(candles[candles.length - 2]); // C1 (поглощаемая, первая свеча паттерна)
@@ -1134,34 +1155,38 @@ export class PatternDetector {
     console.log(`      Bar₁: O=${Bar1.open.toFixed(8)}, C=${Bar1.close.toFixed(8)}, B=${Bar1.body.toFixed(8)}, color=${Bar1.isGreen ? 'GREEN' : 'RED'}`);
     console.log(`      Bar₂: O=${Bar2.open.toFixed(8)}, C=${Bar2.close.toFixed(8)}, H=${Bar2.high.toFixed(8)}, L=${Bar2.low.toFixed(8)}, B=${Bar2.body.toFixed(8)}, R=${Bar2.range.toFixed(8)}, color=${Bar2.isGreen ? 'GREEN' : 'RED'}`);
 
-    // Общие константы
+    // ✅ NEW: Body ratio increased to 1.5x (from 1.2x) for higher quality
+    const BODY_RATIO_MIN = 1.5;
     const EDGE_MAX = 0.25;
     
     // Проверка импульсности Bar₂
-    // Professional standard: Only check body ratio, NO minimum ATR requirement
     const bodyRatioActual = Bar1.body > 0 ? Bar2.body / Bar1.body : 0;
-    const bodyRatioOK = bodyRatioActual >= bodyRatio;
+    const bodyRatioOK = bodyRatioActual >= BODY_RATIO_MIN;
     if (!bodyRatioOK) {
-      console.log(`   ❌ Body ratio too small: ${bodyRatioActual.toFixed(2)} < ${bodyRatio}`);
+      console.log(`   ❌ Body ratio too small: ${bodyRatioActual.toFixed(2)} < ${BODY_RATIO_MIN}`);
       return { detected: false };
     }
-    console.log(`   ✅ Body ratio OK: ${bodyRatioActual.toFixed(2)} >= ${bodyRatio} (ATR size filter REMOVED per pro standards)`);
+    console.log(`   ✅ Body ratio OK: ${bodyRatioActual.toFixed(2)} >= ${BODY_RATIO_MIN} (increased from 1.2x for better quality)`);
 
     // ========== LONG (бычье поглощение) ==========
     // Цвет: Bar₁ RED, Bar₂ GREEN
-    // Поглощение: O₂ ≤ C₁ − γ·ATR, C₂ ≥ O₁ + γ·ATR
+    // ✅ NEW: SIMPLIFIED engulfing (NO gamma buffer!)
+    // Поглощение body: Bar2.close > Bar1.open && Bar2.open < Bar1.close
+    // ✅ NEW: Requires DOWNTREND
     if (Bar1.isRed && Bar2.isGreen) {
-      const gammaBuffer = gamma * atr;
+      // ✅ NEW: Требуется DOWNTREND
+      if (!trend.isDowntrend) {
+        console.log(`   ❌ BULLISH Engulfing requires DOWNTREND (current: ${trend.isUptrend ? 'UPTREND' : 'NEUTRAL'})`);
+        return { detected: false };
+      }
       
-      // Проверка поглощения с запасом
-      const openEngulfsBottom = Bar2.open <= Bar1.close - gammaBuffer;
-      const closeEngulfsTop = Bar2.close >= Bar1.open + gammaBuffer;
+      // ✅ SIMPLIFIED: Body engulfment (no gamma buffer!)
+      const bodyEngulfed = Bar2.close > Bar1.open && Bar2.open < Bar1.close;
       
-      console.log(`   🔍 BUY candidate (цвет: RED→GREEN ✅):`);
-      console.log(`      O₂ ≤ C₁ − γ·ATR: ${Bar2.open.toFixed(8)} <= ${(Bar1.close - gammaBuffer).toFixed(8)} ${openEngulfsBottom ? '✅' : '❌'}`);
-      console.log(`      C₂ ≥ O₁ + γ·ATR: ${Bar2.close.toFixed(8)} >= ${(Bar1.open + gammaBuffer).toFixed(8)} ${closeEngulfsTop ? '✅' : '❌'}`);
+      console.log(`   🔍 BUY candidate (цвет: RED→GREEN ✅, DOWNTREND ✅):`);
+      console.log(`      Body engulfed: C₂ > O₁ && O₂ < C₁: ${Bar2.close.toFixed(8)} > ${Bar1.open.toFixed(8)} && ${Bar2.open.toFixed(8)} < ${Bar1.close.toFixed(8)} ${bodyEngulfed ? '✅' : '❌'}`);
       
-      if (openEngulfsBottom && closeEngulfsTop) {
+      if (bodyEngulfed) {
         // Проверка закрытия у верха: (H₂ - C₂) / R₂ ≤ 0.25
         const closeAtTopFraction = Bar2.range > 0 ? (Bar2.high - Bar2.close) / Bar2.range : 1;
         const closeAtTopOK = closeAtTopFraction <= EDGE_MAX;
@@ -1169,7 +1194,7 @@ export class PatternDetector {
         console.log(`      Close at top: ${(closeAtTopFraction * 100).toFixed(1)}% <= ${(EDGE_MAX * 100).toFixed(1)}% ${closeAtTopOK ? '✅' : '❌'}`);
         
         if (closeAtTopOK) {
-          console.log(`   ✅✅ [Pattern] Engulfing BUY detected (RED→GREEN с γ-запасом)`);
+          console.log(`   ✅✅ [Pattern] Engulfing BUY detected (SIMPLIFIED, DOWNTREND confirmed)`);
           
           // 📊 SCORING (0-10): Engulfing BUY
           let score = 5; // Base score
@@ -1182,7 +1207,6 @@ export class PatternDetector {
           }
           
           // 2. Engulfing strength (Bar2 body ≥2x Bar1 body)
-          const bodyRatioActual = Bar1.body > 0 ? Bar2.body / Bar1.body : 10;
           if (bodyRatioActual >= 2.0) {
             score += 1;
             console.log(`   📊 [Score] Strong engulfing ${bodyRatioActual.toFixed(2)}x body ≥ 2.0: +1 point`);
@@ -1220,19 +1244,23 @@ export class PatternDetector {
 
     // ========== SHORT (медвежье поглощение) ==========
     // Цвет: Bar₁ GREEN, Bar₂ RED
-    // Поглощение: O₂ ≥ C₁ + γ·ATR, C₂ ≤ O₁ − γ·ATR
+    // ✅ NEW: SIMPLIFIED engulfing (NO gamma buffer!)
+    // Поглощение body: Bar2.close < Bar1.open && Bar2.open > Bar1.close
+    // ✅ NEW: Requires UPTREND
     if (Bar1.isGreen && Bar2.isRed) {
-      const gammaBuffer = gamma * atr;
+      // ✅ NEW: Требуется UPTREND
+      if (!trend.isUptrend) {
+        console.log(`   ❌ BEARISH Engulfing requires UPTREND (current: ${trend.isDowntrend ? 'DOWNTREND' : 'NEUTRAL'})`);
+        return { detected: false };
+      }
       
-      // Проверка поглощения с запасом
-      const openEngulfsTop = Bar2.open >= Bar1.close + gammaBuffer;
-      const closeEngulfsBottom = Bar2.close <= Bar1.open - gammaBuffer;
+      // ✅ SIMPLIFIED: Body engulfment (no gamma buffer!)
+      const bodyEngulfed = Bar2.close < Bar1.open && Bar2.open > Bar1.close;
       
-      console.log(`   🔍 SELL candidate (цвет: GREEN→RED ✅):`);
-      console.log(`      O₂ ≥ C₁ + γ·ATR: ${Bar2.open.toFixed(8)} >= ${(Bar1.close + gammaBuffer).toFixed(8)} ${openEngulfsTop ? '✅' : '❌'}`);
-      console.log(`      C₂ ≤ O₁ − γ·ATR: ${Bar2.close.toFixed(8)} <= ${(Bar1.open - gammaBuffer).toFixed(8)} ${closeEngulfsBottom ? '✅' : '❌'}`);
+      console.log(`   🔍 SELL candidate (цвет: GREEN→RED ✅, UPTREND ✅):`);
+      console.log(`      Body engulfed: C₂ < O₁ && O₂ > C₁: ${Bar2.close.toFixed(8)} < ${Bar1.open.toFixed(8)} && ${Bar2.open.toFixed(8)} > ${Bar1.close.toFixed(8)} ${bodyEngulfed ? '✅' : '❌'}`);
       
-      if (openEngulfsTop && closeEngulfsBottom) {
+      if (bodyEngulfed) {
         // Проверка закрытия у низа: (C₂ - L₂) / R₂ ≤ 0.25
         const closeAtBottomFraction = Bar2.range > 0 ? (Bar2.close - Bar2.low) / Bar2.range : 1;
         const closeAtBottomOK = closeAtBottomFraction <= EDGE_MAX;
@@ -1240,7 +1268,7 @@ export class PatternDetector {
         console.log(`      Close at bottom: ${(closeAtBottomFraction * 100).toFixed(1)}% <= ${(EDGE_MAX * 100).toFixed(1)}% ${closeAtBottomOK ? '✅' : '❌'}`);
         
         if (closeAtBottomOK) {
-          console.log(`   ✅✅ [Pattern] Engulfing SELL detected (GREEN→RED с γ-запасом)`);
+          console.log(`   ✅✅ [Pattern] Engulfing SELL detected (SIMPLIFIED, UPTREND confirmed)`);
           
           // 📊 SCORING (0-10): Engulfing SELL
           let score = 5; // Base score
@@ -1253,7 +1281,6 @@ export class PatternDetector {
           }
           
           // 2. Engulfing strength (Bar2 body ≥2x Bar1 body)
-          const bodyRatioActual = Bar1.body > 0 ? Bar2.body / Bar1.body : 10;
           if (bodyRatioActual >= 2.0) {
             score += 1;
             console.log(`   📊 [Score] Strong engulfing ${bodyRatioActual.toFixed(2)}x body ≥ 2.0: +1 point`);
