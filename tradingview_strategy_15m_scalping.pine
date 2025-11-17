@@ -1,0 +1,326 @@
+//@version=6
+strategy("15m Scalping Strategy [BOT REPLICA]", overlay=true, initial_capital=10000, default_qty_type=strategy.percent_of_equity, default_qty_value=100, commission_type=strategy.commission.percent, commission_value=0.1, slippage=2)
+
+// ⚠️ ВАЖНОЕ ОГРАНИЧЕНИЕ:
+// Этот стратегия реализует УПРОЩЕННУЮ версию 15m стратегии бота.
+// Некоторые backend-фильтры НЕВОЗМОЖНО портировать в Pine Script:
+// - Recent Direction Conflict (10-bar локальное движение против сигнала)
+// - Confluence scoring (проверка ≥5 факторов подтверждения)
+// - BTC trend correlation (анализ корреляции с BTC)
+// - Open-position locks (проверка активных сделок по монете)
+// - Family locks (лимит 2 монеты одной семьи одновременно)
+
+// ============================================
+// НАСТРОЙКИ СТРАТЕГИИ
+// ============================================
+
+// Risk Management (как в боте: 1% риск, 20x leverage)
+riskPercent = input.float(1.0, "Risk Per Trade (%)", minval=0.1, maxval=5.0, step=0.1, group="Risk Management")
+leverage = input.int(20, "Leverage", minval=1, maxval=125, group="Risk Management")
+
+// Паттерны
+showPinBar = input.bool(true, "Pin Bar", group="Patterns")
+showEngulfing = input.bool(true, "Engulfing", group="Patterns")
+showPPR = input.bool(true, "PPR (Piercing Pattern Reversal)", group="Patterns")
+showFakey = input.bool(true, "Fakey", group="Patterns")
+
+// Фильтры
+filterTrend = input.bool(true, "EMA Trend Filter (50/200)", group="Filters")
+filterChoppy = input.bool(true, "Choppy Market Filter", group="Filters")
+filterSwingDensity = input.bool(true, "Swing Density Filter (≥6)", group="Filters")
+
+// ============================================
+// ИНДИКАТОРЫ
+// ============================================
+
+// EMA для тренда
+ema50 = ta.ema(close, 50)
+ema200 = ta.ema(close, 200)
+
+// ATR для волатильности (период 14 как в боте)
+atr = ta.atr(14)
+
+// Определение тренда
+isUptrend = close > ema50 and ema50 > ema200
+isDowntrend = close < ema50 and ema50 < ema200
+
+// Swing density (подсчет swing highs/lows за последние 20 баров)
+swingHigh = ta.pivothigh(high, 2, 2)
+swingLow = ta.pivotlow(low, 2, 2)
+recentSwings = (not na(swingHigh) or not na(swingLow)) ? 1 : 0
+swingCount = math.sum(recentSwings, 20)
+
+isChoppyMarket = swingCount < 6  // <6 swings = choppy (MIN_SWING_COUNT=6)
+
+// ============================================
+// АНАЛИЗ СВЕЧЕЙ
+// ============================================
+
+// Текущая свеча (C0)
+c_open = open
+c_close = close
+c_high = high
+c_low = low
+c_range = c_high - c_low
+c_body = math.abs(c_close - c_open)
+c_upperWick = c_high - math.max(c_open, c_close)
+c_lowerWick = math.min(c_open, c_close) - c_low
+c_isGreen = c_close > c_open
+c_isRed = c_close < c_open
+
+// Предыдущая свеча (C1)
+p_open = open[1]
+p_close = close[1]
+p_high = high[1]
+p_low = low[1]
+p_body = math.abs(p_close - p_open)
+p_isGreen = p_close > p_open
+p_isRed = p_close < p_open
+
+// ============================================
+// ДЕТЕКЦИЯ ПАТТЕРНОВ
+// ============================================
+
+// === PIN BAR ===
+var float pinbar_entry = na
+var float pinbar_sl = na
+var string pinbar_direction = na
+
+if showPinBar
+    tailRatio = c_isGreen ? c_lowerWick / c_body : c_upperWick / c_body
+    bodyRatio = c_body / c_range
+    
+    // LONG Pin Bar: красная свеча с длинным нижним хвостом
+    if c_isRed and c_lowerWick > c_body * 2.0 and bodyRatio < 0.35
+        pinbar_direction := "LONG"
+        pinbar_entry := c_close
+        patternLow = math.min(low[1], low[2], low[3], low[4], low[5])
+        pinbar_sl := patternLow - (atr * 0.6)
+    
+    // SHORT Pin Bar: зеленая свеча с длинным верхним хвостом
+    else if c_isGreen and c_upperWick > c_body * 2.0 and bodyRatio < 0.35
+        pinbar_direction := "SHORT"
+        pinbar_entry := c_close
+        patternHigh = math.max(high[1], high[2], high[3], high[4], high[5])
+        pinbar_sl := patternHigh + (atr * 0.6)
+
+// === ENGULFING ===
+var float engulfing_entry = na
+var float engulfing_sl = na
+var string engulfing_direction = na
+
+if showEngulfing
+    gamma = 0.175
+    bodyRatioReq = 1.2
+    bodyRatioActual = p_body > 0 ? c_body / p_body : 0
+    
+    // LONG Engulfing
+    if p_isRed and c_isGreen and bodyRatioActual >= bodyRatioReq
+        gammaBuffer = gamma * atr
+        openEngulfs = c_open <= p_close - gammaBuffer
+        closeEngulfs = c_close >= p_open + gammaBuffer
+        
+        if openEngulfs and closeEngulfs
+            engulfing_direction := "LONG"
+            engulfing_entry := c_close
+            patternLow = math.min(low[1], low[2], low[3], low[4], low[5])
+            engulfing_sl := patternLow - (atr * 0.6)
+    
+    // SHORT Engulfing
+    else if p_isGreen and c_isRed and bodyRatioActual >= bodyRatioReq
+        gammaBuffer = gamma * atr
+        openEngulfs = c_open >= p_close + gammaBuffer
+        closeEngulfs = c_close <= p_open - gammaBuffer
+        
+        if openEngulfs and closeEngulfs
+            engulfing_direction := "SHORT"
+            engulfing_entry := c_close
+            patternHigh = math.max(high[1], high[2], high[3], high[4], high[5])
+            engulfing_sl := patternHigh + (atr * 0.6)
+
+// === PPR ===
+var float ppr_entry = na
+var float ppr_sl = na
+var string ppr_direction = na
+
+if showPPR
+    delta = 0.175
+    minPenetration = 0.5
+    
+    // LONG PPR
+    if p_isRed and c_isGreen
+        gap = p_close - c_open
+        penetration = p_body > 0 ? (c_close - p_close) / p_body : 0
+        
+        if gap >= delta * atr and penetration >= minPenetration and penetration <= 0.9
+            ppr_direction := "LONG"
+            ppr_entry := c_close
+            patternLow = math.min(low[1], low[2], low[3], low[4], low[5])
+            ppr_sl := patternLow - (atr * 0.6)
+    
+    // SHORT PPR
+    else if p_isGreen and c_isRed
+        gap = c_open - p_close
+        penetration = p_body > 0 ? (p_close - c_close) / p_body : 0
+        
+        if gap >= delta * atr and penetration >= minPenetration and penetration <= 0.9
+            ppr_direction := "SHORT"
+            ppr_entry := c_close
+            patternHigh = math.max(high[1], high[2], high[3], high[4], high[5])
+            ppr_sl := patternHigh + (atr * 0.6)
+
+// === FAKEY ===
+var float fakey_entry = na
+var float fakey_sl = na
+var string fakey_direction = na
+
+if showFakey
+    epsilon = 0.15
+    
+    // Проверка наличия Inside Bar (IB) и Mother Bar (MB)
+    hasIB = p_high <= high[2] and p_low >= low[2]
+    
+    if hasIB
+        ib_high = p_high
+        ib_low = p_low
+        mb_high = high[2]
+        mb_low = low[2]
+        
+        // LONG Fakey
+        fbProbeBelowIB = c_low < ib_low
+        fbClosesInsideMB = c_close >= ib_low and c_close <= mb_high
+        fbClosesAboveIB = c_close > ib_low + epsilon * atr
+        
+        if fbProbeBelowIB and fbClosesInsideMB and fbClosesAboveIB
+            fakey_direction := "LONG"
+            fakey_entry := c_close
+            patternLow = math.min(low[1], low[2], low[3], low[4], low[5])
+            fakey_sl := patternLow - (atr * 0.6)
+        
+        // SHORT Fakey
+        fbProbeAboveIB = c_high > ib_high
+        fbClosesInsideMB_short = c_close <= ib_high and c_close >= mb_low
+        fbClosesBelowIB = c_close < ib_high - epsilon * atr
+        
+        if fbProbeAboveIB and fbClosesInsideMB_short and fbClosesBelowIB
+            fakey_direction := "SHORT"
+            fakey_entry := c_close
+            patternHigh = math.max(high[1], high[2], high[3], high[4], high[5])
+            fakey_sl := patternHigh + (atr * 0.6)
+
+// ============================================
+// ПРИОРИТИЗАЦИЯ ПАТТЕРНОВ
+// ============================================
+
+var string finalPattern = na
+var string finalDirection = na
+var float finalEntry = na
+var float finalSL = na
+
+// Приоритет: Fakey > PPR > Engulfing > Pin Bar
+if not na(fakey_direction)
+    finalPattern := "Fakey"
+    finalDirection := fakey_direction
+    finalEntry := fakey_entry
+    finalSL := fakey_sl
+else if not na(ppr_direction)
+    finalPattern := "PPR"
+    finalDirection := ppr_direction
+    finalEntry := ppr_entry
+    finalSL := ppr_sl
+else if not na(engulfing_direction)
+    finalPattern := "Engulfing"
+    finalDirection := engulfing_direction
+    finalEntry := engulfing_entry
+    finalSL := engulfing_sl
+else if not na(pinbar_direction)
+    finalPattern := "PinBar"
+    finalDirection := pinbar_direction
+    finalEntry := pinbar_entry
+    finalSL := pinbar_sl
+
+// ============================================
+// ФИЛЬТРАЦИЯ
+// ============================================
+
+validSignal = not na(finalDirection)
+
+// Фильтр 1: EMA Trend alignment
+if validSignal and filterTrend
+    if finalDirection == "LONG" and not isUptrend
+        validSignal := false
+    if finalDirection == "SHORT" and not isDowntrend
+        validSignal := false
+
+// Фильтр 2: Swing density (≥6 swings)
+if validSignal and filterSwingDensity and swingCount < 6
+    validSignal := false
+
+// Фильтр 3: Choppy market
+if validSignal and filterChoppy and isChoppyMarket
+    validSignal := false
+
+// ============================================
+// РАСЧЕТ TP И POSITION SIZE
+// ============================================
+
+var float finalTP1 = na
+var float finalTP2 = na
+var float finalTP3 = na
+var float positionSize = na
+
+if validSignal and not na(finalEntry) and not na(finalSL)
+    riskR = math.abs(finalEntry - finalSL)
+    slPercent = (riskR / finalEntry) * 100
+    
+    // TP multiplier: 2R если SL < 6%, иначе 1.8R
+    tpMultiplier = slPercent < 6.0 ? 2.0 : 1.8
+    
+    // Calculate TPs
+    if finalDirection == "LONG"
+        finalTP1 := finalEntry + (riskR * 1.0)
+        finalTP2 := finalEntry + (riskR * tpMultiplier)
+        finalTP3 := finalEntry + (riskR * 3.0)
+    else  // SHORT
+        finalTP1 := finalEntry - (riskR * 1.0)
+        finalTP2 := finalEntry - (riskR * tpMultiplier)
+        finalTP3 := finalEntry - (riskR * 3.0)
+    
+    // Position sizing: 1% risk per trade with leverage
+    accountEquity = strategy.equity
+    riskAmount = accountEquity * (riskPercent / 100)
+    contractsAtRisk = riskAmount / riskR  // Contracts needed to risk 1%
+    positionSize := contractsAtRisk * leverage  // Apply leverage
+
+// ============================================
+// СТРАТЕГИЯ: ОТКРЫТИЕ/ЗАКРЫТИЕ ПОЗИЦИЙ
+// ============================================
+
+// Entry conditions
+longCondition = validSignal and finalDirection == "LONG" and barstate.isconfirmed
+shortCondition = validSignal and finalDirection == "SHORT" and barstate.isconfirmed
+
+// Entry orders
+if longCondition and strategy.position_size == 0
+    strategy.entry("LONG", strategy.long, qty=positionSize)
+    strategy.exit("TP/SL LONG", "LONG", stop=finalSL, limit=finalTP2)
+
+if shortCondition and strategy.position_size == 0
+    strategy.entry("SHORT", strategy.short, qty=positionSize)
+    strategy.exit("TP/SL SHORT", "SHORT", stop=finalSL, limit=finalTP2)
+
+// ============================================
+// ВИЗУАЛИЗАЦИЯ
+// ============================================
+
+// Plot EMA
+plot(ema50, "EMA 50", color=color.new(color.orange, 0), linewidth=2)
+plot(ema200, "EMA 200", color=color.new(color.purple, 0), linewidth=2)
+
+// Фон для тренда
+bgcolor(isUptrend ? color.new(color.green, 95) : isDowntrend ? color.new(color.red, 95) : na, title="Trend Background")
+
+// Plot Entry/SL/TP levels (только для визуализации)
+plot(strategy.position_size != 0 ? finalEntry : na, "Entry", color=color.blue, linewidth=2, style=plot.style_linebr)
+plot(strategy.position_size != 0 ? finalSL : na, "Stop Loss", color=color.red, linewidth=2, style=plot.style_linebr)
+plot(strategy.position_size != 0 ? finalTP2 : na, "TP2", color=color.green, linewidth=2, style=plot.style_linebr)
