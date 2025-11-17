@@ -1,0 +1,523 @@
+//@version=6
+indicator("15m Scalping Strategy - Pro", overlay=true, max_boxes_count=500, max_lines_count=500, max_labels_count=500)
+
+// ============================================
+// НАСТРОЙКИ ИНДИКАТОРА
+// ============================================
+
+// Показывать паттерны
+showPinBar = input.bool(true, "Pin Bar", group="Паттерны")
+showFakey = input.bool(true, "Fakey", group="Паттерны")
+showPPR = input.bool(true, "PPR", group="Паттерны")
+showEngulfing = input.bool(true, "Engulfing", group="Паттерны")
+
+// Фильтры
+minConfluence = input.int(5, "Мин. Confluence Score", minval=0, maxval=10, group="Фильтры")
+checkTrend = input.bool(true, "Проверять тренд (EMA50/200)", group="Фильтры")
+checkVolume = input.bool(true, "Объем выше среднего", group="Фильтры")
+filterChoppy = input.bool(true, "Фильтр Choppy Market", group="Фильтры")
+
+// Визуализация
+showZones = input.bool(true, "Показывать зоны Risk/Reward", group="Визуализация")
+showLabels = input.bool(true, "Показывать метки", group="Визуализация")
+
+// Цвета
+colorLong = input.color(color.new(color.green, 20), "LONG сигнал", group="Цвета")
+colorShort = input.color(color.new(color.red, 20), "SHORT сигнал", group="Цвета")
+colorEntry = input.color(color.blue, "Entry линия", group="Цвета")
+colorSL = input.color(color.red, "Stop Loss", group="Цвета")
+colorTP = input.color(color.green, "Take Profit", group="Цвета")
+
+// ============================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================
+
+// Расчет ATR (5-период как в коде)
+calcATR(len = 5) =>
+    ta.atr(len)
+
+// EMA для определения тренда
+ema50 = ta.ema(close, 50)
+ema200 = ta.ema(close, 200)
+
+// Определение тренда (как в candleAnalyzer.ts)
+// Для 15m: PRICE_THRESHOLD = 0.005 (0.5%), EMA_THRESHOLD = 0.004 (0.4%)
+PRICE_THRESHOLD = 0.005
+EMA_THRESHOLD = 0.004
+
+priceToEma50Distance = math.abs(close - ema50) / close
+ema50ToEma200Distance = math.abs(ema50 - ema200) / ema200
+
+priceNearEma50 = priceToEma50Distance < PRICE_THRESHOLD
+ema50NearEma200 = ema50ToEma200Distance < EMA_THRESHOLD
+
+isNeutral = priceNearEma50 or ema50NearEma200
+isUptrend = not isNeutral and close > ema50 and ema50 > ema200
+isDowntrend = not isNeutral and close < ema50 and ema50 < ema200
+
+// Средний объем (последние 20 баров)
+avgVolume = ta.sma(volume, 20)
+isVolumeAboveAvg = volume >= avgVolume * 0.40  // 40% порог как в коде
+
+// Проверка choppy market через swing count
+// Упрощенная версия: считаем локальные максимумы/минимумы
+swingHigh = ta.pivothigh(high, 2, 2)
+swingLow = ta.pivotlow(low, 2, 2)
+recentSwings = (not na(swingHigh) or not na(swingLow)) ? 1 : 0
+swingCount = math.sum(recentSwings, 20)  // последние 20 баров
+
+isChoppyMarket = swingCount <= 5  // ≤5 swings = choppy
+
+// ============================================
+// АНАЛИЗ СВЕЧЕЙ
+// ============================================
+
+// Метрики текущей свечи
+c_open = open[1]
+c_high = high[1]
+c_low = low[1]
+c_close = close[1]
+c_body = math.abs(c_close - c_open)
+c_range = c_high - c_low
+c_upperWick = c_close > c_open ? c_high - c_close : c_high - c_open
+c_lowerWick = c_close > c_open ? c_open - c_low : c_close - c_low
+c_isGreen = c_close > c_open
+c_isRed = c_close < c_open
+
+// Предыдущая свеча (для паттернов из 2 свечей)
+p_open = open[2]
+p_high = high[2]
+p_low = low[2]
+p_close = close[2]
+p_body = math.abs(p_close - p_open)
+p_range = p_high - p_low
+p_isGreen = p_close > p_open
+p_isRed = p_close < p_open
+
+// ATR для расчетов
+atr = calcATR(5)
+
+// ============================================
+// ДЕТЕКЦИЯ ПАТТЕРНОВ
+// ============================================
+
+// === PIN BAR ===
+// Параметры для 15m: minTailRatio=2.0, maxBodyRatio=0.35
+var float pinbar_entry = na
+var float pinbar_sl = na
+var string pinbar_direction = na
+var int pinbar_score = 0
+
+if showPinBar
+    tailRatio = c_isGreen ? c_lowerWick / c_body : c_upperWick / c_body
+    bodyRatio = c_body / c_range
+    
+    // LONG Pin Bar: красная свеча с длинным нижним хвостом
+    if c_isRed and c_lowerWick > c_body * 2.0 and bodyRatio < 0.35
+        pinbar_direction := "LONG"
+        pinbar_entry := c_close
+        pinbar_sl := c_low - (atr * 0.6)  // Pattern extreme + 0.6×ATR
+        
+        // Scoring (упрощенный)
+        score = 0
+        if c_lowerWick / c_body >= 3.0
+            score += 3
+        else if c_lowerWick / c_body >= 2.5
+            score += 2
+        else
+            score += 1
+        if bodyRatio <= 0.25
+            score += 2
+        if c_upperWick < c_range * 0.15
+            score += 1
+        pinbar_score := score
+    
+    // SHORT Pin Bar: зеленая свеча с длинным верхним хвостом
+    else if c_isGreen and c_upperWick > c_body * 2.0 and bodyRatio < 0.35
+        pinbar_direction := "SHORT"
+        pinbar_entry := c_close
+        pinbar_sl := c_high + (atr * 0.6)
+        
+        score = 0
+        if c_upperWick / c_body >= 3.0
+            score += 3
+        else if c_upperWick / c_body >= 2.5
+            score += 2
+        else
+            score += 1
+        if bodyRatio <= 0.25
+            score += 2
+        if c_lowerWick < c_range * 0.15
+            score += 1
+        pinbar_score := score
+
+// === ENGULFING ===
+// Параметры для 15m: gamma=0.175, bodyRatio=1.2
+var float engulfing_entry = na
+var float engulfing_sl = na
+var string engulfing_direction = na
+var int engulfing_score = 0
+
+if showEngulfing
+    gamma = 0.175
+    bodyRatioReq = 1.2
+    bodyRatioActual = p_body > 0 ? c_body / p_body : 0
+    
+    // LONG Engulfing: RED→GREEN, поглощение
+    if p_isRed and c_isGreen and bodyRatioActual >= bodyRatioReq
+        gammaBuffer = gamma * atr
+        openEngulfs = c_open <= p_close - gammaBuffer
+        closeEngulfs = c_close >= p_open + gammaBuffer
+        
+        if openEngulfs and closeEngulfs
+            engulfing_direction := "LONG"
+            engulfing_entry := c_close
+            engulfing_sl := math.min(c_low, p_low) - (atr * 0.6)
+            
+            // Scoring
+            score = 0
+            engulfStrength = (c_close - p_open) / (p_open - p_close)
+            if engulfStrength >= 1.5
+                score += 3
+            else if engulfStrength >= 1.2
+                score += 2
+            else
+                score += 1
+            if c_body / c_range >= 0.7
+                score += 2
+            engulfing_score := score
+    
+    // SHORT Engulfing: GREEN→RED, поглощение
+    else if p_isGreen and c_isRed and bodyRatioActual >= bodyRatioReq
+        gammaBuffer = gamma * atr
+        openEngulfs = c_open >= p_close + gammaBuffer
+        closeEngulfs = c_close <= p_open - gammaBuffer
+        
+        if openEngulfs and closeEngulfs
+            engulfing_direction := "SHORT"
+            engulfing_entry := c_close
+            engulfing_sl := math.max(c_high, p_high) + (atr * 0.6)
+            
+            score = 0
+            engulfStrength = (p_open - c_close) / (p_close - p_open)
+            if engulfStrength >= 1.5
+                score += 3
+            else if engulfStrength >= 1.2
+                score += 2
+            else
+                score += 1
+            if c_body / c_range >= 0.7
+                score += 2
+            engulfing_score := score
+
+// === PPR (Piercing Pattern Reversal) ===
+// Параметры для 15m: delta=0.175, minPenetration=0.5
+var float ppr_entry = na
+var float ppr_sl = na
+var string ppr_direction = na
+var int ppr_score = 0
+
+if showPPR
+    delta = 0.175
+    minPenetration = 0.5
+    
+    // LONG PPR: RED→GREEN с проникновением
+    if p_isRed and c_isGreen
+        gap = p_close - c_open
+        penetration = p_body > 0 ? (c_close - p_close) / p_body : 0
+        
+        if gap >= delta * atr and penetration >= minPenetration and penetration <= 0.9
+            ppr_direction := "LONG"
+            ppr_entry := c_close
+            ppr_sl := c_low - (atr * 0.6)
+            
+            // Scoring
+            score = 0
+            if penetration >= 0.7
+                score += 3
+            else if penetration >= 0.6
+                score += 2
+            else
+                score += 1
+            if c_body / c_range >= 0.6
+                score += 1
+            ppr_score := score
+    
+    // SHORT PPR: GREEN→RED с проникновением
+    else if p_isGreen and c_isRed
+        gap = c_open - p_close
+        penetration = p_body > 0 ? (p_close - c_close) / p_body : 0
+        
+        if gap >= delta * atr and penetration >= minPenetration and penetration <= 0.9
+            ppr_direction := "SHORT"
+            ppr_entry := c_close
+            ppr_sl := c_high + (atr * 0.6)
+            
+            score = 0
+            if penetration >= 0.7
+                score += 3
+            else if penetration >= 0.6
+                score += 2
+            else
+                score += 1
+            if c_body / c_range >= 0.6
+                score += 1
+            ppr_score := score
+
+// === FAKEY ===
+// Упрощенная версия (полная логика слишком сложна для Pine Script)
+// Параметры для 15m: epsilon=0.225, maxConfirmBars=2
+var float fakey_entry = na
+var float fakey_sl = na
+var string fakey_direction = na
+var int fakey_score = 0
+
+if showFakey
+    epsilon = 0.225
+    
+    // Проверяем материнскую свечу (MB) [2] и inside bar (IB) [1] и ложный пробой (FB) [0]
+    mb_high = high[2]
+    mb_low = low[2]
+    ib_high = high[1]
+    ib_low = low[1]
+    
+    // IB полностью внутри MB
+    isInsideBar = ib_high <= mb_high and ib_low >= mb_low
+    
+    if isInsideBar
+        // LONG Fakey: FB пробивает вниз IB, но закрывается обратно
+        fbProbeBelowIB = c_low < ib_low
+        fbClosesInsideMB = c_close >= ib_low and c_close <= mb_high
+        fbClosesAboveIB = c_close > ib_low + epsilon * atr
+        
+        if fbProbeBelowIB and fbClosesInsideMB and fbClosesAboveIB
+            fakey_direction := "LONG"
+            fakey_entry := c_close
+            fakey_sl := c_low - (atr * 0.6)
+            fakey_score := 5  // Упрощенный скоринг
+        
+        // SHORT Fakey: FB пробивает вверх IB, но закрывается обратно
+        fbProbeAboveIB = c_high > ib_high
+        fbClosesInsideMB_short = c_close <= ib_high and c_close >= mb_low
+        fbClosesBelowIB = c_close < ib_high - epsilon * atr
+        
+        if fbProbeAboveIB and fbClosesInsideMB_short and fbClosesBelowIB
+            fakey_direction := "SHORT"
+            fakey_entry := c_close
+            fakey_sl := c_high + (atr * 0.6)
+            fakey_score := 5
+
+// ============================================
+// CONFLUENCE SCORING & ФИЛЬТРАЦИЯ
+// ============================================
+
+// Выбираем лучший паттерн из обнаруженных
+var string finalDirection = na
+var float finalEntry = na
+var float finalSL = na
+var int finalScore = 0
+var string finalPattern = na
+
+// Собираем все паттерны и выбираем с макс. score
+if not na(pinbar_direction) and pinbar_score >= finalScore
+    finalDirection := pinbar_direction
+    finalEntry := pinbar_entry
+    finalSL := pinbar_sl
+    finalScore := pinbar_score
+    finalPattern := "Pin Bar"
+
+if not na(engulfing_direction) and engulfing_score >= finalScore
+    finalDirection := engulfing_direction
+    finalEntry := engulfing_entry
+    finalSL := engulfing_sl
+    finalScore := engulfing_score
+    finalPattern := "Engulfing"
+
+if not na(ppr_direction) and ppr_score >= finalScore
+    finalDirection := ppr_direction
+    finalEntry := ppr_entry
+    finalSL := ppr_sl
+    finalScore := ppr_score
+    finalPattern := "PPR"
+
+if not na(fakey_direction) and fakey_score >= finalScore
+    finalDirection := fakey_direction
+    finalEntry := fakey_entry
+    finalSL := fakey_sl
+    finalScore := fakey_score
+    finalPattern := "Fakey"
+
+// Расчет confluence score (упрощенный)
+confluenceScore = 0
+
+// 1. Pattern quality (0-3)
+confluenceScore += finalScore >= 5 ? 3 : finalScore >= 3 ? 2 : 1
+
+// 2. Trend alignment (0-2)
+if not na(finalDirection)
+    if finalDirection == "LONG" and isUptrend
+        confluenceScore += 2
+    else if finalDirection == "SHORT" and isDowntrend
+        confluenceScore += 2
+    else if not isNeutral
+        confluenceScore += 0  // Против тренда
+    else
+        confluenceScore += 1  // Нейтрально
+
+// 3. Volume (0-1)
+if isVolumeAboveAvg
+    confluenceScore += 1
+
+// 4. Market structure (0-1)
+if not isChoppyMarket
+    confluenceScore += 1
+
+// Добавляем зоны (упрощенно) (0-2)
+confluenceScore += 2  // Предполагаем среднее значение
+
+// ============================================
+// ПРИМЕНЕНИЕ ФИЛЬТРОВ
+// ============================================
+
+validSignal = not na(finalDirection)
+
+// Фильтр 1: Минимальный confluence score
+if validSignal and confluenceScore < minConfluence
+    validSignal := false
+
+// Фильтр 2: Тренд
+if validSignal and checkTrend
+    if finalDirection == "LONG" and not isUptrend
+        validSignal := false
+    if finalDirection == "SHORT" and not isDowntrend
+        validSignal := false
+
+// Фильтр 3: Объем
+if validSignal and checkVolume and not isVolumeAboveAvg
+    validSignal := false
+
+// Фильтр 4: Choppy market
+if validSignal and filterChoppy and isChoppyMarket
+    validSignal := false
+
+// ============================================
+// РАСЧЕТ TP (TAKE PROFIT)
+// ============================================
+
+var float finalTP1 = na
+var float finalTP2 = na
+var float finalTP3 = na
+
+if validSignal and not na(finalEntry) and not na(finalSL)
+    riskR = math.abs(finalEntry - finalSL)
+    slPercent = (riskR / finalEntry) * 100
+    
+    // TP множитель: 2R если SL < 6%, иначе 1.8R (как в calculate15mRiskProfile)
+    tpMultiplier = slPercent < 6.0 ? 2.0 : 1.8
+    
+    // BALANCED профиль: TP1=1.0R, TP2=2.0R, TP3=3.0R
+    if finalDirection == "LONG"
+        finalTP1 := finalEntry + (riskR * 1.0)
+        finalTP2 := finalEntry + (riskR * tpMultiplier)
+        finalTP3 := finalEntry + (riskR * 3.0)
+    else  // SHORT
+        finalTP1 := finalEntry - (riskR * 1.0)
+        finalTP2 := finalEntry - (riskR * tpMultiplier)
+        finalTP3 := finalEntry - (riskR * 3.0)
+
+// ============================================
+// ВИЗУАЛИЗАЦИЯ
+// ============================================
+
+// Сигнал обнаружен
+var line entryLine = na
+var line slLine = na
+var line tp1Line = na
+var line tp2Line = na
+var line tp3Line = na
+var box riskBox = na
+var box rewardBox = na
+var label signalLabel = na
+
+if validSignal and barstate.isconfirmed
+    barIndex = bar_index[1]
+    
+    // Удаляем старые объекты (показываем только последний сигнал)
+    if not na(entryLine)
+        line.delete(entryLine)
+    if not na(slLine)
+        line.delete(slLine)
+    if not na(tp1Line)
+        line.delete(tp1Line)
+    if not na(tp2Line)
+        line.delete(tp2Line)
+    if not na(tp3Line)
+        line.delete(tp3Line)
+    if not na(riskBox)
+        box.delete(riskBox)
+    if not na(rewardBox)
+        box.delete(rewardBox)
+    if not na(signalLabel)
+        label.delete(signalLabel)
+    
+    // Рисуем Entry линию
+    entryLine := line.new(barIndex, finalEntry, bar_index + 50, finalEntry, 
+                          color=colorEntry, width=2, style=line.style_solid)
+    
+    // Рисуем SL линию
+    slLine := line.new(barIndex, finalSL, bar_index + 50, finalSL, 
+                       color=colorSL, width=2, style=line.style_solid)
+    
+    // Рисуем TP линии
+    tp1Line := line.new(barIndex, finalTP1, bar_index + 50, finalTP1, 
+                        color=color.new(colorTP, 60), width=1, style=line.style_dashed)
+    
+    tp2Line := line.new(barIndex, finalTP2, bar_index + 50, finalTP2, 
+                        color=colorTP, width=2, style=line.style_solid)
+    
+    tp3Line := line.new(barIndex, finalTP3, bar_index + 50, finalTP3, 
+                        color=color.new(colorTP, 30), width=1, style=line.style_dotted)
+    
+    // Зоны Risk/Reward
+    if showZones
+        // Risk зона (Entry → SL)
+        riskBox := box.new(barIndex, finalEntry, bar_index + 50, finalSL, 
+                           border_color=color.new(colorSL, 50), 
+                           bgcolor=color.new(colorSL, 85),
+                           border_width=1)
+        
+        // Reward зона (Entry → TP2)
+        rewardBox := box.new(barIndex, finalEntry, bar_index + 50, finalTP2, 
+                             border_color=color.new(colorTP, 50), 
+                             bgcolor=color.new(colorTP, 90),
+                             border_width=1)
+    
+    // Метка с информацией
+    if showLabels
+        rrRatio = math.abs(finalTP2 - finalEntry) / math.abs(finalEntry - finalSL)
+        labelText = finalPattern + " " + finalDirection + "\n" + 
+                    "Score: " + str.tostring(confluenceScore) + "/10\n" +
+                    "R:R " + str.tostring(rrRatio, "#.#") + ":1\n" +
+                    "Entry: " + str.tostring(finalEntry, "#.####") + "\n" +
+                    "SL: " + str.tostring(finalSL, "#.####") + "\n" +
+                    "TP2: " + str.tostring(finalTP2, "#.####")
+        
+        labelColor = finalDirection == "LONG" ? colorLong : colorShort
+        labelY = finalDirection == "LONG" ? finalSL : finalSL
+        
+        signalLabel := label.new(barIndex, labelY, labelText, 
+                                 color=labelColor, 
+                                 textcolor=color.white, 
+                                 style=finalDirection == "LONG" ? label.style_label_up : label.style_label_down,
+                                 size=size.normal)
+
+// Plot EMA для визуализации тренда
+plot(ema50, "EMA 50", color=color.new(color.orange, 0), linewidth=2)
+plot(ema200, "EMA 200", color=color.new(color.purple, 0), linewidth=2)
+
+// Фон для тренда
+bgcolor(isUptrend ? color.new(color.green, 95) : isDowntrend ? color.new(color.red, 95) : na, title="Trend Background")
+
+// Алерты
+alertcondition(validSignal and finalDirection == "LONG", title="LONG Signal", message="15m Scalping LONG: {{ticker}} @ {{close}}")
+alertcondition(validSignal and finalDirection == "SHORT", title="SHORT Signal", message="15m Scalping SHORT: {{ticker}} @ {{close}}")
