@@ -461,55 +461,35 @@ if validSignal and barstate.isconfirmed
         label.delete(signalLabel)
     
     // Рисуем Entry линию
-    entryLine := line.new(barIndex, finalEntry, bar_index + 50, finalEntry, 
-                          color=colorEntry, width=2, style=line.style_solid)
+    entryLine := line.new(barIndex, finalEntry, bar_index + 50, finalEntry, color=colorEntry, width=2, style=line.style_solid)
     
     // Рисуем SL линию
-    slLine := line.new(barIndex, finalSL, bar_index + 50, finalSL, 
-                       color=colorSL, width=2, style=line.style_solid)
+    slLine := line.new(barIndex, finalSL, bar_index + 50, finalSL, color=colorSL, width=2, style=line.style_solid)
     
     // Рисуем TP линии
-    tp1Line := line.new(barIndex, finalTP1, bar_index + 50, finalTP1, 
-                        color=color.new(colorTP, 60), width=1, style=line.style_dashed)
+    tp1Line := line.new(barIndex, finalTP1, bar_index + 50, finalTP1, color=color.new(colorTP, 60), width=1, style=line.style_dashed)
     
-    tp2Line := line.new(barIndex, finalTP2, bar_index + 50, finalTP2, 
-                        color=colorTP, width=2, style=line.style_solid)
+    tp2Line := line.new(barIndex, finalTP2, bar_index + 50, finalTP2, color=colorTP, width=2, style=line.style_solid)
     
-    tp3Line := line.new(barIndex, finalTP3, bar_index + 50, finalTP3, 
-                        color=color.new(colorTP, 30), width=1, style=line.style_dotted)
+    tp3Line := line.new(barIndex, finalTP3, bar_index + 50, finalTP3, color=color.new(colorTP, 30), width=1, style=line.style_dotted)
     
     // Зоны Risk/Reward
     if showZones
         // Risk зона (Entry → SL)
-        riskBox := box.new(barIndex, finalEntry, bar_index + 50, finalSL, 
-                           border_color=color.new(colorSL, 50), 
-                           bgcolor=color.new(colorSL, 85),
-                           border_width=1)
+        riskBox := box.new(barIndex, finalEntry, bar_index + 50, finalSL, border_color=color.new(colorSL, 50), bgcolor=color.new(colorSL, 85), border_width=1)
         
         // Reward зона (Entry → TP2)
-        rewardBox := box.new(barIndex, finalEntry, bar_index + 50, finalTP2, 
-                             border_color=color.new(colorTP, 50), 
-                             bgcolor=color.new(colorTP, 90),
-                             border_width=1)
+        rewardBox := box.new(barIndex, finalEntry, bar_index + 50, finalTP2, border_color=color.new(colorTP, 50), bgcolor=color.new(colorTP, 90), border_width=1)
     
     // Метка с информацией
     if showLabels
         rrRatio = math.abs(finalTP2 - finalEntry) / math.abs(finalEntry - finalSL)
-        labelText = finalPattern + " " + finalDirection + "\n" + 
-                    "Score: " + str.tostring(confluenceScore) + "/10\n" +
-                    "R:R " + str.tostring(rrRatio, "#.#") + ":1\n" +
-                    "Entry: " + str.tostring(finalEntry, "#.####") + "\n" +
-                    "SL: " + str.tostring(finalSL, "#.####") + "\n" +
-                    "TP2: " + str.tostring(finalTP2, "#.####")
+        labelText = finalPattern + " " + finalDirection + "\n" + "Score: " + str.tostring(confluenceScore) + "/10\n" + "R:R " + str.tostring(rrRatio, "#.#") + ":1\n" + "Entry: " + str.tostring(finalEntry, "#.####") + "\n" + "SL: " + str.tostring(finalSL, "#.####") + "\n" + "TP2: " + str.tostring(finalTP2, "#.####")
         
         labelColor = finalDirection == "LONG" ? colorLong : colorShort
         labelY = finalDirection == "LONG" ? finalSL : finalSL
         
-        signalLabel := label.new(barIndex, labelY, labelText, 
-                                 color=labelColor, 
-                                 textcolor=color.white, 
-                                 style=finalDirection == "LONG" ? label.style_label_up : label.style_label_down,
-                                 size=size.normal)
+        signalLabel := label.new(barIndex, labelY, labelText, color=labelColor, textcolor=color.white, style=finalDirection == "LONG" ? label.style_label_up : label.style_label_down, size=size.normal)
 
 // Plot EMA для визуализации тренда
 plot(ema50, "EMA 50", color=color.new(color.orange, 0), linewidth=2)
