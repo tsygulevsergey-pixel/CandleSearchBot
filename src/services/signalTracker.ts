@@ -150,7 +150,7 @@ export class SignalTracker {
           
           // ❌ DISABLED: Trailing Stop 1.0R → 0.5R (убрано по запросу пользователя)
           // Возврат к стандартной логике без переноса SL
-          // TP логика осталась: 2R (если SL<6%), 1.8R (если SL≥6%)
+          // TP логика: 2R (если SL<3%), 1.7R (если SL≥3%)
           
           /* TRAILING STOP LOGIC DISABLED - 2025-11-17
           const isTrailingEligible = signal.strategyProfile === 'SCALP_15M';
