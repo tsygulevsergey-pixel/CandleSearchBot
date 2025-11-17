@@ -115,8 +115,10 @@ if showPinBar
     // LONG Pin Bar: красная свеча с длинным нижним хвостом
     if c_isRed and c_lowerWick > c_body * 2.0 and bodyRatio < 0.35
         pinbar_direction := "LONG"
-        pinbar_entry := c_close
-        pinbar_sl := c_low - (atr * 0.6)  // Pattern extreme + 0.6×ATR
+        pinbar_entry := c_close  // Entry = close цена паттерн-свечи
+        // SL = MIN последних 5 свечей - 0.6×ATR (как в calculate15mRiskProfile)
+        patternLow = math.min(low[1], low[2], low[3], low[4], low[5])
+        pinbar_sl := patternLow - (atr * 0.6)
         
         // Scoring (упрощенный)
         score = 0
@@ -135,8 +137,10 @@ if showPinBar
     // SHORT Pin Bar: зеленая свеча с длинным верхним хвостом
     else if c_isGreen and c_upperWick > c_body * 2.0 and bodyRatio < 0.35
         pinbar_direction := "SHORT"
-        pinbar_entry := c_close
-        pinbar_sl := c_high + (atr * 0.6)
+        pinbar_entry := c_close  // Entry = close цена паттерн-свечи
+        // SL = MAX последних 5 свечей + 0.6×ATR
+        patternHigh = math.max(high[1], high[2], high[3], high[4], high[5])
+        pinbar_sl := patternHigh + (atr * 0.6)
         
         score = 0
         if c_upperWick / c_body >= 3.0
@@ -171,8 +175,10 @@ if showEngulfing
         
         if openEngulfs and closeEngulfs
             engulfing_direction := "LONG"
-            engulfing_entry := c_close
-            engulfing_sl := math.min(c_low, p_low) - (atr * 0.6)
+            engulfing_entry := c_close  // Entry = close цена паттерн-свечи
+            // SL = MIN последних 5 свечей - 0.6×ATR
+            patternLow = math.min(low[1], low[2], low[3], low[4], low[5])
+            engulfing_sl := patternLow - (atr * 0.6)
             
             // Scoring
             score = 0
@@ -195,8 +201,10 @@ if showEngulfing
         
         if openEngulfs and closeEngulfs
             engulfing_direction := "SHORT"
-            engulfing_entry := c_close
-            engulfing_sl := math.max(c_high, p_high) + (atr * 0.6)
+            engulfing_entry := c_close  // Entry = close цена паттерн-свечи
+            // SL = MAX последних 5 свечей + 0.6×ATR
+            patternHigh = math.max(high[1], high[2], high[3], high[4], high[5])
+            engulfing_sl := patternHigh + (atr * 0.6)
             
             score = 0
             engulfStrength = (p_open - c_close) / (p_close - p_open)
@@ -228,8 +236,10 @@ if showPPR
         
         if gap >= delta * atr and penetration >= minPenetration and penetration <= 0.9
             ppr_direction := "LONG"
-            ppr_entry := c_close
-            ppr_sl := c_low - (atr * 0.6)
+            ppr_entry := c_close  // Entry = close цена паттерн-свечи
+            // SL = MIN последних 5 свечей - 0.6×ATR
+            patternLow = math.min(low[1], low[2], low[3], low[4], low[5])
+            ppr_sl := patternLow - (atr * 0.6)
             
             // Scoring
             score = 0
@@ -250,8 +260,10 @@ if showPPR
         
         if gap >= delta * atr and penetration >= minPenetration and penetration <= 0.9
             ppr_direction := "SHORT"
-            ppr_entry := c_close
-            ppr_sl := c_high + (atr * 0.6)
+            ppr_entry := c_close  // Entry = close цена паттерн-свечи
+            // SL = MAX последних 5 свечей + 0.6×ATR
+            patternHigh = math.max(high[1], high[2], high[3], high[4], high[5])
+            ppr_sl := patternHigh + (atr * 0.6)
             
             score = 0
             if penetration >= 0.7
@@ -292,8 +304,10 @@ if showFakey
         
         if fbProbeBelowIB and fbClosesInsideMB and fbClosesAboveIB
             fakey_direction := "LONG"
-            fakey_entry := c_close
-            fakey_sl := c_low - (atr * 0.6)
+            fakey_entry := c_close  // Entry = close цена паттерн-свечи
+            // SL = MIN последних 5 свечей - 0.6×ATR
+            patternLow = math.min(low[1], low[2], low[3], low[4], low[5])
+            fakey_sl := patternLow - (atr * 0.6)
             fakey_score := 5  // Упрощенный скоринг
         
         // SHORT Fakey: FB пробивает вверх IB, но закрывается обратно
@@ -303,8 +317,10 @@ if showFakey
         
         if fbProbeAboveIB and fbClosesInsideMB_short and fbClosesBelowIB
             fakey_direction := "SHORT"
-            fakey_entry := c_close
-            fakey_sl := c_high + (atr * 0.6)
+            fakey_entry := c_close  // Entry = close цена паттерн-свечи
+            // SL = MAX последних 5 свечей + 0.6×ATR
+            patternHigh = math.max(high[1], high[2], high[3], high[4], high[5])
+            fakey_sl := patternHigh + (atr * 0.6)
             fakey_score := 5
 
 // ============================================
@@ -487,9 +503,12 @@ if validSignal and barstate.isconfirmed
         labelText = finalPattern + " " + finalDirection + "\n" + "Score: " + str.tostring(confluenceScore) + "/10\n" + "R:R " + str.tostring(rrRatio, "#.#") + ":1\n" + "Entry: " + str.tostring(finalEntry, "#.####") + "\n" + "SL: " + str.tostring(finalSL, "#.####") + "\n" + "TP2: " + str.tostring(finalTP2, "#.####")
         
         labelColor = finalDirection == "LONG" ? colorLong : colorShort
-        labelY = finalDirection == "LONG" ? finalSL : finalSL
+        // Смещаем метку подальше от свечи для читаемости
+        // LONG: ставим под SL, SHORT: над SL
+        labelOffset = math.abs(finalEntry - finalSL) * 0.5
+        labelY = finalDirection == "LONG" ? finalSL - labelOffset : finalSL + labelOffset
         
-        signalLabel := label.new(barIndex, labelY, labelText, color=labelColor, textcolor=color.white, style=finalDirection == "LONG" ? label.style_label_up : label.style_label_down, size=size.normal)
+        signalLabel := label.new(barIndex, labelY, labelText, color=labelColor, textcolor=color.white, style=finalDirection == "LONG" ? label.style_label_down : label.style_label_up, size=size.normal)
 
 // Plot EMA для визуализации тренда
 plot(ema50, "EMA 50", color=color.new(color.orange, 0), linewidth=2)
