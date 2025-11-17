@@ -2,13 +2,13 @@
 indicator("15m Scalping Strategy - Pro", overlay=true, max_boxes_count=500, max_lines_count=500, max_labels_count=500)
 
 // ⚠️ ВАЖНОЕ ОГРАНИЧЕНИЕ:
-// Этот индикатор реализует УПРОЩЕННУЮ версию стратегии бота.
-// Некоторые фильтры НЕВОЗМОЖНО портировать в Pine Script:
-// - Zone-based TP/SL adjustment (требует HTF zone data)
-// - H1/H4 veto filters (требует multi-TF zone detection)
-// - Recent Direction Conflict (требует 10-bar context analysis)
-// - BTC trend correlation
-// - Family/open-position locks
+// Этот индикатор реализует УПРОЩЕННУЮ версию 15m стратегии бота.
+// Некоторые backend-фильтры НЕВОЗМОЖНО портировать в Pine Script:
+// - Recent Direction Conflict (10-bar локальное движение против сигнала)
+// - Confluence scoring (проверка ≥5 факторов подтверждения)
+// - BTC trend correlation (анализ корреляции с BTC)
+// - Open-position locks (проверка активных сделок по монете)
+// - Family locks (лимит 2 монеты одной семьи одновременно)
 // Поэтому индикатор может показывать сигналы где бот их НЕ давал и наоборот!
 
 // ============================================
