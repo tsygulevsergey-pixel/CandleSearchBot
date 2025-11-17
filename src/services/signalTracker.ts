@@ -148,14 +148,14 @@ export class SignalTracker {
             await signalDB.updateMFEMAE(signal.id, newMFE, newMAE, firstTouch || undefined);
           }
           
-          // ✅ NEW: Trailing Stop 1.0R → 0.5R (только для 15m SCALP_15M стратегии)
-          // Когда прибыль достигает 1.0R, переместить SL на +0.5R (вместо breakeven на 0R)
-          // Это спасает 93 SL (превращает -1R в +0.5R), теряет только 23 TP
-          // Улучшение Win Rate: 43.8% → 56.4% (+12.6%)
+          // ❌ DISABLED: Trailing Stop 1.0R → 0.5R (убрано по запросу пользователя)
+          // Возврат к стандартной логике без переноса SL
+          // TP логика осталась: 2R (если SL<6%), 1.8R (если SL≥6%)
+          
+          /* TRAILING STOP LOGIC DISABLED - 2025-11-17
           const isTrailingEligible = signal.strategyProfile === 'SCALP_15M';
           const trailingActivated = signal.trailingActivated || false;
           
-          // 🔍 DIAGNOSTIC: Log trailing stop eligibility check
           console.log(`🔍 [SignalTracker][${correlationId}] Trailing Stop Check:`, {
             strategyProfile: signal.strategyProfile,
             isTrailingEligible,
@@ -166,10 +166,9 @@ export class SignalTracker {
           });
           
           if (isTrailingEligible && !trailingActivated && newMFE >= 1.0) {
-            // Достигнута прибыль 1.0R - активируем trailing stop на +0.5R
             const trailingSL = signal.direction === 'LONG'
-              ? entryPrice + (R * 0.5)  // LONG: SL выше entry на 0.5R
-              : entryPrice - (R * 0.5); // SHORT: SL ниже entry на 0.5R
+              ? entryPrice + (R * 0.5)
+              : entryPrice - (R * 0.5);
             
             console.log(`🔥 [Trailing Stop][${correlationId}] ACTIVATED at ${newMFE.toFixed(3)}R profit!`);
             console.log(`   📍 Entry: ${entryPrice.toFixed(8)}`);
@@ -179,20 +178,15 @@ export class SignalTracker {
             console.log(`   💰 Profit Protection: -1R loss → +0.5R profit guaranteed`);
             console.log(`   ⏰ Timestamp: ${new Date().toISOString()}`);
             
-            // ✅ NEW LOGIC: Always update SL in DB (for paper trading / monitoring)
-            // Only update Binance if live trade exists
             console.log(`\n📡 [SignalTracker][${correlationId}] Applying trailing stop...`);
             
-            // Get live trade to check if real position exists
             const liveTrade = await liveTradesDB.getLiveTradeBySignalId(signal.id);
             
             if (!liveTrade || !liveTrade.positionSize) {
-              // ⚠️ No live trade - update DB ONLY (paper trading mode)
               console.warn(`⚠️ [SignalTracker][${correlationId}] No live trade found - applying trailing in paper mode`);
               console.warn(`   ✅ Will update SL in DB (for monitoring)`);
               console.warn(`   ⏭️ Skip Binance update (no real position)`);
               
-              // ✅ Update DB with new trailing SL (same as real trade would have)
               console.log(`💾 [SignalTracker][${correlationId}] Updating trailing stop in DB (paper mode)...`);
               try {
                 await signalDB.updateTrailingStop(signal.id, trailingSL.toString(), true);
@@ -202,10 +196,8 @@ export class SignalTracker {
                 console.log(`   ✅ New SL will be used for TP/SL checks below`);
               } catch (dbError: any) {
                 console.error(`❌ [SignalTracker][${correlationId}] DB update failed:`, dbError.message);
-                // Continue with original SL if DB update fails
               }
               
-              // ✅ Send Telegram notification ONCE (informational, not error)
               if (!signal.trailingAlertSent) {
                 const alertMessage = `
 📊 <b>TRAILING STOP АКТИВИРОВАН (Paper Mode)</b>
@@ -225,10 +217,8 @@ export class SignalTracker {
                 await signalDB.updateSignal(signal.id, { trailingAlertSent: true });
               }
             } else {
-              // ✅ Live trade exists - proceed with trailing stop activation
               const positionSize = parseFloat(liveTrade.positionSize as string);
               
-              // Call Binance API to update SL
               const binanceResult = await binanceTradeExecutor.updateTrailingStop({
                 symbol: signal.symbol,
                 direction: signal.direction,
@@ -239,13 +229,11 @@ export class SignalTracker {
               });
               
               if (!binanceResult.success) {
-                // Binance update failed - DON'T update DB, alert user, but CONTINUE checking TP/SL
                 console.error(`❌ [SignalTracker][${correlationId}] Binance SL update FAILED: ${binanceResult.error}`);
                 console.error(`   ⚠️ Trailing stop NOT activated - DB and Binance remain in sync`);
                 console.error(`   ⚠️ Position still has original SL: ${parseFloat(signal.currentSl).toFixed(8)}`);
                 console.error(`   ⚠️ Signal will continue to be monitored for TP/SL with original SL`);
                 
-                // Send Telegram alert
                 const alertMessage = `
 ⚠️ <b>ОШИБКА ОБНОВЛЕНИЯ TRAILING STOP</b> ⚠️
 
@@ -260,14 +248,9 @@ export class SignalTracker {
                 `.trim();
                 
                 await this.sendTelegramMessage(alertMessage);
-                
-                // ✅ DON'T use continue - let the signal be checked for TP/SL below
-                // Skip DB update but continue monitoring
               } else {
-                // ✅ Binance SL updated successfully - update DB and local state
                 console.log(`✅ [SignalTracker][${correlationId}] Binance SL updated successfully: ${binanceResult.newSlOrderId}`);
                 
-                // 🔍 DIAGNOSTIC: Log DB update attempt (after successful Binance update)
                 console.log(`💾 [SignalTracker][${correlationId}] Updating trailing stop in DB...`);
                 try {
                   await signalDB.updateTrailingStop(signal.id, trailingSL.toString(), true);
@@ -275,16 +258,16 @@ export class SignalTracker {
                 } catch (dbError: any) {
                   console.error(`❌ [SignalTracker][${correlationId}] DB update failed:`, dbError.message);
                   console.error(`   ⚠️ WARNING: Binance has new SL but DB still has old SL - MANUAL FIX REQUIRED`);
-                  throw dbError; // Re-throw to prevent false positive
+                  throw dbError;
                 }
                 
-                // 🔍 DIAGNOSTIC: Log local state update
                 signal.currentSl = trailingSL.toString();
                 signal.trailingActivated = true;
                 console.log(`✅ [SignalTracker][${correlationId}] Local state updated: currentSl=${signal.currentSl}, trailingActivated=true`);
               }
             }
           }
+          END TRAILING STOP LOGIC */
           
           console.log(`🔍 [SignalTracker] Checking ${signal.symbol} (ID: ${signal.id}):`, {
             currentPrice: currentPrice.toFixed(8),
