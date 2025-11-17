@@ -433,7 +433,45 @@ export class SignalDB {
     const signalsCount = deletedSignals.rowCount || 0;
     console.log(`✅ [SignalDB] Deleted ${signalsCount} signals records`);
     
-    console.log('✅ [SignalDB] clearAllData completed successfully');
+    // ✅ RESET ID SEQUENCES to restart from 1
+    console.log('🔄 [SignalDB] Resetting ID sequences to restart from 1...');
+    
+    try {
+      await db.execute(sql`ALTER SEQUENCE signals_id_seq RESTART WITH 1`);
+      console.log('✅ [SignalDB] Reset signals_id_seq');
+    } catch (err) {
+      console.warn('⚠️ [SignalDB] Could not reset signals_id_seq (may not exist)');
+    }
+    
+    try {
+      await db.execute(sql`ALTER SEQUENCE live_trades_id_seq RESTART WITH 1`);
+      console.log('✅ [SignalDB] Reset live_trades_id_seq');
+    } catch (err) {
+      console.warn('⚠️ [SignalDB] Could not reset live_trades_id_seq (may not exist)');
+    }
+    
+    try {
+      await db.execute(sql`ALTER SEQUENCE near_miss_skips_id_seq RESTART WITH 1`);
+      console.log('✅ [SignalDB] Reset near_miss_skips_id_seq');
+    } catch (err) {
+      console.warn('⚠️ [SignalDB] Could not reset near_miss_skips_id_seq (may not exist)');
+    }
+    
+    try {
+      await db.execute(sql`ALTER SEQUENCE shadow_evaluations_id_seq RESTART WITH 1`);
+      console.log('✅ [SignalDB] Reset shadow_evaluations_id_seq');
+    } catch (err) {
+      console.warn('⚠️ [SignalDB] Could not reset shadow_evaluations_id_seq (may not exist)');
+    }
+    
+    try {
+      await db.execute(sql`ALTER SEQUENCE tracking_1m_shadow_id_seq RESTART WITH 1`);
+      console.log('✅ [SignalDB] Reset tracking_1m_shadow_id_seq');
+    } catch (err) {
+      console.warn('⚠️ [SignalDB] Could not reset tracking_1m_shadow_id_seq (may not exist)');
+    }
+    
+    console.log('✅ [SignalDB] clearAllData completed successfully - IDs will restart from 1');
     
     return {
       deletedCounts: {
