@@ -41,6 +41,10 @@ COPY (
     mae_r,
     created_at as signal_time,
     time_to_sl_min,
+    time_to_tp1_min,
+    time_to_tp2_min,
+    time_to_tp3_min,
+    time_to_be_min,
     atr_15m,
     free_path_r,
     clearance_1h,
@@ -49,7 +53,24 @@ COPY (
     actual_rr_tp2,
     actual_rr_tp3,
     multi_tf_alignment,
-    confluence_score
+    confluence_score,
+    be_activated,
+    trailing_activated,
+    partial_closed,
+    partial_close_p1,
+    partial_close_p2,
+    partial_close_p3,
+    initial_sl,
+    current_sl,
+    position_size,
+    spread_percent,
+    depth_1pct_bid,
+    depth_1pct_ask,
+    order_book_imbalance,
+    volume_24h_usdt,
+    dist_to_dir_h1_zone_atr,
+    dist_to_dir_h4_zone_atr,
+    arrival_pattern
   FROM signals
   WHERE 
     timeframe = '15m'
