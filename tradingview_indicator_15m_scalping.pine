@@ -1,6 +1,16 @@
 //@version=6
 indicator("15m Scalping Strategy - Pro", overlay=true, max_boxes_count=500, max_lines_count=500, max_labels_count=500)
 
+// ⚠️ ВАЖНОЕ ОГРАНИЧЕНИЕ:
+// Этот индикатор реализует УПРОЩЕННУЮ версию стратегии бота.
+// Некоторые фильтры НЕВОЗМОЖНО портировать в Pine Script:
+// - Zone-based TP/SL adjustment (требует HTF zone data)
+// - H1/H4 veto filters (требует multi-TF zone detection)
+// - Recent Direction Conflict (требует 10-bar context analysis)
+// - BTC trend correlation
+// - Family/open-position locks
+// Поэтому индикатор может показывать сигналы где бот их НЕ давал и наоборот!
+
 // ============================================
 // НАСТРОЙКИ ИНДИКАТОРА
 // ============================================
@@ -66,7 +76,7 @@ swingLow = ta.pivotlow(low, 2, 2)
 recentSwings = (not na(swingHigh) or not na(swingLow)) ? 1 : 0
 swingCount = math.sum(recentSwings, 20)  // последние 20 баров
 
-isChoppyMarket = swingCount <= 5  // ≤5 swings = choppy
+isChoppyMarket = swingCount < 6  // <6 swings = choppy (как в боте: MIN_SWING_COUNT=6)
 
 // ============================================
 // АНАЛИЗ СВЕЧЕЙ
@@ -445,57 +455,30 @@ if validSignal and not na(finalEntry) and not na(finalSL)
 // ВИЗУАЛИЗАЦИЯ
 // ============================================
 
-// Сигнал обнаружен
-var line entryLine = na
-var line slLine = na
-var line tp1Line = na
-var line tp2Line = na
-var line tp3Line = na
-var box riskBox = na
-var box rewardBox = na
-var label signalLabel = na
-
+// Сигнал обнаружен - рисуем ВСЕ сигналы на истории (НЕ удаляем!)
 if validSignal and barstate.isconfirmed
     barIndex = bar_index[1]
     
-    // Удаляем старые объекты (показываем только последний сигнал)
-    if not na(entryLine)
-        line.delete(entryLine)
-    if not na(slLine)
-        line.delete(slLine)
-    if not na(tp1Line)
-        line.delete(tp1Line)
-    if not na(tp2Line)
-        line.delete(tp2Line)
-    if not na(tp3Line)
-        line.delete(tp3Line)
-    if not na(riskBox)
-        box.delete(riskBox)
-    if not na(rewardBox)
-        box.delete(rewardBox)
-    if not na(signalLabel)
-        label.delete(signalLabel)
-    
-    // Рисуем Entry линию
-    entryLine := line.new(barIndex, finalEntry, bar_index + 50, finalEntry, color=colorEntry, width=2, style=line.style_solid)
+    // Рисуем Entry линию (создаем НОВУЮ каждый раз, не удаляем старые!)
+    line.new(barIndex, finalEntry, bar_index + 50, finalEntry, color=colorEntry, width=2, style=line.style_solid)
     
     // Рисуем SL линию
-    slLine := line.new(barIndex, finalSL, bar_index + 50, finalSL, color=colorSL, width=2, style=line.style_solid)
+    line.new(barIndex, finalSL, bar_index + 50, finalSL, color=colorSL, width=2, style=line.style_solid)
     
     // Рисуем TP линии
-    tp1Line := line.new(barIndex, finalTP1, bar_index + 50, finalTP1, color=color.new(colorTP, 60), width=1, style=line.style_dashed)
+    line.new(barIndex, finalTP1, bar_index + 50, finalTP1, color=color.new(colorTP, 60), width=1, style=line.style_dashed)
     
-    tp2Line := line.new(barIndex, finalTP2, bar_index + 50, finalTP2, color=colorTP, width=2, style=line.style_solid)
+    line.new(barIndex, finalTP2, bar_index + 50, finalTP2, color=colorTP, width=2, style=line.style_solid)
     
-    tp3Line := line.new(barIndex, finalTP3, bar_index + 50, finalTP3, color=color.new(colorTP, 30), width=1, style=line.style_dotted)
+    line.new(barIndex, finalTP3, bar_index + 50, finalTP3, color=color.new(colorTP, 30), width=1, style=line.style_dotted)
     
     // Зоны Risk/Reward
     if showZones
         // Risk зона (Entry → SL)
-        riskBox := box.new(barIndex, finalEntry, bar_index + 50, finalSL, border_color=color.new(colorSL, 50), bgcolor=color.new(colorSL, 85), border_width=1)
+        box.new(barIndex, finalEntry, bar_index + 50, finalSL, border_color=color.new(colorSL, 50), bgcolor=color.new(colorSL, 85), border_width=1)
         
         // Reward зона (Entry → TP2)
-        rewardBox := box.new(barIndex, finalEntry, bar_index + 50, finalTP2, border_color=color.new(colorTP, 50), bgcolor=color.new(colorTP, 90), border_width=1)
+        box.new(barIndex, finalEntry, bar_index + 50, finalTP2, border_color=color.new(colorTP, 50), bgcolor=color.new(colorTP, 90), border_width=1)
     
     // Метка с информацией
     if showLabels
@@ -508,7 +491,7 @@ if validSignal and barstate.isconfirmed
         labelOffset = math.abs(finalEntry - finalSL) * 0.5
         labelY = finalDirection == "LONG" ? finalSL - labelOffset : finalSL + labelOffset
         
-        signalLabel := label.new(barIndex, labelY, labelText, color=labelColor, textcolor=color.white, style=finalDirection == "LONG" ? label.style_label_down : label.style_label_up, size=size.normal)
+        label.new(barIndex, labelY, labelText, color=labelColor, textcolor=color.white, style=finalDirection == "LONG" ? label.style_label_down : label.style_label_up, size=size.normal)
 
 // Plot EMA для визуализации тренда
 plot(ema50, "EMA 50", color=color.new(color.orange, 0), linewidth=2)
