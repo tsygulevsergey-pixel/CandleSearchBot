@@ -267,6 +267,8 @@ export class Scanner {
                 // 📊 DATA COLLECTION: Log swing density for analysis
                 console.log(`📊 [15m Swing Data] ${symbol}: swingCount20=${contextAnalysis.swingCount20}`);
                 
+                // ❌ DISABLED: Recent Direction Filter (по запросу пользователя)
+                /*
                 // ✅ NEW: Recent Direction Filter - отклонять конфликты (trend vs recent)
                 // Если локальное движение ПРОТИВ направления сигнала → отклонить
                 const isRecentConflict = (
@@ -308,6 +310,7 @@ export class Scanner {
                   
                   continue; // Skip this signal
                 }
+                */
                 
                 // ✅ FIX: BLOCK choppy markets - статистически убыточно (29.4% имеют MFE 0.32R)
                 const isChoppyMarket = (
@@ -351,9 +354,12 @@ export class Scanner {
                   continue; // ✅ BLOCK choppy signals
                 }
                 
-                console.log(`✅ [Recent Direction Filter] Signal PASSED - recent движение согласовано`);
-                console.log(`   ✅ Signal: ${pattern.direction}, Trend: ${trend.direction}, Recent: ${contextAnalysis.recentDirection}`);
+                // ❌ DISABLED: Recent Direction success log (фильтр отключен)
+                // console.log(`✅ [Recent Direction Filter] Signal PASSED - recent движение согласовано`);
+                // console.log(`   ✅ Signal: ${pattern.direction}, Trend: ${trend.direction}, Recent: ${contextAnalysis.recentDirection}`);
                 
+                // ❌ DISABLED: Swing Density Filters (по запросу пользователя)
+                /*
                 // ✅ FIX: STRICT FILTER - Критически низкая активность (≤5 свингов = очень слабый рынок)
                 const CRITICAL_LOW_SWING_COUNT = 5;
                 if (contextAnalysis.swingCount20 <= CRITICAL_LOW_SWING_COUNT) {
@@ -434,6 +440,7 @@ export class Scanner {
                 
                 console.log(`✅ [15m Swing Filter] Swing density PASSED - ${contextAnalysis.swingCount20} swings (>=${MIN_SWING_COUNT})`);
                 console.log(`   ✅ High-quality market with sufficient swing activity`);
+                */
                 
                 // Create minimal enriched ML context for 15m (no multi-TF data needed)
                 const enrichedMLContext = {
