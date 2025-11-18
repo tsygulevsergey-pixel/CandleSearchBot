@@ -265,6 +265,22 @@ export class SignalDB {
     return this.calculateStats(allSignals, `dates: ${dates.join(', ')}`);
   }
 
+  async getAllSignals(): Promise<Signal[]> {
+    console.log('📊 [SignalDB] Fetching ALL signals from database...');
+    const allSignals = await db.select().from(signals);
+    console.log(`✅ [SignalDB] Fetched ${allSignals.length} signals`);
+    return allSignals;
+  }
+
+  async getSignalsByDate(date: string): Promise<Signal[]> {
+    console.log(`📊 [SignalDB] Fetching signals for date: ${date}`);
+    const signalsForDate = await db.select().from(signals).where(
+      sql`DATE(${signals.createdAt}) = ${date}`
+    );
+    console.log(`✅ [SignalDB] Found ${signalsForDate.length} signals for ${date}`);
+    return signalsForDate;
+  }
+
   async getStatistics() {
     const allSignals = await db.select().from(signals);
     

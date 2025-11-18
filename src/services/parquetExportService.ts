@@ -40,12 +40,12 @@ export class ParquetExportService {
       console.log(`✅ [ParquetExport] Shadow evaluations already exported for ${date}`);
     }
     
-    // Export signals (TODO: implement signals export)
-    // if (!hasSignalsExport) {
-    //   await this.exportSignals(date);
-    // } else {
-    //   console.log(`✅ [ParquetExport] Signals already exported for ${date}`);
-    // }
+    // Export signals
+    if (!hasSignalsExport) {
+      await this.exportSignals(date);
+    } else {
+      console.log(`✅ [ParquetExport] Signals already exported for ${date}`);
+    }
     
     console.log(`✅ [ParquetExport] Export completed for ${date}`);
   }
@@ -129,12 +129,8 @@ export class ParquetExportService {
     try {
       console.log(`📊 [ParquetExport] Exporting signals for ${date}...`);
       
-      // Get signals for date (TODO: add date filter to signalDB)
-      const signals = await signalDB.getAllSignals();
-      const signalsForDate = signals.filter((s: any) => {
-        const createdDate = new Date(s.createdAt).toISOString().split('T')[0];
-        return createdDate === date;
-      });
+      // Get signals for date using dedicated method
+      const signalsForDate = await signalDB.getSignalsByDate(date);
       
       if (signalsForDate.length === 0) {
         console.log(`⏭️ [ParquetExport] No signals for ${date}`);

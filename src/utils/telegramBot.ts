@@ -43,6 +43,7 @@ export class TelegramBot {
       { command: 'start', description: '🚀 Запустить бота' },
       { command: 'stats', description: '📊 Статистика (все сигналы)' },
       { command: 'stats_date', description: '📅 Статистика по датам' },
+      { command: 'export', description: '💾 Экспорт данных для анализа' },
       { command: 'help', description: '❓ Помощь' },
       { command: 'status', description: '📈 Статус сканера' },
       { command: 'trade_on', description: '🟢 Включить торговлю' },
@@ -139,6 +140,9 @@ export class TelegramBot {
         case '/clearsignals':
           await this.handleClearSignalsCommand(chatId);
           break;
+        case '/export':
+          await this.handleExportCommand(chatId);
+          break;
         default:
           await this.sendMessage('❓ Неизвестная команда. Используйте /help', chatId);
       }
@@ -179,6 +183,8 @@ export class TelegramBot {
 📱 <b>Команды:</b>
 /start - Приветственное сообщение
 /stats - Детальная статистика по сигналам
+/stats_date - Статистика по конкретным датам
+/export - Экспорт данных для анализа
 /status - Текущий статус и расписание
 /help - Эта справка
 
@@ -727,6 +733,153 @@ ${statusEmoji} <b>Статус:</b> ${statusText}
       
       await this.sendMessage(errorMessage, chatId);
     }
+  }
+
+  private async handleExportCommand(chatId: string): Promise<void> {
+    console.log('💾 [TelegramBot] Export data requested');
+    
+    await this.sendMessage('📦 Начинаю экспорт данных для анализа...', chatId);
+    
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      // Get all signals
+      const allSignals = await signalDB.getAllSignals();
+      
+      // Filter only 15m signals
+      const signals15m = allSignals.filter((s: any) => s.timeframe === '15m');
+      
+      console.log(`📊 [Export] Found ${signals15m.length} signals on 15m timeframe`);
+      
+      // Create export directory
+      const exportDir = './exports';
+      if (!fs.existsSync(exportDir)) {
+        fs.mkdirSync(exportDir, { recursive: true });
+      }
+      
+      // Create timestamp for filename
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `export_15m_${timestamp}.json`;
+      const filepath = path.join(exportDir, filename);
+      
+      // Prepare export data
+      const exportData = {
+        metadata: {
+          exportDate: new Date().toISOString(),
+          totalSignals: signals15m.length,
+          timeframe: '15m',
+        },
+        statistics: await this.calculate15mStats(signals15m),
+        signals: signals15m.map((s: any) => ({
+          // Basic info
+          id: s.id,
+          symbol: s.symbol,
+          timeframe: s.timeframe,
+          patternType: s.patternType,
+          direction: s.direction,
+          status: s.status,
+          createdAt: s.createdAt,
+          
+          // Prices
+          entryPrice: s.entryPrice,
+          slPrice: s.slPrice,
+          tp1Price: s.tp1Price,
+          tp2Price: s.tp2Price,
+          tp3Price: s.tp3Price,
+          
+          // Results
+          pnlR: s.pnlR,
+          pnlPercent: s.pnlPercent,
+          exitType: s.exitType,
+          
+          // Pattern Quality
+          patternScore: s.patternScore,
+          patternScoreFactors: s.patternScoreFactors,
+          
+          // Context
+          atr15m: s.atr15m,
+          clearance15m: s.clearance15m,
+          slBufferAtr15: s.slBufferAtr15,
+          
+          // Risk metrics
+          swingExtremePrice: s.swingExtremePrice,
+          slBufferAtr: s.slBufferAtr,
+          actualRrTp1: s.actualRrTp1,
+          actualRrTp2: s.actualRrTp2,
+          
+          // Trend alignment
+          trendAlignment: s.trendAlignment,
+        })),
+      };
+      
+      // Write to file
+      fs.writeFileSync(filepath, JSON.stringify(exportData, null, 2));
+      
+      console.log(`✅ [Export] Data exported to ${filepath}`);
+      
+      // Send results to user
+      const stats = exportData.statistics;
+      const message = `
+✅ <b>ЭКСПОРТ ЗАВЕРШЁН</b>
+
+📊 <b>Экспортировано сигналов 15m:</b> ${signals15m.length}
+
+📈 <b>Статистика:</b>
+• Win Rate: ${stats.winRate.toFixed(1)}%
+• Avg PnL: ${stats.avgPnlR.toFixed(2)}R
+• TP Hit: ${stats.tpHits} (${stats.tpRate.toFixed(1)}%)
+• SL Hit: ${stats.slHits} (${stats.slRate.toFixed(1)}%)
+• BE Hit: ${stats.beHits}
+
+📁 <b>Файл:</b> <code>${filename}</code>
+
+💡 <b>Как использовать:</b>
+1. Скачай файл из папки /exports на сервере
+2. Отправь мне файл в чат
+3. Я проанализирую, почему так много стопов
+
+🔍 <b>Чтобы скачать файл:</b>
+Используй SFTP/SCP или скопируй содержимое файла
+      `.trim();
+      
+      await this.sendMessage(message, chatId);
+      
+    } catch (error: any) {
+      console.error('❌ [Export] Failed to export data:', error.message);
+      await this.sendMessage(`❌ Ошибка экспорта: ${error.message}`, chatId);
+    }
+  }
+
+  private async calculate15mStats(signals: any[]): Promise<any> {
+    const tpHits = signals.filter(s => s.status === 'TP1_HIT' || s.status === 'TP2_HIT' || s.status === 'TP3_HIT').length;
+    const slHits = signals.filter(s => s.status === 'SL_HIT').length;
+    const beHits = signals.filter(s => s.status === 'BE_HIT').length;
+    const closed = signals.filter(s => s.status !== 'OPEN').length;
+    
+    const winRate = closed > 0 ? (tpHits / closed) * 100 : 0;
+    const tpRate = closed > 0 ? (tpHits / closed) * 100 : 0;
+    const slRate = closed > 0 ? (slHits / closed) * 100 : 0;
+    
+    const pnlRValues = signals
+      .filter(s => s.pnlR && !isNaN(parseFloat(s.pnlR)))
+      .map(s => parseFloat(s.pnlR));
+    
+    const avgPnlR = pnlRValues.length > 0 
+      ? pnlRValues.reduce((sum, val) => sum + val, 0) / pnlRValues.length
+      : 0;
+    
+    return {
+      total: signals.length,
+      closed,
+      tpHits,
+      slHits,
+      beHits,
+      winRate,
+      tpRate,
+      slRate,
+      avgPnlR,
+    };
   }
 
   private async handleClearSignalsCommand(chatId: string): Promise<void> {
