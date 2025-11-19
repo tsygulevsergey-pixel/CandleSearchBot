@@ -1,5 +1,5 @@
 import { binanceClient } from '../utils/binanceClient';
-import { patternDetector, calculateATR, analyzeSRZonesTV } from '../utils/candleAnalyzer';
+import { patternDetector, calculateATR, analyzeSRZonesTV, calculateAreaOfInterest } from '../utils/candleAnalyzer';
 import { riskCalculator } from '../utils/riskCalculator';
 import { calculateDynamicRiskProfile } from '../utils/dynamicRiskCalculator';
 import { signalDB, tradeSettingsDB } from '../mastra/storage/db';
@@ -88,7 +88,22 @@ export class Scanner {
               return;
             }
 
-            const patterns = patternDetector.detectAllPatterns(candles, timeframe);
+            // ✅ NEW: Calculate Area of Interest zones for 15m Pin Bar strategy
+            const areaOfInterest = timeframe === '15m' 
+              ? calculateAreaOfInterest(candles)
+              : undefined;
+            
+            if (areaOfInterest && timeframe === '15m') {
+              console.log(`\n🎯 [15m Area of Interest] Calculated zones for ${symbol}:`);
+              if (areaOfInterest.supportZone) {
+                console.log(`   🟢 Support Zone: [${areaOfInterest.supportZone.bottom.toFixed(8)}, ${areaOfInterest.supportZone.top.toFixed(8)}]`);
+              }
+              if (areaOfInterest.resistanceZone) {
+                console.log(`   🔴 Resistance Zone: [${areaOfInterest.resistanceZone.bottom.toFixed(8)}, ${areaOfInterest.resistanceZone.top.toFixed(8)}]`);
+              }
+            }
+
+            const patterns = patternDetector.detectAllPatterns(candles, timeframe, areaOfInterest);
 
             for (const pattern of patterns) {
               // Validate pattern has all required fields (including candleClosePrice)
@@ -208,7 +223,8 @@ export class Scanner {
                   pattern.type,
                   pattern.direction,
                   entryPrice,
-                  candles
+                  candles,
+                  areaOfInterest // ✅ Pass Area of Interest for zone-aware SL calculation
                 );
                 
                 console.log(`✅ [15m Risk] Risk profile calculated: SL=${riskProfile.sl.toFixed(8)}, TP=${riskProfile.tp2.toFixed(8)} (${riskProfile.meta.tp2R}R)`);
@@ -511,6 +527,11 @@ export class Scanner {
                   swingExtremePrice: swingExtreme.toString(),
                   zoneTestCount24h: 0, // Not tracked for 15m (no zone logic)
                   vetoReason: 'none',
+                  // ✅ NEW: Area of Interest zones (15m Pin Bar strategy)
+                  supportZoneBottom: areaOfInterest?.supportZone?.bottom?.toString(),
+                  supportZoneTop: areaOfInterest?.supportZone?.top?.toString(),
+                  resistanceZoneBottom: areaOfInterest?.resistanceZone?.bottom?.toString(),
+                  resistanceZoneTop: areaOfInterest?.resistanceZone?.top?.toString(),
                   multiTfAlignment: false, // 15m doesn't use multi-TF
                   atrVolatility: 'normal', // Could enhance this later
                   rrValidationPassed: true, // Already passed trend filter

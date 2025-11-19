@@ -184,8 +184,8 @@ export function calculateAreaOfInterest(candles: Candle[]): AreaOfInterest {
   // Get last 50 candles
   const last50 = candles.slice(-50);
   
-  // Calculate ATR for zone width
-  const atr = calculateATR(candles);
+  // ✅ Calculate ATR for zone width FROM LAST 50 CANDLES (not all candles!)
+  const atr = calculateATR(last50);
   
   // Collect all close + open prices from last 50 candles
   const allPrices: number[] = [];
@@ -724,7 +724,14 @@ export class PatternDetector {
       
       if (tailProtrusion) {
         // ✅ NEW: MANDATORY ZONE TOUCH FILTER (15m strategy)
-        if (areaOfInterest && areaOfInterest.supportZone) {
+        // If Area of Interest is provided, zone touch is MANDATORY
+        if (areaOfInterest) {
+          // Check if support zone exists (mandatory for LONG Pin Bar)
+          if (!areaOfInterest.supportZone) {
+            console.log(`   ❌ REJECT: Area of Interest provided but support zone MISSING (required for LONG Pin Bar)`);
+            return { detected: false };
+          }
+          
           const supportZone = areaOfInterest.supportZone;
           const ZONE_TOLERANCE_ATR = 0.3; // Tail can be ±0.3 ATR from zone
           
@@ -830,7 +837,14 @@ export class PatternDetector {
       
       if (tailProtrusion) {
         // ✅ NEW: MANDATORY ZONE TOUCH FILTER (15m strategy)
-        if (areaOfInterest && areaOfInterest.resistanceZone) {
+        // If Area of Interest is provided, zone touch is MANDATORY
+        if (areaOfInterest) {
+          // Check if resistance zone exists (mandatory for SHORT Pin Bar)
+          if (!areaOfInterest.resistanceZone) {
+            console.log(`   ❌ REJECT: Area of Interest provided but resistance zone MISSING (required for SHORT Pin Bar)`);
+            return { detected: false };
+          }
+          
           const resistanceZone = areaOfInterest.resistanceZone;
           const ZONE_TOLERANCE_ATR = 0.3; // Tail can be ±0.3 ATR from zone
           
@@ -1499,8 +1513,18 @@ export class PatternDetector {
     return { detected: false };
   }
 
-  detectAllPatterns(candles: Candle[], timeframe?: string): PatternResult[] {
+  /**
+   * Detect all patterns with optional Area of Interest zones for 15m strategy
+   * 
+   * @param candles - Array of candles for pattern detection
+   * @param timeframe - Timeframe for pattern detection (e.g., '15m', '1h', '4h')
+   * @param areaOfInterest - Optional Area of Interest zones (for 15m Pin Bar strategy)
+   */
+  detectAllPatterns(candles: Candle[], timeframe?: string, areaOfInterest?: AreaOfInterest): PatternResult[] {
     console.log(`\n🔍 [Pattern Detection] Starting pattern detection with ${candles.length} candles (TF: ${timeframe || 'unknown'})`);
+    if (areaOfInterest) {
+      console.log(`🎯 [Pattern Detection] Area of Interest zones provided for zone-aware filtering`);
+    }
     
     const results: PatternResult[] = [];
 
@@ -1519,7 +1543,7 @@ export class PatternDetector {
 
     // Детектируем паттерны и оцениваем их
     const patterns = [
-      this.detectPinBar(candles),
+      this.detectPinBar(candles, areaOfInterest), // ✅ Pass Area of Interest to Pin Bar detection
       this.detectFakey(candles, timeframe),
       this.detectPPR(candles, timeframe),
       this.detectEngulfing(candles, timeframe),
