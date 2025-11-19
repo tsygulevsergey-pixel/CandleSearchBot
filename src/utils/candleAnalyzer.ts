@@ -642,7 +642,14 @@ export class PatternDetector {
     return calculateATR(candles, period);
   }
 
-  detectPinBar(candles: Candle[]): PatternResult {
+  /**
+   * 🎯 PIN BAR DETECTION with Area of Interest filter (15m strategy)
+   * 
+   * @param candles - Array of candles for pattern analysis
+   * @param areaOfInterest - Optional Area of Interest zones (mandatory for 15m strategy)
+   * @returns Pattern result with detection status and score
+   */
+  detectPinBar(candles: Candle[], areaOfInterest?: AreaOfInterest): PatternResult {
     // Нужно минимум 6 свечей для ATR и проверки "выступания"
     if (candles.length < 6) return { detected: false };
 
@@ -716,6 +723,40 @@ export class PatternDetector {
       console.log(`   🔎 Tail protrusion check: C0.low=${C0.low.toFixed(8)}, minLow(${TAIL_LOOKBACK})=${minRecentLow.toFixed(8)}, threshold=${(minRecentLow - ATR_EPSILON * atr).toFixed(8)}`);
       
       if (tailProtrusion) {
+        // ✅ NEW: MANDATORY ZONE TOUCH FILTER (15m strategy)
+        if (areaOfInterest && areaOfInterest.supportZone) {
+          const supportZone = areaOfInterest.supportZone;
+          const ZONE_TOLERANCE_ATR = 0.3; // Tail can be ±0.3 ATR from zone
+          
+          // Check 1: Tail must touch or be within 0.3 ATR of support zone
+          const tailTouchesZone = (
+            C0.low >= supportZone.bottom - ZONE_TOLERANCE_ATR * atr &&
+            C0.low <= supportZone.top + ZONE_TOLERANCE_ATR * atr
+          );
+          
+          // Check 2: Body close must NOT be inside zone (must close outside/above)
+          const bodyOutsideZone = C0.close > supportZone.top;
+          
+          console.log(`\n🎯 [Zone Touch Filter] LONG Pin Bar zone check:`);
+          console.log(`   🟢 Support Zone: [${supportZone.bottom.toFixed(8)}, ${supportZone.top.toFixed(8)}]`);
+          console.log(`   📊 Pin Bar: tail=${C0.low.toFixed(8)}, body close=${C0.close.toFixed(8)}`);
+          console.log(`   ✅ Tail touches zone (±${ZONE_TOLERANCE_ATR}×ATR): ${tailTouchesZone ? 'YES' : 'NO'}`);
+          console.log(`   ✅ Body closes outside zone: ${bodyOutsideZone ? 'YES' : 'NO'}`);
+          
+          if (!tailTouchesZone) {
+            console.log(`   ❌ REJECT: Tail does NOT touch support zone (required for 15m strategy)`);
+            console.log(`      Tail at ${C0.low.toFixed(8)}, must be within [${(supportZone.bottom - ZONE_TOLERANCE_ATR * atr).toFixed(8)}, ${(supportZone.top + ZONE_TOLERANCE_ATR * atr).toFixed(8)}]`);
+            return { detected: false };
+          }
+          
+          if (!bodyOutsideZone) {
+            console.log(`   ❌ REJECT: Body closes INSIDE support zone (must close above ${supportZone.top.toFixed(8)})`);
+            return { detected: false };
+          }
+          
+          console.log(`   ✅✅ Zone touch filter PASSED - Pin Bar is valid rejection from support!`);
+        }
+        
         console.log(`   ✅✅ [Pattern] Pin Bar BUY detected (цвет НЕ важен, хвост выступает)`);
         console.log(`   🎯 RETURNING Entry=${C0.close}, CandleClose=${C0.close}`);
         
@@ -788,6 +829,40 @@ export class PatternDetector {
       console.log(`   🔎 Tail protrusion check: C0.high=${C0.high.toFixed(8)}, maxHigh(${TAIL_LOOKBACK})=${maxRecentHigh.toFixed(8)}, threshold=${(maxRecentHigh + ATR_EPSILON * atr).toFixed(8)}`);
       
       if (tailProtrusion) {
+        // ✅ NEW: MANDATORY ZONE TOUCH FILTER (15m strategy)
+        if (areaOfInterest && areaOfInterest.resistanceZone) {
+          const resistanceZone = areaOfInterest.resistanceZone;
+          const ZONE_TOLERANCE_ATR = 0.3; // Tail can be ±0.3 ATR from zone
+          
+          // Check 1: Tail must touch or be within 0.3 ATR of resistance zone
+          const tailTouchesZone = (
+            C0.high >= resistanceZone.bottom - ZONE_TOLERANCE_ATR * atr &&
+            C0.high <= resistanceZone.top + ZONE_TOLERANCE_ATR * atr
+          );
+          
+          // Check 2: Body close must NOT be inside zone (must close outside/below)
+          const bodyOutsideZone = C0.close < resistanceZone.bottom;
+          
+          console.log(`\n🎯 [Zone Touch Filter] SHORT Pin Bar zone check:`);
+          console.log(`   🔴 Resistance Zone: [${resistanceZone.bottom.toFixed(8)}, ${resistanceZone.top.toFixed(8)}]`);
+          console.log(`   📊 Pin Bar: tail=${C0.high.toFixed(8)}, body close=${C0.close.toFixed(8)}`);
+          console.log(`   ✅ Tail touches zone (±${ZONE_TOLERANCE_ATR}×ATR): ${tailTouchesZone ? 'YES' : 'NO'}`);
+          console.log(`   ✅ Body closes outside zone: ${bodyOutsideZone ? 'YES' : 'NO'}`);
+          
+          if (!tailTouchesZone) {
+            console.log(`   ❌ REJECT: Tail does NOT touch resistance zone (required for 15m strategy)`);
+            console.log(`      Tail at ${C0.high.toFixed(8)}, must be within [${(resistanceZone.bottom - ZONE_TOLERANCE_ATR * atr).toFixed(8)}, ${(resistanceZone.top + ZONE_TOLERANCE_ATR * atr).toFixed(8)}]`);
+            return { detected: false };
+          }
+          
+          if (!bodyOutsideZone) {
+            console.log(`   ❌ REJECT: Body closes INSIDE resistance zone (must close below ${resistanceZone.bottom.toFixed(8)})`);
+            return { detected: false };
+          }
+          
+          console.log(`   ✅✅ Zone touch filter PASSED - Pin Bar is valid rejection from resistance!`);
+        }
+        
         console.log(`   ✅✅ [Pattern] Pin Bar SELL detected (цвет НЕ важен, хвост выступает)`);
         console.log(`   🎯 RETURNING Entry=${C0.close}, CandleClose=${C0.close}`);
         
