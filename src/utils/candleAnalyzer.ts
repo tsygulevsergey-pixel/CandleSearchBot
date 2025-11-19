@@ -156,10 +156,11 @@ export function analyzeTrend(candles: Candle[], timeframe: string = '15m'): Tren
 /**
  * 🎯 AREA OF INTEREST CALCULATION (Pine Script logic)
  * 
- * Algorithm (from attached Pine Script file):
+ * Algorithm (from Mxwll Suite Pine Script indicator):
  * 1. Take last 50 candles (close + open prices)
  * 2. Find max/min of all prices
- * 3. Create zones:
+ * 3. Calculate ATR(14) from ALL candles (not just last 50!)
+ * 4. Create zones:
  *    - Support Zone (GREEN): [minPrice - ATR, minPrice]
  *    - Resistance Zone (RED): [maxPrice, maxPrice + ATR]
  * 
@@ -181,11 +182,12 @@ export function calculateAreaOfInterest(candles: Candle[]): AreaOfInterest {
     };
   }
   
-  // Get last 50 candles
+  // Get last 50 candles for price extremes
   const last50 = candles.slice(-50);
   
-  // ✅ Calculate ATR for zone width FROM LAST 50 CANDLES (not all candles!)
-  const atr = calculateATR(last50);
+  // ✅ Calculate ATR(14) from ALL candles (Pine Script: ta.atr(14))
+  // NOT from last 50! ATR should reflect overall market volatility
+  const atr = calculateATR(candles, 14);
   
   // Collect all close + open prices from last 50 candles
   const allPrices: number[] = [];
@@ -607,36 +609,12 @@ export function getDistanceToZone(price: number, zone: SRZone | null): number | 
   return (zone.lower - price) / price;
 }
 
-/**
- * Расчет ATR (Average True Range) для N свечей
- * Exported utility function for dead coin detection
- */
-export function calculateATR(candles: Candle[], period: number = 14): number {
-  if (candles.length < period + 1) return 0;
-  
-  let trSum = 0;
-  for (let i = candles.length - period; i < candles.length; i++) {
-    const curr = candles[i];
-    const prev = i > 0 ? candles[i - 1] : curr;
-    
-    const currHigh = Number(curr.high);
-    const currLow = Number(curr.low);
-    const prevClose = Number(prev.close);
-    
-    const high_low = currHigh - currLow;
-    const high_prevClose = Math.abs(currHigh - prevClose);
-    const low_prevClose = Math.abs(currLow - prevClose);
-    
-    const tr = Math.max(high_low, high_prevClose, low_prevClose);
-    trSum += tr;
-  }
-  
-  return trSum / period;
-}
+// NOTE: calculateATR is imported from atrCalculator.ts (no need to duplicate here!)
 
 export class PatternDetector {
   /**
    * Расчет ATR (Average True Range) для N свечей
+   * Uses imported calculateATR from atrCalculator.ts
    */
   private calculateATR(candles: Candle[], period: number = 5): number {
     return calculateATR(candles, period);

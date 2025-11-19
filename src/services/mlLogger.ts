@@ -12,7 +12,8 @@ import { getVWAPPosition } from '../utils/indicators/vwap';
 import { detectArrivalPattern } from '../utils/indicators/arrivalPattern';
 import { calculateStandardPlan, Zone } from '../utils/indicators/standardPlan';
 import { SKIP_REASONS, RULESET_VERSION, SkipReason } from '../types/skipReasons';
-import { analyzeSRZonesTV, calculateATR } from '../utils/candleAnalyzer';
+import { analyzeSRZonesTV } from '../utils/candleAnalyzer';
+import { calculateATR } from '../utils/atrCalculator';
 import type { DynamicRiskProfile } from '../utils/dynamicRiskCalculator';
 
 export interface MLContext {
