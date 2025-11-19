@@ -1,5 +1,6 @@
 import { Candle } from './binanceClient';
 import { findSRChannels, getNearestSupportChannel, getNearestResistanceChannel, SRChannel } from './srChannels';
+import { calculateATR } from './atrCalculator';
 
 export interface CandleMetrics {
   body: number;
@@ -21,6 +22,28 @@ export interface TrendAnalysis {
   isDowntrend: boolean;
   isNeutral: boolean; // Добавлено: нейтральный/ranging рынок
   currentPrice: number;
+}
+
+/**
+ * Area of Interest zones (from Pine Script logic)
+ * 
+ * Calculation: Last 50 candles (close + open)
+ * - Support Zone (GREEN): [minPrice - ATR, minPrice]
+ * - Resistance Zone (RED): [maxPrice, maxPrice + ATR]
+ * 
+ * Used for Pin Bar zone touch filter (mandatory for 15m strategy)
+ */
+export interface AreaOfInterest {
+  supportZone: {
+    top: number;      // minPrice (last 50 candles)
+    bottom: number;   // minPrice - ATR
+  } | null;
+  resistanceZone: {
+    top: number;      // maxPrice + ATR
+    bottom: number;   // maxPrice (last 50 candles)
+  } | null;
+  maxPrice: number;   // Max of close/open (last 50)
+  minPrice: number;   // Min of close/open (last 50)
 }
 
 export function analyzeCand(candle: Candle): CandleMetrics {
@@ -127,6 +150,75 @@ export function analyzeTrend(candles: Candle[], timeframe: string = '15m'): Tren
     isDowntrend,
     isNeutral,
     currentPrice,
+  };
+}
+
+/**
+ * 🎯 AREA OF INTEREST CALCULATION (Pine Script logic)
+ * 
+ * Algorithm (from attached Pine Script file):
+ * 1. Take last 50 candles (close + open prices)
+ * 2. Find max/min of all prices
+ * 3. Create zones:
+ *    - Support Zone (GREEN): [minPrice - ATR, minPrice]
+ *    - Resistance Zone (RED): [maxPrice, maxPrice + ATR]
+ * 
+ * Used for Pin Bar mandatory zone touch filter (15m strategy)
+ * 
+ * @param candles - Array of candles (minimum 50 required)
+ * @returns AreaOfInterest zones or null if insufficient data
+ */
+export function calculateAreaOfInterest(candles: Candle[]): AreaOfInterest {
+  console.log(`\n🎯 [Area of Interest] Calculating zones from last 50 candles...`);
+  
+  if (candles.length < 50) {
+    console.warn(`⚠️ [Area of Interest] Insufficient candles: ${candles.length} < 50`);
+    return {
+      supportZone: null,
+      resistanceZone: null,
+      maxPrice: 0,
+      minPrice: 0,
+    };
+  }
+  
+  // Get last 50 candles
+  const last50 = candles.slice(-50);
+  
+  // Calculate ATR for zone width
+  const atr = calculateATR(candles);
+  
+  // Collect all close + open prices from last 50 candles
+  const allPrices: number[] = [];
+  for (const candle of last50) {
+    allPrices.push(Number(candle.close));
+    allPrices.push(Number(candle.open));
+  }
+  
+  // Find extremes
+  const maxPrice = Math.max(...allPrices);
+  const minPrice = Math.min(...allPrices);
+  
+  // Create zones
+  const supportZone = {
+    top: minPrice,
+    bottom: minPrice - atr,
+  };
+  
+  const resistanceZone = {
+    top: maxPrice + atr,
+    bottom: maxPrice,
+  };
+  
+  console.log(`✅ [Area of Interest] Zones calculated:`);
+  console.log(`   🟢 SUPPORT (GREEN): [${supportZone.bottom.toFixed(8)}, ${supportZone.top.toFixed(8)}] (width: ${atr.toFixed(8)})`);
+  console.log(`   🔴 RESISTANCE (RED): [${resistanceZone.bottom.toFixed(8)}, ${resistanceZone.top.toFixed(8)}] (width: ${atr.toFixed(8)})`);
+  console.log(`   📊 Price range: ${minPrice.toFixed(8)} → ${maxPrice.toFixed(8)}`);
+  
+  return {
+    supportZone,
+    resistanceZone,
+    maxPrice,
+    minPrice,
   };
 }
 
