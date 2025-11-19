@@ -1,5 +1,5 @@
 import { Candle } from './binanceClient';
-import { analyzeCand } from './candleAnalyzer';
+import { analyzeCand, AreaOfInterest } from './candleAnalyzer';
 import { calculateATR, atrToPrice } from './atrCalculator';
 import { 
   findSRChannels, 
@@ -693,19 +693,22 @@ export class RiskCalculator {
   }
 
   /**
-   * 🎯 SPECIAL METHOD FOR 15M TIMEFRAME
+   * 🎯 SPECIAL METHOD FOR 15M TIMEFRAME (WITH ZONE-AWARE SL)
    * 
-   * Simpler logic for scalping on 15m:
-   * - SL: max of pattern candles + 0.6x ATR buffer (increased from 0.3 for fewer false stops)
-   * - TP: 2R (single level, no TP1/TP3)
+   * Scalping logic for 15m with Area of Interest zones:
+   * - SL (zone-aware): Support/Resistance zone boundary + 0.3x ATR (Pin Bar strategy)
+   * - SL (fallback): max of pattern candles + 0.6x ATR buffer (if no zones)
+   * - TP: Dynamic 1.7-2R based on SL width
    * 
+   * @param areaOfInterest - Optional Area of Interest zones for zone-aware SL (15m strategy)
    * @returns Simple risk profile with only TP2 (2R)
    */
   calculate15mRiskProfile(
     patternType: string,
     direction: 'LONG' | 'SHORT',
     entryPrice: number,
-    candles15m: Candle[]
+    candles15m: Candle[],
+    areaOfInterest?: AreaOfInterest
   ): RiskProfile {
     const logger = console;
     logger.log(`🎯 [RiskCalculator] calculate15mRiskProfile for ${patternType} ${direction} @ ${entryPrice.toFixed(8)}`);
@@ -713,21 +716,55 @@ export class RiskCalculator {
     // Calculate ATR for 15m
     const atr15m = calculateATR(candles15m);
 
-    // Find max/min of recent pattern candles (last 5 candles for pattern)
-    const patternCandles = candles15m.slice(-5);
-    const patternHigh = Math.max(...patternCandles.map((c) => Number(c.high)));
-    const patternLow = Math.min(...patternCandles.map((c) => Number(c.low)));
-
-    // Calculate SL: max/min of pattern + 0.6x ATR buffer (increased from 0.3 to reduce false stops)
-    const atrBuffer = atrToPrice(atr15m, 0.60);
+    // ✅ NEW: ZONE-AWARE SL CALCULATION (15m Pin Bar strategy)
+    // If Area of Interest zones are provided, use them for more precise SL placement
     let sl: number;
-
-    if (direction === 'LONG') {
-      sl = patternLow - atrBuffer;
-      logger.log(`📉 [15m LONG] SL = patternLow (${patternLow.toFixed(8)}) - 0.6×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+    
+    if (areaOfInterest) {
+      // Zone-aware SL: Place SL beyond zone boundary + 0.3 ATR
+      const zoneBuffer = atrToPrice(atr15m, 0.30);
+      
+      if (direction === 'LONG' && areaOfInterest.supportZone) {
+        // LONG: SL below support zone bottom
+        sl = areaOfInterest.supportZone.bottom - zoneBuffer;
+        logger.log(`🟢 [15m LONG] Zone-aware SL = supportZone.bottom (${areaOfInterest.supportZone.bottom.toFixed(8)}) - 0.3×ATR (${zoneBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+        logger.log(`   📊 Support Zone: [${areaOfInterest.supportZone.bottom.toFixed(8)}, ${areaOfInterest.supportZone.top.toFixed(8)}]`);
+      } else if (direction === 'SHORT' && areaOfInterest.resistanceZone) {
+        // SHORT: SL above resistance zone top
+        sl = areaOfInterest.resistanceZone.top + zoneBuffer;
+        logger.log(`🔴 [15m SHORT] Zone-aware SL = resistanceZone.top (${areaOfInterest.resistanceZone.top.toFixed(8)}) + 0.3×ATR (${zoneBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+        logger.log(`   📊 Resistance Zone: [${areaOfInterest.resistanceZone.bottom.toFixed(8)}, ${areaOfInterest.resistanceZone.top.toFixed(8)}]`);
+      } else {
+        // Fallback: Zone not available, use pattern extreme
+        logger.log(`⚠️ [15m] Zone not available for ${direction}, using fallback pattern-based SL`);
+        const patternCandles = candles15m.slice(-5);
+        const patternHigh = Math.max(...patternCandles.map((c) => Number(c.high)));
+        const patternLow = Math.min(...patternCandles.map((c) => Number(c.low)));
+        const atrBuffer = atrToPrice(atr15m, 0.60);
+        
+        if (direction === 'LONG') {
+          sl = patternLow - atrBuffer;
+          logger.log(`📉 [15m LONG] Fallback SL = patternLow (${patternLow.toFixed(8)}) - 0.6×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+        } else {
+          sl = patternHigh + atrBuffer;
+          logger.log(`📈 [15m SHORT] Fallback SL = patternHigh (${patternHigh.toFixed(8)}) + 0.6×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+        }
+      }
     } else {
-      sl = patternHigh + atrBuffer;
-      logger.log(`📈 [15m SHORT] SL = patternHigh (${patternHigh.toFixed(8)}) + 0.6×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+      // No zones provided: Use traditional pattern-based SL
+      logger.log(`ℹ️ [15m] No Area of Interest provided, using traditional pattern-based SL`);
+      const patternCandles = candles15m.slice(-5);
+      const patternHigh = Math.max(...patternCandles.map((c) => Number(c.high)));
+      const patternLow = Math.min(...patternCandles.map((c) => Number(c.low)));
+      const atrBuffer = atrToPrice(atr15m, 0.60);
+      
+      if (direction === 'LONG') {
+        sl = patternLow - atrBuffer;
+        logger.log(`📉 [15m LONG] SL = patternLow (${patternLow.toFixed(8)}) - 0.6×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+      } else {
+        sl = patternHigh + atrBuffer;
+        logger.log(`📈 [15m SHORT] SL = patternHigh (${patternHigh.toFixed(8)}) + 0.6×ATR (${atrBuffer.toFixed(8)}) = ${sl.toFixed(8)}`);
+      }
     }
 
     // Calculate TP: dynamic R based on SL size
