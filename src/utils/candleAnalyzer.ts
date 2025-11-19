@@ -668,13 +668,17 @@ export class PatternDetector {
       return { detected: false };
     }
     
-    // Параметры пинбара
-    const BODY_MAX_FRACTION = 0.33;
-    const EDGE_THRESHOLD = 0.25;
-    const TAIL_BODY_RATIO_MIN = 2.0;
-    const LONG_TAIL_RANGE_MIN = 0.66; // Softened from 0.60 for 15m (66% tail ratio)
-    const OPP_TAIL_RANGE_MAX = 0.20;
-    const OPP_TAIL_BODY_MAX = 0.50;
+    // ✅ NEW: Параметры пинбара (RELAXED GEOMETRY для 15m)
+    // Relaxed from strict requirements (body 33%→40%, tail 66%→55%, opp 20%→30%, tail/body 2.0×→1.5×)
+    const BODY_MAX_FRACTION = 0.40;      // Body ≤ 40% range (was 33%)
+    const LONG_TAIL_RANGE_MIN = 0.55;    // Tail ≥ 55% range (was 66%)
+    const OPP_TAIL_RANGE_MAX = 0.30;     // Opposite tail ≤ 30% range (was 20%)
+    const TAIL_BODY_RATIO_MIN = 1.5;     // Tail ≥ 1.5× body (was 2.0×)
+    
+    // Unchanged parameters
+    const EDGE_THRESHOLD = 0.25;         // Body at edge threshold
+    const OPP_TAIL_BODY_MAX = 0.50;      // Opposite tail vs body (unchanged)
+    const MIN_RANGE_ATR = 0.3;           // ✅ NEW: Min range filter (0.3 ATR) to reject micro-candles
     
     // Параметры "выступания"
     const ATR_LOOKBACK = 5;
@@ -684,6 +688,15 @@ export class PatternDetector {
     const atr = this.calculateATR(candles, ATR_LOOKBACK);
     
     console.log(`\n🔍 [Pinbar] Analyzing C0: R=${R.toFixed(8)}, B=${B.toFixed(8)}, U=${U.toFixed(8)}, D=${D.toFixed(8)}, ATR=${atr.toFixed(8)}`);
+    
+    // ✅ NEW: Min range filter - reject micro-candles on dead markets
+    if (R < MIN_RANGE_ATR * atr) {
+      console.log(`⏭️ [Pinbar] REJECTED: Range too small (${R.toFixed(8)} < ${(MIN_RANGE_ATR * atr).toFixed(8)} = ${MIN_RANGE_ATR}×ATR)`);
+      console.log(`   📊 Micro-candle detected - skipping to avoid noise on dead market`);
+      return { detected: false };
+    }
+    
+    console.log(`✅ [Pinbar] Range check PASSED: ${R.toFixed(8)} >= ${(MIN_RANGE_ATR * atr).toFixed(8)} (${MIN_RANGE_ATR}×ATR)`);
     
     // ========== ЛОНГ ПИНБАР (нижний хвост) ==========
     const bodyMaxLong = B <= BODY_MAX_FRACTION * R;
