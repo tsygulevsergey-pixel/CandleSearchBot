@@ -98,6 +98,14 @@ export const signals = pgTable('signals', {
   vetoReason: vetoReasonEnum('veto_reason'),
   slBufferAtr15: decimal('sl_buffer_atr15', { precision: 10, scale: 4 }),
   
+  // ✅ NEW: Area of Interest zones (15m Pin Bar strategy)
+  // Support zone (GREEN) - calculated from last 50 candles min low ± ATR
+  supportZoneBottom: decimal('support_zone_bottom', { precision: 18, scale: 8 }),
+  supportZoneTop: decimal('support_zone_top', { precision: 18, scale: 8 }),
+  // Resistance zone (RED) - calculated from last 50 candles max high ± ATR
+  resistanceZoneBottom: decimal('resistance_zone_bottom', { precision: 18, scale: 8 }),
+  resistanceZoneTop: decimal('resistance_zone_top', { precision: 18, scale: 8 }),
+  
   // Pattern Quality Metrics
   patternScore: decimal('pattern_score', { precision: 6, scale: 2 }), // 0-10 (supports up to 9999.99)
   patternScoreFactors: jsonb('pattern_score_factors'), // {tailBodyRatio, motherBarSize, etc}
