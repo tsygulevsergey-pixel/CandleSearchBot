@@ -213,45 +213,55 @@ export class Scanner {
                 console.log(`   📊 EMA20: ${trend.ema20.toFixed(8)}, EMA50: ${trend.ema50.toFixed(8)}`);
                 console.log(`   📊 Swing: ${trend.details.swingStructure}, EMA aligned: ${trend.details.emaAlignment}, Price vs EMA: ${trend.details.priceVsEma}`);
                 
-                // Step 2: Check if pattern aligns with trend (minStrength=50 - allows pullbacks!)
-                console.log(`📊 [15m Trend Filter] Step 2: Checking pattern alignment with trend (minStrength=50)...`);
-                const isAligned = isPatternWithTrend(pattern.direction, trend, 50);
+                // ⚠️ DISABLED FOR PIN BAR: Trend Alignment Filter (по запросу пользователя - работаем только от зон)
+                // Pin Bar полагается только на Area of Interest, другие паттерны используют Trend Alignment
+                const isPinBar = pattern.type === 'pinbar_buy' || pattern.type === 'pinbar_sell';
                 
-                if (!isAligned) {
-                  console.log(`❌ [15m Trend Filter] Signal REJECTED - pattern NOT aligned with trend`);
-                  console.log(`   ⚠️ Pattern: ${pattern.direction}, Trend: ${trend.direction} (${trend.strength}%), Required: 50%`);
-                  console.log(`   ⚠️ Skipping ${symbol} - 15m patterns MUST align with trend (LONG+UPTREND or SHORT+DOWNTREND)`);
+                if (!isPinBar) {
+                  // Step 2: Check if pattern aligns with trend (minStrength=50 - allows pullbacks!)
+                  // ✅ ACTIVE for non-PinBar patterns (Engulfing, Fakey, PPR, etc.)
+                  console.log(`📊 [15m Trend Filter] Step 2: Checking pattern alignment with trend (minStrength=50)...`);
+                  const isAligned = isPatternWithTrend(pattern.direction, trend, 50);
                   
-                  // Log as near-miss skip for ML analysis
-                  const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
-                  await logNearMissSkipFull({
-                    symbol,
-                    timeframe,
-                    patternType: pattern.type,
-                    entryPrice,
-                    direction: pattern.direction,
-                    skipReason: SKIP_REASONS.TREND_MISALIGNMENT,
-                    skipCategory: 'directional',
-                    confluenceScore: 0,
-                    confluenceFactors: {} as any,
-                    patternScore: pattern.score || 0,
-                    patternScoreFactors: {},
-                    mlContext: {
-                      trendDirection: trend.direction,
-                      trendStrength: trend.strength,
-                      ema20: trend.ema20,
-                      ema50: trend.ema50,
-                    } as any,
-                    atr15m: calculateATR(candles),
-                    atr1h: 0,
-                    atr4h: 0,
-                  });
+                  if (!isAligned) {
+                    console.log(`❌ [15m Trend Filter] Signal REJECTED - pattern NOT aligned with trend`);
+                    console.log(`   ⚠️ Pattern: ${pattern.direction}, Trend: ${trend.direction} (${trend.strength}%), Required: 50%`);
+                    console.log(`   ⚠️ Skipping ${symbol} - 15m patterns MUST align with trend (LONG+UPTREND or SHORT+DOWNTREND)`);
+                    
+                    // Log as near-miss skip for ML analysis
+                    const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
+                    await logNearMissSkipFull({
+                      symbol,
+                      timeframe,
+                      patternType: pattern.type,
+                      entryPrice,
+                      direction: pattern.direction,
+                      skipReason: SKIP_REASONS.TREND_MISALIGNMENT,
+                      skipCategory: 'directional',
+                      confluenceScore: 0,
+                      confluenceFactors: {} as any,
+                      patternScore: pattern.score || 0,
+                      patternScoreFactors: {},
+                      mlContext: {
+                        trendDirection: trend.direction,
+                        trendStrength: trend.strength,
+                        ema20: trend.ema20,
+                        ema50: trend.ema50,
+                      } as any,
+                      atr15m: calculateATR(candles),
+                      atr1h: 0,
+                      atr4h: 0,
+                    });
+                    
+                    continue; // Skip this signal
+                  }
                   
-                  continue; // Skip this signal
+                  console.log(`✅ [15m Trend Filter] Pattern ALIGNED with trend - proceeding with signal`);
+                  console.log(`   ✅ Pattern: ${pattern.direction}, Trend: ${trend.direction} (${trend.strength}%)`);
+                } else {
+                  console.log(`⚠️ [15m Pin Bar] TREND FILTER DISABLED - using Area of Interest zones only`);
+                  console.log(`   📊 Trend info (for logging): ${trend.direction} (${trend.strength}%)`);
                 }
-                
-                console.log(`✅ [15m Trend Filter] Pattern ALIGNED with trend - proceeding with signal`);
-                console.log(`   ✅ Pattern: ${pattern.direction}, Trend: ${trend.direction} (${trend.strength}%)`);
                 
                 // Step 3: Use calculate15mRiskProfile for trend-aligned 15m signals
                 console.log(`🎯 [15m Risk] Calculating 15m-specific risk profile for ${symbol}...`);
@@ -364,46 +374,59 @@ export class Scanner {
                 }
                 */
                 
-                // ✅ FIX: BLOCK choppy markets - статистически убыточно (29.4% имеют MFE 0.32R)
+                // Calculate choppy market status (for logging and filtering)
                 const isChoppyMarket = (
                   (pattern.direction === 'SHORT' && trend.direction === 'DOWNTREND' && contextAnalysis.recentDirection === 'choppy') ||
                   (pattern.direction === 'LONG' && trend.direction === 'UPTREND' && contextAnalysis.recentDirection === 'choppy')
                 );
                 
-                if (isChoppyMarket) {
-                  console.log(`❌ [Choppy Market Filter] Signal REJECTED - локальная консолидация`);
-                  console.log(`   Signal: ${pattern.direction}, Trend: ${trend.direction}, Recent: choppy`);
-                  console.log(`   📊 Статистика: 29.4% choppy сигналов имеют средний MFE 0.32R (хуже обычного)`);
-                  console.log(`   ⚠️ Skipping ${symbol} - флэт/консолидация на фоне тренда = высокий риск разворота`);
+                // ⚠️ DISABLED FOR PIN BAR: Choppy Market Filter (по запросу пользователя - работаем только от зон)
+                // Pin Bar полагается только на Area of Interest, другие паттерны используют Choppy Market Filter
+                if (!isPinBar) {
+                  // ✅ ACTIVE for non-PinBar patterns (Engulfing, Fakey, PPR, etc.)
+                  if (isChoppyMarket) {
+                    console.log(`❌ [Choppy Market Filter] Signal REJECTED - локальная консолидация`);
+                    console.log(`   Signal: ${pattern.direction}, Trend: ${trend.direction}, Recent: choppy`);
+                    console.log(`   📊 Статистика: 29.4% choppy сигналов имеют средний MFE 0.32R (хуже обычного)`);
+                    console.log(`   ⚠️ Skipping ${symbol} - флэт/консолидация на фоне тренда = высокий риск разворота`);
+                    
+                    // Log as near-miss skip for ML analysis
+                    const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
+                    await logNearMissSkipFull({
+                      symbol,
+                      timeframe,
+                      patternType: pattern.type,
+                      entryPrice,
+                      direction: pattern.direction,
+                      skipReason: 'CHOPPY_MARKET_CONSOLIDATION',
+                      skipCategory: 'bad_context',
+                      confluenceScore: 0,
+                      confluenceFactors: {} as any,
+                      patternScore: pattern.score || 0,
+                      patternScoreFactors: {},
+                      mlContext: {
+                        trendDirection: trend.direction,
+                        trendStrength: trend.strength,
+                        ema20: trend.ema20,
+                        ema50: trend.ema50,
+                        recentDirection: contextAnalysis.recentDirection,
+                        swingCount20: contextAnalysis.swingCount20,
+                      } as any,
+                      atr15m: calculateATR(candles),
+                      atr1h: 0,
+                      atr4h: 0,
+                    });
+                    
+                    continue; // ✅ BLOCK choppy signals
+                  }
                   
-                  // Log as near-miss skip for ML analysis
-                  const { logNearMissSkip: logNearMissSkipFull } = await import('./nearMissLogger');
-                  await logNearMissSkipFull({
-                    symbol,
-                    timeframe,
-                    patternType: pattern.type,
-                    entryPrice,
-                    direction: pattern.direction,
-                    skipReason: 'CHOPPY_MARKET_CONSOLIDATION',
-                    skipCategory: 'bad_context',
-                    confluenceScore: 0,
-                    confluenceFactors: {} as any,
-                    patternScore: pattern.score || 0,
-                    patternScoreFactors: {},
-                    mlContext: {
-                      trendDirection: trend.direction,
-                      trendStrength: trend.strength,
-                      ema20: trend.ema20,
-                      ema50: trend.ema50,
-                      recentDirection: contextAnalysis.recentDirection,
-                      swingCount20: contextAnalysis.swingCount20,
-                    } as any,
-                    atr15m: calculateATR(candles),
-                    atr1h: 0,
-                    atr4h: 0,
-                  });
-                  
-                  continue; // ✅ BLOCK choppy signals
+                  console.log(`✅ [Choppy Market Filter] Signal PASSED - no choppy consolidation detected`);
+                } else {
+                  console.log(`⚠️ [15m Pin Bar] CHOPPY MARKET FILTER DISABLED - using Area of Interest zones only`);
+                  console.log(`   📊 Recent direction (for logging): ${contextAnalysis.recentDirection}`);
+                  if (isChoppyMarket) {
+                    console.log(`   ⚠️ Note: Market is choppy but filter is DISABLED for Pin Bar`);
+                  }
                 }
                 
                 // ❌ DISABLED: Recent Direction success log (фильтр отключен)
